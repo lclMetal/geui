@@ -60,6 +60,7 @@ typedef struct WindowStruct
 }Window;
 
 void initGEUI(void);
+WindowItem *addText(Window *window, char tag[256], char *string);
 //GEUI_Item newText(char *string);
 //GEUI_Item newButton(Text text, void (*actionFunction)(Window *win, WindowItem *item));
 void destroyWindowItem(WindowItem *ptr);
@@ -98,6 +99,58 @@ void initGEUI(void)
     GEUIController.wIndex = 0;
     GEUIController.sDefault = defStyle;
     GEUIController.wList = NULL;
+}
+
+WindowItem *addText(Window *window, char tag[256], char *string)
+{
+    WindowItem *ptr = NULL;
+    
+    if (!window) return NULL;
+    
+    ptr = malloc(sizeof *ptr);
+    
+    if (!ptr) return NULL;
+    
+    ptr->index = window->iIndex ++;
+    strcpy(ptr->tag, tag);
+    ptr->data.text.text = createText(string, window->style.textFont, "(none)", ABSOLUTE, 0, 0);
+    setTextColor(&ptr->data.text.text, window->style.textColor);
+    
+    ptr->next = window->iList;
+    window->iList = ptr;
+    
+    return ptr;
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    /*WindowItem *ptr = NULL;
+    
+    if (!window) return NULL;
+    
+    ptr = malloc(sizeof *ptr);
+    
+    if (!ptr) return NULL;
+    
+    ptr->index = window->iIndex ++;
+    strcpy(ptr->tag, tag);
+    ptr->next = window->iList;
+    
+    ptr->item = item;
+    
+    switch (ptr->item.type)
+    {
+        case GEUI_Text: refreshText(&ptr->item.data.text.text); break;
+        default: break;
+    }
+    
+    window->iList = ptr;
+    return ptr;*/
 }
 
 /*GEUI_Item newText(char *string)
