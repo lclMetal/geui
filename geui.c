@@ -1,5 +1,5 @@
-typedef struct WindowStruct Window;
-typedef struct WindowItemStruct WindowItem;
+/*typedef struct WindowStruct Window;
+typedef struct WindowItemStruct WindowItem;*/
 
 typedef enum ItemTypeEnum
 {
@@ -7,7 +7,7 @@ typedef enum ItemTypeEnum
     GEUI_Button
 }ItemType;
 
-typedef struct GEUI_ItemStruct
+/*typedef struct GEUI_ItemStruct
 {
     ItemType type;
     
@@ -21,38 +21,55 @@ typedef struct GEUI_ItemStruct
             void (*actionFunction)(Window *win, WindowItem *item);
         }button;
     }data;
-}GEUI_Item;
+}GEUI_Item;*/
 
-struct WindowItemStruct
+typedef struct WindowItemStruct
 {
     int index;          // item index
     char tag[256];      // item identifier tag
-    GEUI_Item item;     // item container
-    Window *parent;     // pointer to parent window
-    WindowItem *next;   // pointer to next item in list    
-};
+    
+    ItemType type;
+    
+    union ItemVarsUnion
+    {
+        struct TextItem     { Text text; }text;
+        struct ButtonItem
+        {
+            Text text;
+            short state;
+            void (*actionFunction)(struct WindowStruct *win, struct WindowItemStruct *item);
+        }button;
+    }data;
+    
+    
+    //GEUI_Item item;     // item container
+    
+    
+    struct WindowStruct *parent;     // pointer to parent window
+    struct WindowItemStruct *next;   // pointer to next item in list    
+}WindowItem;
 
-struct WindowStruct
+typedef struct WindowStruct
 {
     int index;          // window index
     int iIndex;         // next available item index
     char tag[256];      // window identifier tag
     Style style;        // window style
-    WindowItem *iList;  // list of items in window
-    Window *next;       // pointer to next window in list
-};
+    struct WindowItemStruct *iList;  // list of items in window
+    struct WindowStruct *next;       // pointer to next window in list
+}Window;
 
 void initGEUI(void);
-GEUI_Item newText(char *string);
-GEUI_Item newButton(Text text, void (*actionFunction)(Window *win, WindowItem *item));
-void destroyGEUI_Item(GEUI_Item *ptr);
+//GEUI_Item newText(char *string);
+//GEUI_Item newButton(Text text, void (*actionFunction)(Window *win, WindowItem *item));
+void destroyWindowItem(WindowItem *ptr);
 int calculateAnimpos(unsigned short w, unsigned short h, unsigned short i, unsigned short j);
 Window *createWindow(char tag[256]);
 Window *searchWindow(char tag[256]);
 Window *openWindow(char tag[256]);
 void destroyWindowList(void);
-WindowItem *addToWindow(Window *window, char tag[256], GEUI_Item item);
-void destroyWindowItem(WindowItem *ptr);
+//WindowItem *addToWindow(Window *window, char tag[256], GEUI_Item item);
+//void destroyWindowItem(WindowItem *ptr);
 void destroyWindowItemList(Window *window);
 
 struct GEUIControllerStruct
@@ -83,7 +100,7 @@ void initGEUI(void)
     GEUIController.wList = NULL;
 }
 
-GEUI_Item newText(char *string)
+/*GEUI_Item newText(char *string)
 {
     GEUI_Item item;
     
@@ -104,9 +121,22 @@ GEUI_Item newButton(Text text, void (*actionFunction)(Window *win, WindowItem *i
     item.data.button.actionFunction = actionFunction;
     
     return item;
-}
+}*/
 
-void destroyGEUI_Item(GEUI_Item *ptr)
+/*void destroyGEUI_Item(GEUI_Item *ptr)
+{
+    if (!ptr) return;
+    
+    switch (ptr->type)
+    {
+        case GEUI_Text: destroyText(&ptr->data.text.text); break;
+        case GEUI_Button: break;
+        
+        default: break;
+    }
+}*/
+
+void destroyWindowItem(WindowItem *ptr)
 {
     if (!ptr) return;
     
@@ -188,12 +218,12 @@ Window *openWindow(char tag[256])
     
     while (ptr)
     {
-        switch (ptr->item.type)
+        switch (ptr->type)
         {
             case GEUI_Text:
-                width = ptr->item.data.text.text.width;
-                height = ptr->item.data.text.text.height;
-                refreshText(&ptr->item.data.text.text);
+                width = ptr->data.text.text.width;
+                height = ptr->data.text.text.height;
+                refreshText(&ptr->data.text.text);
             break;
             default: break;
         }
@@ -240,7 +270,7 @@ void destroyWindowList(void)
     GEUIController.wIndex = 0;
 }
 
-WindowItem *addToWindow(Window *window, char tag[256], GEUI_Item item)
+/*WindowItem *addToWindow(Window *window, char tag[256], GEUI_Item item)
 {
     WindowItem *ptr = NULL;
     
@@ -254,7 +284,7 @@ WindowItem *addToWindow(Window *window, char tag[256], GEUI_Item item)
     strcpy(ptr->tag, tag);
     ptr->next = window->iList;
     
-    ptr->item = item;
+    ptr->item = item;*/
     
     /*switch (ptr->item.type)
     {
@@ -262,15 +292,15 @@ WindowItem *addToWindow(Window *window, char tag[256], GEUI_Item item)
         default: break;
     }*/
     
-    window->iList = ptr;
+    /*window->iList = ptr;
     return ptr;
-}
+}*/
 
-void destroyWindowItem(WindowItem *ptr)
+/*void destroyWindowItem(WindowItem *ptr)
 {
     if (!ptr) return;
     destroyGEUI_Item(&ptr->item);
-}
+}*/
 
 void destroyWindowItemList(Window *window)
 {
