@@ -4,30 +4,31 @@ typedef enum ItemTypeEnum
     GEUI_Button
 }ItemType;
 
+struct WindowStruct;
+
 typedef struct WindowItemStruct
 {
     int index;          // item index
     char tag[256];      // item identifier tag
     
-    ItemType type;
+    ItemType type;      // item type
     
-    union ItemVarsUnion
+    union ItemDataUnion // item data union for different item types
     {
         struct TextItem     { Text text; }text;
         struct ButtonItem
         {
             Text text;
             short state;
-            void (*actionFunction)(struct WindowStruct *win, struct WindowItemStruct *item);
+            Actor *actor;
+            void (*actionFunction)(struct WindowStruct *, struct WindowItemStruct *);
         }button;
     }data;
     
-    
     //GEUI_Item item;     // item container
     
-    
     struct WindowStruct *parent;     // pointer to parent window
-    struct WindowItemStruct *next;   // pointer to next item in list    
+    struct WindowItemStruct *next;   // pointer to next item in list
 }WindowItem;
 
 typedef struct WindowStruct
@@ -41,9 +42,10 @@ typedef struct WindowStruct
 }Window;
 
 void initGEUI(void);
-WindowItem *initNewItem(Window *window, char tag[256]);
+WindowItem *initNewItem(ItemType type, Window *window, char tag[256]);
 WindowItem *addItemToWindow(Window *window, WindowItem *ptr);
 WindowItem *addText(Window *window, char tag[256], char *string);
+WindowItem *addButton(Window *window, char tag[256], char *string, void (*actionFunction)(Window *win, WindowItem *item));
 //GEUI_Item newButton(Text text, void (*actionFunction)(Window *win, WindowItem *item));
 void destroyWindowItem(WindowItem *ptr);
 int calculateAnimpos(unsigned short w, unsigned short h, unsigned short i, unsigned short j);
@@ -81,7 +83,7 @@ void initGEUI(void)
     GEUIController.wList = NULL;
 }
 
-WindowItem *initNewItem(Window *window, char tag[256])
+WindowItem *initNewItem(ItemType type, Window *window, char tag[256])
 {
     WindowItem *ptr = NULL;
     
@@ -91,6 +93,7 @@ WindowItem *initNewItem(Window *window, char tag[256])
     
     if (!ptr) return NULL;
     
+    ptr->type = type;
     ptr->index = window->iIndex ++;
     strcpy(ptr->tag, tag);
     
@@ -109,11 +112,23 @@ WindowItem *addItemToWindow(Window *window, WindowItem *ptr)
 
 WindowItem *addText(Window *window, char tag[256], char *string)
 {
-    WindowItem *ptr = initNewItem(window, tag);
+    WindowItem *ptr = initNewItem(GEUI_Text, window, tag);
     if (!ptr) return NULL;
     
     ptr->data.text.text = createText(string, window->style.textFont, "(none)", ABSOLUTE, 0, 0);
     setTextColor(&ptr->data.text.text, window->style.textColor);
+    
+    return addItemToWindow(window, ptr);
+}
+
+WindowItem *addButton(Window *window, char tag[256], char *string, void (*actionFunction)(Window *win, WindowItem *item))
+{
+    WindowItem *ptr = initNewItem(GEUI_Button, window, tag);
+    if (!ptr) return NULL;
+    
+    ptr->data.button.text = createText(string, window->style.textFont, "(none)", ABSOLUTE, 0, 0);
+    setTextColor(&ptr->data.button.text, window->style.textColor);
+    ptr->data.button.actionFunction = actionFunction;
     
     return addItemToWindow(window, ptr);
 }
@@ -137,7 +152,7 @@ void destroyWindowItem(WindowItem *ptr)
     switch (ptr->type)
     {
         case GEUI_Text: destroyText(&ptr->data.text.text); break;
-        case GEUI_Button: break;
+        case GEUI_Button: destroyText(&ptr->data.button.text); break;
         
         default: break;
     }
@@ -219,6 +234,13 @@ Window *openWindow(char tag[256])
                 height = ptr->data.text.text.height;
                 refreshText(&ptr->data.text.text);
             break;
+            
+            case GEUI_Button:
+                ptr->data.button.actor = CreateActor("a_gui", "gui_sheet_default", "(none)", "(none)", -20, -20, true);
+                ptr->data.button.actor->r = ptr->data.button.actor->g = 50;
+                ChangeZDepth(ptr->data.button.actor->clonename, 1.0);
+            break;
+            
             default: break;
         }
         
