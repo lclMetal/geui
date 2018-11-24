@@ -25,8 +25,6 @@ typedef struct WindowItemStruct
         }button;
     }data;
  
-    //GEUI_Item item;     // item container
- 
     struct WindowStruct *parent;     // pointer to parent window
     struct WindowItemStruct *next;   // pointer to next item in list
 }WindowItem;
@@ -45,12 +43,20 @@ void initGEUI(void);
 WindowItem *initNewItem(ItemType type, Window *window, char tag[256]);
 WindowItem *addItemToWindow(Window *window, WindowItem *ptr);
 WindowItem *addText(Window *window, char tag[256], char *string);
-WindowItem *addButton(Window *window, char tag[256], char *string, void (*actionFunction)(Window *win, WindowItem *item));
-//GEUI_Item newButton(Text text, void (*actionFunction)(Window *win, WindowItem *item));
+WindowItem *addButton(Window *window, char tag[256], char *string, void (*actionFunction)(Window *, WindowItem *));
+WindowItem *searchItemByTag(Window *window, char tag[256]);
+WindowItem *searchItemByIndex(Window *window, int index);
+void doMouseEnter(const char *actorName);
+void doMouseLeave(const char *actorName);
+void doMouseButtonDown(const char *actorName, short mButton);
+void doMouseButtonUp(const char *actorName, short mButton);
+void doKeyDown(Window *window, WindowItem *item, short key);
+void doKeyUp(Window *window, WindowItem *item, short key);
 void destroyWindowItem(WindowItem *ptr);
 int calculateAnimpos(unsigned short w, unsigned short h, unsigned short i, unsigned short j);
 Window *createWindow(char tag[256]);
-Window *searchWindow(char tag[256]);
+Window *searchWindowByTag(char tag[256]);
+Window *searchWindowByIndex(int index);
 Window *openWindow(char tag[256]);
 void destroyWindowList(void);
 void destroyWindowItemList(Window *window);
@@ -75,8 +81,8 @@ void initGEUI(void)
     defStyle.labelColor         = BLACK;            // label color
     defStyle.textColor          = BLACK;            // text color
     defStyle.buttonColor        = DEFAULT_COLOR;    // button color
-    defStyle.buttonHilitColor   = DEFAULT_COLOR;    // button hilit color
-    defStyle.buttonPressedColor = DEFAULT_COLOR;    // button pressed color
+    defStyle.buttonHilitColor   = CYAN;             // button hilit color
+    defStyle.buttonPressedColor = BLUE;             // button pressed color
  
     GEUIController.wIndex = 0;
     GEUIController.sDefault = defStyle;
@@ -121,7 +127,7 @@ WindowItem *addText(Window *window, char tag[256], char *string)
     return addItemToWindow(window, ptr);
 }
 
-WindowItem *addButton(Window *window, char tag[256], char *string, void (*actionFunction)(Window *win, WindowItem *item))
+WindowItem *addButton(Window *window, char tag[256], char *string, void (*actionFunction)(Window *, WindowItem *))
 {
     WindowItem *ptr = initNewItem(GEUI_Button, window, tag);
     if (!ptr) return NULL;
@@ -133,17 +139,115 @@ WindowItem *addButton(Window *window, char tag[256], char *string, void (*action
     return addItemToWindow(window, ptr);
 }
 
-/*GEUI_Item newButton(Text text, void (*actionFunction)(Window *win, WindowItem *item))
+WindowItem *searchItemByTag(Window *window, char tag[256])
 {
-    GEUI_Item item;
+    WindowItem *ptr = NULL;
+    
+    if (!window) return NULL;
+    
+    ptr = window->iList;
  
-    item.type = GEUI_Button;
-    //strcpy(item.data.button.text, text);
-    item.data.button.state = 0;
-    item.data.button.actionFunction = actionFunction;
+    while (ptr)
+    {
+        if (!strcmp(ptr->tag, tag))
+            return ptr;
  
-    return item;
-}*/
+        ptr = ptr->next;
+    }
+ 
+    DEBUG_MSG_FROM("item not found", "searchItemByTag");
+    return NULL;
+}
+
+WindowItem *searchItemByIndex(Window *window, int index)
+{
+    WindowItem *ptr = NULL;
+    
+    if (!window) return NULL;
+    
+    ptr = window->iList;
+ 
+    while (ptr)
+    {
+        if (ptr->index == index)
+            return ptr;
+ 
+        ptr = ptr->next;
+    }
+ 
+    DEBUG_MSG_FROM("item not found", "searchItemByIndex");
+    return NULL;
+}
+
+void doMouseEnter(const char *actorName)
+{
+    Actor *actor;
+    Window *window;
+    WindowItem *item;
+    
+    if (!actorExists2(actor = getclone(actorName))) return;
+    if (!(window = searchWindowByIndex(actor->myWindow))) return;
+    if (!(item = searchItemByIndex(window, actor->myIndex))) return;
+    
+    switch (item->type)
+    {
+        case GEUI_Button: colorActor(item->data.button.actor, window->style.buttonHilitColor); break;
+    }
+}
+
+void doMouseLeave(const char *actorName)
+{
+    Actor *actor;
+    Window *window;
+    WindowItem *item;
+    
+    if (!actorExists2(actor = getclone(actorName))) return;
+    if (!(window = searchWindowByIndex(actor->myWindow))) return;
+    if (!(item = searchItemByIndex(window, actor->myIndex))) return;
+    
+    switch (item->type)
+    {
+        case GEUI_Button: colorActor(item->data.button.actor, window->style.buttonColor); break;
+    }
+}
+
+void doMouseButtonDown(const char *actorName, short mButton)
+{
+    Actor *actor;
+    Window *window;
+    WindowItem *item;
+    
+    if (!actorExists2(actor = getclone(actorName))) return;
+    if (!(window = searchWindowByIndex(actor->myWindow))) return;
+    if (!(item = searchItemByIndex(window, actor->myIndex))) return;
+        
+    switch (item->type)
+    {
+        case GEUI_Button: colorActor(item->data.button.actor, window->style.buttonPressedColor); break;
+    }
+}
+
+void doMouseButtonUp(const char *actorName, short mButton)
+{
+    Actor *actor;
+    Window *window;
+    WindowItem *item;
+    
+    if (!actorExists2(actor = getclone(actorName))) return;
+    if (!(window = searchWindowByIndex(actor->myWindow))) return;
+    if (!(item = searchItemByIndex(window, actor->myIndex))) return;
+    
+    switch (item->type)
+    {
+        case GEUI_Button:
+            colorActor(item->data.button.actor, window->style.buttonHilitColor);
+            item->data.button.actionFunction(window, item);
+        break;
+    }
+}
+
+// void doKeyDown(Window *window, WindowItem *item, short key);
+// void doKeyUp(Window *window, WindowItem *item, short key);
 
 void destroyWindowItem(WindowItem *ptr)
 {
@@ -195,7 +299,7 @@ Window *createWindow(char tag[256])
     return ptr;
 }
 
-Window *searchWindow(char tag[256])
+Window *searchWindowByTag(char tag[256])
 {
     Window *ptr = GEUIController.wList;
  
@@ -207,7 +311,23 @@ Window *searchWindow(char tag[256])
         ptr = ptr->next;
     }
  
-    DEBUG_MSG_FROM("window not found", "searchWindow");
+    DEBUG_MSG_FROM("window not found", "searchWindowByTag");
+    return NULL;
+}
+
+Window *searchWindowByIndex(int index)
+{
+    Window *ptr = GEUIController.wList;
+ 
+    while (ptr)
+    {
+        if (ptr->index == index)
+            return ptr;
+ 
+        ptr = ptr->next;
+    }
+ 
+    DEBUG_MSG_FROM("window not found", "searchWindowByIndex");
     return NULL;
 }
 
@@ -218,12 +338,12 @@ Window *openWindow(char tag[256])
     unsigned short width = 0, height = 0;
     unsigned short tileWidth = 0, tileHeight = 0;
     unsigned short tilesH = 0, tilesV = 0;
-    Window *win = searchWindow(tag);
+    Window *window = searchWindowByTag(tag);
     WindowItem *ptr = NULL;
  
-    if (!win) {DEBUG_MSG_FROM("window is NULL", "openWindow"); return NULL;}
+    if (!window) {DEBUG_MSG_FROM("window is NULL", "openWindow"); return NULL;}
  
-    ptr = win->iList;
+    ptr = window->iList;
  
     while (ptr)
     {
@@ -237,7 +357,9 @@ Window *openWindow(char tag[256])
  
             case GEUI_Button:
                 ptr->data.button.actor = CreateActor("a_gui", "gui_sheet_default", "(none)", "(none)", -20, -20, true);
-                ptr->data.button.actor->r = ptr->data.button.actor->g = 50;
+                ptr->data.button.actor->myWindow = window->index;
+                ptr->data.button.actor->myIndex = ptr->index;
+                colorActor(ptr->data.button.actor, window->style.buttonColor);
                 ChangeZDepth(ptr->data.button.actor->clonename, 1.0);
             break;
  
@@ -258,8 +380,10 @@ Window *openWindow(char tag[256])
     {
         for (i = 0; i < tilesH; i ++)
         {
-            guiActor = CreateActor("a_gui", win->style.guiAnim, "(none)", "(none)",
+            guiActor = CreateActor("a_gui", window->style.guiAnim, "(none)", "(none)",
                 i * tileWidth, j * tileHeight, true);
+            guiActor->myWindow = window->index;
+            guiActor->myIndex = -1;
             ChangeAnimationDirection(guiActor->clonename, STOPPED);
             ChangeZDepth(guiActor->clonename, 0.4);
             guiActor->animpos = calculateAnimpos(tilesH, tilesV, i, j);

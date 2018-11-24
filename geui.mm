@@ -4,7 +4,7 @@
 <font NAME="SansSerif" SIZE="12"/>
 <node CREATED="1541175100921" ID="ID_469433986" MODIFIED="1541264497455" POSITION="right" STYLE="bubble" TEXT="item">
 <font NAME="SansSerif" SIZE="12"/>
-<node CREATED="1541263507291" ID="ID_589856150" MODIFIED="1541611730025">
+<node CREATED="1541263507291" ID="ID_589856150" MODIFIED="1543074683308">
 <richcontent TYPE="NODE"><html>
   <head>
     
@@ -26,10 +26,34 @@
       &#160;&#160;&#160;&#160;char tag[256];
     </p>
     <p style="text-align: left">
+      
+    </p>
+    <p style="text-align: left">
       &#160;&#160;&#160;&#160;ItemType type;
     </p>
     <p style="text-align: left">
-      &#160;&#160;&#160;&#160;Window *parent;
+      
+    </p>
+    <p style="text-align: left">
+      &#160;&#160;&#160;&#160;union ItemDataUnion
+    </p>
+    <p style="text-align: left">
+      &#160;&#160;&#160;&#160;{
+    </p>
+    <p style="text-align: left">
+      &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;struct TextItem text;
+    </p>
+    <p style="text-align: left">
+      &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;struct ButtonItem button;
+    </p>
+    <p style="text-align: left">
+      &#160;&#160;&#160;&#160;}data;
+    </p>
+    <p style="text-align: left">
+      
+    </p>
+    <p style="text-align: left">
+      &#160;&#160;&#160;&#160;struct WindowStruct *parent;
     </p>
     <p style="text-align: left">
       &#160;&#160;&#160;&#160;struct WindowItemStruct *next;
@@ -112,7 +136,7 @@
   </body>
 </html></richcontent>
 </node>
-<node CREATED="1541263684841" ID="ID_1607036743" MODIFIED="1541613132205">
+<node CREATED="1541263684841" ID="ID_1607036743" MODIFIED="1543074422441">
 <richcontent TYPE="NODE"><html>
   <head>
     
@@ -131,7 +155,13 @@
       &#160;&#160;&#160;&#160;Text text;
     </p>
     <p>
-      &#160;&#160;&#160;&#160;void (*execAction)(Window *win, WindowItem *item);
+      &#160;&#160;&#160;&#160;short state;
+    </p>
+    <p>
+      &#160;&#160;&#160;&#160;Actor *actor;
+    </p>
+    <p>
+      &#160;&#160;&#160;&#160;void (*actionFunction)(Window *, WindowItem *);
     </p>
     <p>
       }button;
@@ -300,7 +330,7 @@
 </html></richcontent>
 </node>
 </node>
-<node CREATED="1541263556141" ID="ID_1940111096" MODIFIED="1541264445776">
+<node CREATED="1541263556141" ID="ID_1940111096" MODIFIED="1543079487624">
 <richcontent TYPE="NODE"><html>
   <head>
     
@@ -321,13 +351,35 @@
     <p style="text-align: left">
       setDataByIndex(Window *win, int index)
     </p>
+    <p style="text-align: left">
+      
+    </p>
+    <p style="text-align: left">
+      doMouseOver(const char *actorName)
+    </p>
+    <p style="text-align: left">
+      doMouseLeave(const char *actorName)
+    </p>
+    <p style="text-align: left">
+      doMouseButtonDown(const char *actorName, short mButton)
+    </p>
+    <p style="text-align: left">
+      doMouseButtonUp(const char *actorName, short mButton)
+    </p>
+    <p style="text-align: left">
+      doKeyDown(Window *win, WindowItem *item, short key)
+    </p>
+    <p style="text-align: left">
+      doKeyUp(Window *win, WindowItem *item, short key)
+    </p>
   </body>
-</html></richcontent>
+</html>
+</richcontent>
 </node>
 </node>
 <node CREATED="1541261430422" ID="ID_1842706526" MODIFIED="1541264496584" POSITION="left" STYLE="bubble" TEXT="window">
 <font NAME="SansSerif" SIZE="12"/>
-<node CREATED="1541263177191" ID="ID_1833897807" MODIFIED="1541263490668">
+<node CREATED="1541263177191" ID="ID_1833897807" MODIFIED="1543074461590">
 <richcontent TYPE="NODE"><html>
   <head>
     
@@ -355,7 +407,7 @@
       &#160;&#160;&#160;&#160;Style style
     </p>
     <p>
-      &#160;&#160;&#160;&#160;WindowItem *iList
+      &#160;&#160;&#160;&#160;struct WindowItemStruct *iList
     </p>
     <p>
       &#160;&#160;&#160;&#160;struct WindowStruct *next
@@ -364,7 +416,8 @@
       }
     </p>
   </body>
-</html></richcontent>
+</html>
+</richcontent>
 </node>
 <node CREATED="1541263269087" ID="ID_32019194" MODIFIED="1541263483120">
 <richcontent TYPE="NODE"><html>
