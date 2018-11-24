@@ -3,11 +3,11 @@ typedef struct
     double hue;
     double saturation;
     double brightness;
- 
+
     unsigned char r;
     unsigned char g;
     unsigned char b;
- 
+
     double alpha;
 }Color;
 
@@ -56,18 +56,18 @@ Color createRGB(int rValue, int gValue, int bValue, double aValue)
 {
     Color color;
     Color hsb;
- 
+
     color.r = rValue;
     color.g = gValue;
     color.b = bValue;
     color.alpha = aValue;
- 
+
     hsb = RGBtoHSB(rValue, gValue, bValue, color.alpha);
- 
+
     color.hue = hsb.hue;
     color.saturation = hsb.saturation;
     color.brightness = hsb.brightness;
- 
+
     return color;
 }
 
@@ -81,18 +81,18 @@ Color createHSB(double hValue, double sValue, double bValue, double aValue)
 {
     Color color;
     Color rgb;
- 
+
     color.hue = hValue;
     color.saturation = sValue;
     color.brightness = bValue;
     color.alpha = aValue;
- 
+
     rgb = HSBtoRGB(hValue, sValue, bValue, color.alpha);
- 
+
     color.r = rgb.r;
     color.g = rgb.g;
     color.b = rgb.b;
- 
+
     return color;
 }
 
@@ -111,12 +111,12 @@ Color HSBtoRGB(double hValue, double sValue, double bValue, double aValue)
 
     double H = ((double)hValue / 60.0);
     double xValue = chroma * (1 - abs(fmod(H, 2) - 1));
- 
+
     color.hue = hValue;
     color.saturation = sValue;
     color.brightness = bValue;
     color.alpha = aValue;
- 
+
     if (H >= 0 && H < 1)
     {
         color.r = (chroma + m) * 255.0;
@@ -153,7 +153,7 @@ Color HSBtoRGB(double hValue, double sValue, double bValue, double aValue)
         color.g = m * 255.0;
         color.b = (xValue + m) * 255.0;
     }
- 
+
     return color;
 }
 
@@ -166,31 +166,31 @@ Color HSBtoRGB(double hValue, double sValue, double bValue, double aValue)
 Color RGBtoHSB(int rValue, int gValue, int bValue, double aValue)
 {
     Color color;
- 
+
     int biggest = max(rValue, max(gValue, bValue));
- 
+
     double percentageR = rValue / 255.0;
     double percentageG = gValue / 255.0;
     double percentageB = bValue / 255.0;
- 
+
     double chromaMax;
     double chromaMin;
     double chroma;
- 
+
     color.r = rValue;
     color.g = gValue;
     color.b = bValue;
     color.alpha = aValue;
- 
+
     if (biggest == rValue)
     {
         chromaMax = percentageR;
         chromaMin = min(percentageR, min(percentageG, percentageB));
         chroma = chromaMax - chromaMin;
- 
+
         color.hue = 60.0 * (fmod(((percentageG - percentageB) / max(chroma, 0.0000001)), 6.0));
         if (color.hue < 0.0)color.hue += 360.0;
- 
+
         color.saturation = (chromaMax == 0) ? 0 : (chroma / chromaMax);
         color.brightness = chromaMax;
     }
@@ -199,7 +199,7 @@ Color RGBtoHSB(int rValue, int gValue, int bValue, double aValue)
         chromaMax = percentageG;
         chromaMin = min(percentageR, min(percentageG, percentageB));
         chroma = chromaMax - chromaMin;
- 
+
         color.hue = 60.0 * (((percentageB - percentageR) / max(chroma, 0.0000001)) + 2.0);
         color.saturation = (chromaMax == 0) ? 0 : (chroma / chromaMax);
         color.brightness = chromaMax;
@@ -209,12 +209,12 @@ Color RGBtoHSB(int rValue, int gValue, int bValue, double aValue)
         chromaMax = percentageB;
         chromaMin = min(percentageR, min(percentageG, percentageB));
         chroma = chromaMax - chromaMin;
- 
+
         color.hue = 60.0 * (((percentageR - percentageG) / max(chroma, 0.0000001)) + 4.0);
         color.saturation = (chromaMax == 0) ? 0 : (chroma / chromaMax);
         color.brightness = chromaMax;
     }
- 
+
     return color;
 }
 
@@ -234,7 +234,7 @@ int compareColors(Color *color1, Color *color2)
 Color getActorColor(const char *actorName)
 {
     Actor *a = getclone(actorName);
- 
+
     if (a->cloneindex < 0)
         return createRGB(0, 0, 0, 1.0);
     else
@@ -257,7 +257,7 @@ void colorThisActor(Color color)
 void colorActor(Actor *pActor, Color color)
 {
     if (!pActor) return;
- 
+
     pActor->r = color.r;
     pActor->g = color.g;
     pActor->b = color.b;
@@ -270,9 +270,9 @@ void colorActor(Actor *pActor, Color color)
 void colorActorByName(const char *actorName, Color color)
 {
     Actor *a = getclone(actorName);
- 
+
     if (a->cloneindex < 0) return;
- 
+
     a->r = color.r;
     a->g = color.g;
     a->b = color.b;

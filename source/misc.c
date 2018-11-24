@@ -15,18 +15,18 @@ char tempFullFileName[256];
 char *addFileExtension(char *fileName, char *fileExtension)
 {
     char *fileExtensionPos;
- 
+
     fileExtensionPos = strchr(fileName, '.');
- 
+
     if (fileExtensionPos == NULL) sprintf(tempFullFileName, "%s.%s", fileName, fileExtension);
     else
     {
         int actualFileNameLength = strlen(fileName) - strlen(fileExtensionPos);
- 
+
         strncpy(tempFullFileName, fileName, actualFileNameLength);
         sprintf(tempFullFileName + actualFileNameLength, ".%s", fileExtension);
     }
- 
+
     return tempFullFileName;
 }
 

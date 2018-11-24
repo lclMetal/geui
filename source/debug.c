@@ -31,15 +31,15 @@ struct debugStruct
 {
     int fileInitialized;
     unsigned long startTime;
- 
+
     stTime fpsTime;
     unsigned long fpsLastUpdate;
- 
+
     int fpsHeap;
     int fpsCount;
     int fpsFindLowest;
     int fpsFindHighest;
- 
+
     int fpsLowest;
     int fpsHighest;
     double fpsAverage;
@@ -54,19 +54,19 @@ void debugMsgFrom(const char *msg, const char *label, int line);
 void debugPrintFps(int mode)
 {
     debugUpdateFps();
- 
+
     switch (mode)
     {
         default:
         case FPS_AVERAGE:
             sprintf(text, "Avg. fps: %.02f", debugController.fpsAverage);
         break;
- 
+
         case FPS_RANGE:
             sprintf(text, "Min fps: %i\nMax fps: %i",
                 debugController.fpsLowest, debugController.fpsHighest);
         break;
- 
+
         case FPS_BOTH:
             sprintf(text, "Avg. fps: %.02f\nMin fps: %i\nMax fps: %i",
                 debugController.fpsAverage, debugController.fpsLowest, debugController.fpsHighest);
@@ -77,22 +77,22 @@ void debugPrintFps(int mode)
 void debugUpdateFps(void)
 {
     debugController.fpsTime = getTime();
- 
+
     if (!debugController.fpsLastUpdate)
         debugController.fpsLastUpdate = debugController.fpsTime.sec_utc;
- 
+
     if (!debugController.fpsCount)
     {
         debugController.fpsFindLowest = 512;
         debugController.fpsFindHighest = 0;
     }
- 
+
     debugController.fpsHeap += real_fps;
     debugController.fpsCount ++;
- 
+
     if (real_fps < debugController.fpsFindLowest) debugController.fpsFindLowest = real_fps;
     if (real_fps > debugController.fpsFindHighest) debugController.fpsFindHighest = real_fps;
- 
+
     if (debugController.fpsTime.sec_utc != debugController.fpsLastUpdate)
     {
         debugController.fpsAverage = debugController.fpsHeap / (double) debugController.fpsCount;
@@ -102,7 +102,7 @@ void debugUpdateFps(void)
         debugController.fpsCount = 0;
         debugController.fpsFindLowest = 512;
         debugController.fpsFindHighest = 0;
- 
+
         debugController.fpsLastUpdate = debugController.fpsTime.sec_utc;
     }
 }
@@ -113,18 +113,18 @@ int debugCreateFile(void)
     FILE *f;
 
     f = fopen("debug.log", "w+");
- 
+
     if (f)
     {
         stTime t = getTime();
         debugController.startTime = t.sec_utc;
- 
+
         debugController.fileInitialized = 1;
         fclose(f);
         debugMsgFrom("Debug file initialized.", __FILE__, __LINE__);
         return true;
     }
- 
+
     return false;
 }
 
@@ -132,12 +132,12 @@ int debugCreateFile(void)
 void debugMsg(const char *msg)
 {
     FILE *f = NULL;
- 
+
     if (!debugController.fileInitialized)
         debugCreateFile();
- 
+
     f = fopen("debug.log", "a+");
- 
+
     if (f)
     {
         fprintf(f, "%s\n", msg);
@@ -150,10 +150,10 @@ void debugMsgFrom(const char *msg, const char *label, int line)
 {
     char temp[256];
     stTime t = getTime();
- 
+
     if (!debugController.fileInitialized)
         debugCreateFile();
- 
+
     sprintf(temp, "[%s, line: %3i, time: %3i]: \"%s\"", label, line, t.sec_utc - debugController.startTime, msg);
     debugMsg(temp);
 }
