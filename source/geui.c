@@ -25,6 +25,8 @@ typedef struct WindowItemStruct
         }button;
     }data;
 
+    //GEUI_Item item;     // item container
+
     struct WindowStruct *parent;     // pointer to parent window
     struct WindowItemStruct *next;   // pointer to next item in list
 }WindowItem;
@@ -240,8 +242,11 @@ void doMouseButtonUp(const char *actorName, short mButton)
     switch (item->type)
     {
         case GEUI_Button:
-            colorActor(item->data.button.actor, window->style.buttonHilitColor);
-            item->data.button.actionFunction(window, item);
+            if (mouseOverActor(actorName))
+            {
+                colorActor(item->data.button.actor, window->style.buttonHilitColor);
+                item->data.button.actionFunction(window, item);
+            }
         break;
     }
 }

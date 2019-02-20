@@ -1,5 +1,7 @@
 #define HALF_WIDTH (width * 0.5)
 #define HALF_HEIGHT (height * 0.5)
+#define HALF_WIDTH_ACTOR(X) (X->width * 0.5)
+#define HALF_HEIGHT_ACTOR(X) (X->height * 0.5)
 
 char *addFileExtension(char *fileName, char *fileExtension);
 int actorExists(char *actorName);
@@ -49,7 +51,7 @@ int actorExists2(Actor *a)
 {
     return (a->cloneindex != -1);
 }
-
+
 Actor *gc2(char *actorName, int cloneNum)
 {
     char cName[256];
@@ -89,4 +91,16 @@ int mouseOverPartOfRegion(int startX, int startY, int endX, int endY)
 {
     return (xmouse > xscreen + startX && xmouse < xscreen + width - endX &&
             ymouse > yscreen + startY && ymouse < yscreen + height - endY);
+}
+
+int mouseOverActor(const char *actorName)
+{
+    Actor *actor;
+
+    if (!actorExists2(actor = getclone(actorName))) return 0;
+
+    return (xmouse > actor->xscreen - HALF_WIDTH_ACTOR(actor) &&
+            xmouse < actor->xscreen + HALF_WIDTH_ACTOR(actor) &&
+            ymouse > actor->yscreen - HALF_HEIGHT_ACTOR(actor) &&
+            ymouse < actor->yscreen + HALF_HEIGHT_ACTOR(actor));
 }
