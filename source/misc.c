@@ -12,6 +12,7 @@ void enableMouseEvents(char *actorName);
 int mouseOver(void);
 int mouseOverRegion(void);
 int mouseOverPartOfRegion(int startX, int startY, int endX, int endY);
+int mouseOverActor(const char *actorName);
 
 char tempFullFileName[256];
 char *addFileExtension(char *fileName, char *fileExtension)

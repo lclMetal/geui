@@ -1,0 +1,4 @@
+- Solve opening same window multiple times
+    - Allow window to be opened just once at a time?
+    - Clone window with a new index?
+

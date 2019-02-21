@@ -60,6 +60,8 @@ Window *createWindow(char tag[256]);
 Window *searchWindowByTag(char tag[256]);
 Window *searchWindowByIndex(int index);
 Window *openWindow(char tag[256]);
+void closeWindow(Window *window);
+void destroyWindow(Window *window);
 void destroyWindowList(void);
 void destroyWindowItemList(Window *window);
 
@@ -251,8 +253,15 @@ void doMouseButtonUp(const char *actorName, short mButton)
     }
 }
 
-// void doKeyDown(Window *window, WindowItem *item, short key);
-// void doKeyUp(Window *window, WindowItem *item, short key);
+void doKeyDown(Window *window, WindowItem *item, short key)
+{
+    // TODO: implement doKeyDown
+}
+
+void doKeyUp(Window *window, WindowItem *item, short key)
+{
+    // TODO: implement doKeyUp
+}
 
 void destroyWindowItem(WindowItem *ptr)
 {
@@ -396,6 +405,16 @@ Window *openWindow(char tag[256])
     }
 
     return NULL;
+}
+
+void closeWindow(Window *window)
+{
+    // TODO: implement closeWindow
+}
+
+void destroyWindow(Window *window)
+{
+    // TODO: implement destroyWindow
 }
 
 void destroyWindowList(void)
