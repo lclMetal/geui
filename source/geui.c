@@ -37,6 +37,8 @@ typedef struct WindowStruct
     int iIndex;         // next available item index
     char tag[256];      // window identifier tag
     Style style;        // window style
+    int wTileStartIndex; // cloneindex of the first window tile
+    int wTileEndIndex;   // cloneindex of the last window tile
     struct WindowItemStruct *iList;  // list of items in window
     struct WindowStruct *next;       // pointer to next window in list
 }Window;
@@ -305,6 +307,8 @@ Window *createWindow(char tag[256])
     ptr->iIndex = 0;
     strcpy(ptr->tag, tag);
     ptr->style = GEUIController.sDefault;
+    ptr->wTileStartIndex = -1;
+    ptr->wTileEndIndex = -1;
     ptr->iList = NULL;
     ptr->next = GEUIController.wList;
 
@@ -401,6 +405,11 @@ Window *openWindow(char tag[256])
             ChangeAnimationDirection(guiActor->clonename, STOPPED);
             ChangeZDepth(guiActor->clonename, 0.4);
             guiActor->animpos = calculateAnimpos(tilesH, tilesV, i, j);
+            
+            if (window->wTileStartIndex == -1)
+                window->wTileStartIndex = guiActor->cloneindex;
+            if (window->wTileEndIndex < guiActor->cloneindex)
+                window->wTileEndIndex = guiActor->cloneindex;
         }
     }
 
@@ -409,7 +418,20 @@ Window *openWindow(char tag[256])
 
 void closeWindow(Window *window)
 {
+    int i;
+    
     // TODO: implement closeWindow
+    if (!window) {DEBUG_MSG_FROM("window is NULL", "openWindow"); return;}
+    
+    if (window->wTileStartIndex < 0 || window->wTileEndIndex < 0) return;
+    
+    for (i = window->wTileStartIndex; i <= window->wTileEndIndex; i ++)
+    {
+        DestroyActor(gc2("a_gui", i)->clonename);
+    }
+    
+    window->wTileStartIndex = -1;
+    window->wTileEndIndex = -1;
 }
 
 void destroyWindow(Window *window)
