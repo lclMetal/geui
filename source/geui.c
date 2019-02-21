@@ -56,6 +56,7 @@ void doMouseButtonDown(const char *actorName, short mButton);
 void doMouseButtonUp(const char *actorName, short mButton);
 void doKeyDown(Window *window, WindowItem *item, short key);
 void doKeyUp(Window *window, WindowItem *item, short key);
+void eraseWindowItem(WindowItem *ptr);
 void destroyWindowItem(WindowItem *ptr);
 int calculateAnimpos(unsigned short w, unsigned short h, unsigned short i, unsigned short j);
 Window *createWindow(char tag[256]);
@@ -265,6 +266,17 @@ void doKeyUp(Window *window, WindowItem *item, short key)
     // TODO: implement doKeyUp
 }
 
+void eraseWindowItem(WindowItem *ptr)
+{
+    if (!ptr) return;
+    
+    switch (ptr->type)
+    {
+        case GEUI_Text: eraseText(&ptr->data.text.text); break;
+        case GEUI_Button: eraseText(&ptr->data.button.text); DestroyActor(ptr->data.button.actor->clonename); break;
+    }
+}
+
 void destroyWindowItem(WindowItem *ptr)
 {
     if (!ptr) return;
@@ -272,7 +284,7 @@ void destroyWindowItem(WindowItem *ptr)
     switch (ptr->type)
     {
         case GEUI_Text: destroyText(&ptr->data.text.text); break;
-        case GEUI_Button: destroyText(&ptr->data.button.text); break;
+        case GEUI_Button: destroyText(&ptr->data.button.text); DestroyActor(ptr->data.button.actor->clonename); break;
 
         default: break;
     }
@@ -419,19 +431,30 @@ Window *openWindow(char tag[256])
 void closeWindow(Window *window)
 {
     int i;
+    WindowItem *ptr = NULL;
     
-    // TODO: implement closeWindow
     if (!window) {DEBUG_MSG_FROM("window is NULL", "openWindow"); return;}
     
-    if (window->wTileStartIndex < 0 || window->wTileEndIndex < 0) return;
-    
-    for (i = window->wTileStartIndex; i <= window->wTileEndIndex; i ++)
+    if (window->wTileStartIndex > -1)
     {
-        DestroyActor(gc2("a_gui", i)->clonename);
+        for (i = window->wTileStartIndex; i <= window->wTileEndIndex; i ++)
+        {
+            DestroyActor(gc2("a_gui", i)->clonename);
+        }
+        
+        window->wTileStartIndex = -1;
+        window->wTileEndIndex = -1;
     }
     
-    window->wTileStartIndex = -1;
-    window->wTileEndIndex = -1;
+    if (!window->iList) return;
+    
+    ptr = window->iList;
+    
+    while (ptr)
+    {
+        eraseWindowItem(ptr);
+        ptr = ptr->next;
+    }
 }
 
 void destroyWindow(Window *window)
@@ -447,6 +470,7 @@ void destroyWindowList(void)
     while (ptr)
     {
         temp = ptr->next;
+        closeWindow(ptr);
         destroyWindowItemList(ptr);
         free(ptr);
         ptr = temp;
