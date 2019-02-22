@@ -439,7 +439,7 @@ void closeWindow(Window *window)
     {
         for (i = window->wTileStartIndex; i <= window->wTileEndIndex; i ++)
         {
-            DestroyActor(gc2("a_gui", i)->clonename);
+            destroyClone("a_gui", i);
         }
         
         window->wTileStartIndex = -1;

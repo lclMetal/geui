@@ -7,6 +7,7 @@ char *addFileExtension(char *fileName, char *fileExtension);
 int actorExists(char *actorName);
 int actorExists2(Actor *a);
 Actor *gc2(char *actorName, int cloneNum);
+void destroyClone(const char *actorName, int cloneNum);
 void disableMouseEvents(char *actorName);
 void enableMouseEvents(char *actorName);
 int mouseOver(void);
@@ -58,6 +59,13 @@ Actor *gc2(char *actorName, int cloneNum)
     char cName[256];
     sprintf(cName, "%s.%i", actorName, cloneNum);
     return getclone(cName);
+}
+
+void destroyClone(const char *actorName, int cloneNum)
+{
+    char cName[256];
+    sprintf(cName, "%s.%i", actorName, cloneNum);
+    DestroyActor(cName);
 }
 
 void disableMouseEvents(char *actorName)
