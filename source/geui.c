@@ -391,7 +391,8 @@ Window *openWindow(char tag[256])
                 ptr->data.button.actor->myIndex = ptr->index;
                 colorActor(ptr->data.button.actor, window->style.buttonColor);
                 ChangeZDepth(ptr->data.button.actor->clonename, 1.0);
-                refreshText(&ptr->data.text.text);
+                setTextParent(&ptr->data.button.text, ptr->data.button.actor->clonename, False);
+                refreshText(&ptr->data.button.text);
             break;
 
             default: break;

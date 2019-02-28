@@ -77,7 +77,8 @@ void readFontDataFile(char *fileName, Font *fontData);
 Text createText(char *string, Font *pFont, const char *parentCName, bool relative, int startX, int startY);
 void setTextAlignment(Text *pText, int alignment);
 void setTextColor(Text *pText, Color color);
-void setTextParent(Text *pText, char *parentCName);
+void setTextParent(Text *pText, char *parentCName, bool keepCurrentPosition);
+void setTextPosition(Text *pText, int posX, int posY);
 void setTextText(Text *pText, char *string);
 void refreshText(Text *pText);
 void eraseText(Text *pText);
@@ -464,23 +465,48 @@ void setTextColor(Text *pText, Color color)
     pText->color = color;
 }
 
-void setTextParent(Text *pText, char *parentCName)
+void setTextParent(Text *pText, char *parentCName, bool keepCurrentPosition)
 {
     int i;
+    int parentExists;
     Actor *pParent;
+    Actor *pPrevParent;
     char temp[256];
 
     pParent = getclone(parentCName);
+    pPrevParent = getclone(pText->parentCName);
 
-    if (!actorExists2(pParent)) return;
+    if (!(parentExists = actorExists2(pParent)))
+        strcpy(pText->parentCName, "(none)");
+    else
+        strcpy(pText->parentCName, parentCName);
 
     for (i = pText->firstCharIndex; i <= pText->lastCharIndex; i ++)
     {
         sprintf(temp, "%s.%i", typeActorName[pText->lastRenderFrame], i);
-        ChangeParent(temp, parentCName);
+        ChangeParent(temp, pText->parentCName);
     }
 
-    strcpy(pText->parentCName, parentCName);
+    pText->relative = (parentExists) ? True : False;
+    
+    if (keepCurrentPosition)
+    {
+        int parentX = pParent->x * actorExists2(pParent);
+        int parentY = pParent->y * actorExists2(pParent);
+        int prevParentX = pPrevParent->x * actorExists2(pPrevParent);
+        int prevParentY = pPrevParent->y * actorExists2(pPrevParent);
+        
+        pText->beginX = prevParentX + pText->beginX - parentX;
+        pText->beginY = prevParentY + pText->beginY - parentY;
+    }
+}
+
+void setTextPosition(Text *pText, int posX, int posY)
+{
+    if (!pText) return;
+    
+    pText->beginX = posX;
+    pText->beginY = posY;
 }
 
 void setTextText(Text *pText, char *string)
