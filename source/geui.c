@@ -141,6 +141,8 @@ WindowItem *addButton(Window *window, char tag[256], char *string, void (*action
 
     ptr->data.button.text = createText(string, window->style.textFont, "(none)", ABSOLUTE, 0, 0);
     setTextColor(&ptr->data.button.text, window->style.textColor);
+    ptr->data.button.state = 0;
+    ptr->data.button.actor = NULL;
     ptr->data.button.actionFunction = actionFunction;
 
     return addItemToWindow(window, ptr);
@@ -273,7 +275,14 @@ void eraseWindowItem(WindowItem *ptr)
     switch (ptr->type)
     {
         case GEUI_Text: eraseText(&ptr->data.text.text); break;
-        case GEUI_Button: eraseText(&ptr->data.button.text); DestroyActor(ptr->data.button.actor->clonename); break;
+        case GEUI_Button:
+            eraseText(&ptr->data.button.text);
+            if (ptr->data.button.actor)
+            {
+                DestroyActor(ptr->data.button.actor->clonename);
+                ptr->data.button.actor = NULL;
+            }
+        break;
     }
 }
 
@@ -284,7 +293,14 @@ void destroyWindowItem(WindowItem *ptr)
     switch (ptr->type)
     {
         case GEUI_Text: destroyText(&ptr->data.text.text); break;
-        case GEUI_Button: destroyText(&ptr->data.button.text); DestroyActor(ptr->data.button.actor->clonename); break;
+        case GEUI_Button:
+            destroyText(&ptr->data.button.text);
+            if (ptr->data.button.actor)
+            {
+                DestroyActor(ptr->data.button.actor->clonename);
+                ptr->data.button.actor = NULL;
+            }
+        break;
 
         default: break;
     }
