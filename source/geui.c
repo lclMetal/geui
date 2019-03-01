@@ -1,3 +1,13 @@
+/*enum resMouseButtonsEnum
+{
+    RES_MOUSE_LEFT = 0,
+    RES_MOUSE_RIGHT,
+    RES_MOUSE_MIDDLE,
+    RES_MOUSE_WHEEL_UP,
+    RES_MOUSE_WHEEL_DOWN,
+    RES_MOUSE_BUTTONS     // Number of supported mouse buttons (5)
+};*/
+
 typedef enum ItemTypeEnum
 {
     GEUI_Text,
