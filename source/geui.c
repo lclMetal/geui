@@ -213,9 +213,14 @@ void doMouseEnter(const char *actorName)
     switch (item->type)
     {
         case GEUI_Button:
-            colorClones("a_gui",
-                item->data.button.bActorStartIndex,
-                item->data.button.bActorEndIndex, window->style.buttonHilitColor);
+            if (item->data.button.state)
+                colorClones("a_gui",
+                    item->data.button.bActorStartIndex,
+                    item->data.button.bActorEndIndex, window->style.buttonPressedColor);
+            else
+                colorClones("a_gui",
+                    item->data.button.bActorStartIndex,
+                    item->data.button.bActorEndIndex, window->style.buttonHilitColor);
         break;
     }
 }
@@ -233,9 +238,19 @@ void doMouseLeave(const char *actorName)
     switch (item->type)
     {
         case GEUI_Button:
-            colorClones("a_gui",
+            if (!mouseOverClones("a_gui",
                 item->data.button.bActorStartIndex,
-                item->data.button.bActorEndIndex, window->style.buttonColor);
+                item->data.button.bActorEndIndex))
+            {
+                if (item->data.button.state)
+                    colorClones("a_gui",
+                        item->data.button.bActorStartIndex,
+                        item->data.button.bActorEndIndex, window->style.buttonPressedColor);
+                else
+                    colorClones("a_gui",
+                        item->data.button.bActorStartIndex,
+                        item->data.button.bActorEndIndex, window->style.buttonColor);
+            }
         break;
     }
 }
@@ -256,6 +271,7 @@ void doMouseButtonDown(const char *actorName, short mButton)
             colorClones("a_gui",
                 item->data.button.bActorStartIndex,
                 item->data.button.bActorEndIndex, window->style.buttonPressedColor);
+            item->data.button.state = mButton + 1;
         break;
     }
 }
@@ -288,6 +304,7 @@ void doMouseButtonUp(const char *actorName, short mButton)
                     item->data.button.bActorStartIndex,
                     item->data.button.bActorEndIndex, window->style.buttonColor);
             }
+            item->data.button.state = 0;
         break;
     }
 }
@@ -440,11 +457,14 @@ Window *openWindow(char tag[256])
             case GEUI_Button:
                 for (i = 0; i * 20 < ptr->data.button.text.width; i ++)
                 {
-                    Actor *a = CreateActor("a_gui", "gui_sheet_default", "(none)", "(none)", -20 + i * 20, -20, true);
+                    Actor *a = CreateActor("a_gui", window->style.guiAnim, "(none)", "(none)", -20 + i * 20, -20, true);
                     a->myWindow = window->index;
                     a->myIndex = ptr->index;
 
                     ChangeZDepth(a->clonename, 1.0);
+                    ChangeAnimationDirection(a->clonename, STOPPED);
+                    if (i == 0)a->animpos = 9;
+                    else a->animpos = 10;
 
                     if (ptr->data.button.bActorStartIndex == -1)
                         ptr->data.button.bActorStartIndex = a->cloneindex;
@@ -466,7 +486,7 @@ Window *openWindow(char tag[256])
         ptr = ptr->next;
     }
 
-    guiActor = CreateActor("a_gui", "gui_sheet_default", "(none)", "(none)", 0, 0, true);
+    guiActor = CreateActor("a_gui", window->style.guiAnim, "(none)", "(none)", 0, 0, true);
     tileWidth = guiActor->width;
     tileHeight = guiActor->height;
     tilesH = ceil(width / (float)tileWidth);
