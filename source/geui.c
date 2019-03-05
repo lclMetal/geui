@@ -30,7 +30,9 @@ typedef struct WindowItemStruct
         {
             Text text;
             short state;
-            Actor *actor;
+            Actor *actor;           // TODO: change from actor* to cloneindices
+            int bActorStartIndex;
+            int bActorEndIndex;
             void (*actionFunction)(struct WindowStruct *, struct WindowItemStruct *);
         }button;
     }data;
@@ -153,6 +155,8 @@ WindowItem *addButton(Window *window, char tag[256], char *string, void (*action
     setTextColor(&ptr->data.button.text, window->style.textColor);
     ptr->data.button.state = 0;
     ptr->data.button.actor = NULL;
+    ptr->data.button.bActorStartIndex = -1;
+    ptr->data.button.bActorEndIndex = -1;
     ptr->data.button.actionFunction = actionFunction;
 
     return addItemToWindow(window, ptr);
@@ -281,12 +285,23 @@ void doKeyUp(Window *window, WindowItem *item, short key)
 void eraseWindowItem(WindowItem *ptr)
 {
     if (!ptr) return;
-    
+
     switch (ptr->type)
     {
         case GEUI_Text: eraseText(&ptr->data.text.text); break;
         case GEUI_Button:
             eraseText(&ptr->data.button.text);
+            if (ptr->data.button.bActorStartIndex > -1)
+            {
+                destroyClones("a_gui", ptr->data.button.bActorStartIndex, ptr->data.button.bActorEndIndex);
+                /*for (i = window->wTileStartIndex; i <= window->wTileEndIndex; i ++)
+                {
+                    destroyClone("a_gui", i);
+                }*/
+
+                ptr->data.button.bActorStartIndex = -1;
+                ptr->data.button.bActorEndIndex = -1;
+            }
             if (ptr->data.button.actor)
             {
                 DestroyActor(ptr->data.button.actor->clonename);
@@ -305,6 +320,17 @@ void destroyWindowItem(WindowItem *ptr)
         case GEUI_Text: destroyText(&ptr->data.text.text); break;
         case GEUI_Button:
             destroyText(&ptr->data.button.text);
+            if (ptr->data.button.bActorStartIndex > -1)
+            {
+                destroyClones("a_gui", ptr->data.button.bActorStartIndex, ptr->data.button.bActorEndIndex);
+                /*for (i = window->wTileStartIndex; i <= window->wTileEndIndex; i ++)
+                {
+                    destroyClone("a_gui", i);
+                }*/
+
+                ptr->data.button.bActorStartIndex = -1;
+                ptr->data.button.bActorEndIndex = -1;
+            }
             if (ptr->data.button.actor)
             {
                 DestroyActor(ptr->data.button.actor->clonename);
@@ -415,6 +441,19 @@ Window *openWindow(char tag[256])
                 ptr->data.button.actor = CreateActor("a_gui", "gui_sheet_default", "(none)", "(none)", -20, -20, true);
                 ptr->data.button.actor->myWindow = window->index;
                 ptr->data.button.actor->myIndex = ptr->index;
+
+                for (i = 0; (i + 1) * 20 < ptr->data.button.text.width; i ++)
+                {
+                    Actor *a = CreateActor("a_gui", "gui_sheet_default", "(none)", "(none)", -20 + i * 20, -20, true);
+                    a->myWindow = window->index;
+                    a->myIndex = -1;
+
+                    if (ptr->data.button.bActorStartIndex == -1)
+                        ptr->data.button.bActorStartIndex = a->cloneindex;
+                    if (ptr->data.button.bActorEndIndex < a->cloneindex)
+                        ptr->data.button.bActorEndIndex = a->cloneindex;
+                }
+
                 colorActor(ptr->data.button.actor, window->style.buttonColor);
                 ChangeZDepth(ptr->data.button.actor->clonename, 1.0);
                 setTextParent(&ptr->data.button.text, ptr->data.button.actor->clonename, False);
@@ -445,7 +484,7 @@ Window *openWindow(char tag[256])
             ChangeAnimationDirection(guiActor->clonename, STOPPED);
             ChangeZDepth(guiActor->clonename, 0.4);
             guiActor->animpos = calculateAnimpos(tilesH, tilesV, i, j);
-            
+
             if (window->wTileStartIndex == -1)
                 window->wTileStartIndex = guiActor->cloneindex;
             if (window->wTileEndIndex < guiActor->cloneindex)
@@ -460,24 +499,25 @@ void closeWindow(Window *window)
 {
     int i;
     WindowItem *ptr = NULL;
-    
+
     if (!window) {DEBUG_MSG_FROM("window is NULL", "openWindow"); return;}
-    
+
     if (window->wTileStartIndex > -1)
     {
-        for (i = window->wTileStartIndex; i <= window->wTileEndIndex; i ++)
+        destroyClones("a_gui", window->wTileStartIndex, window->wTileEndIndex);
+        /*for (i = window->wTileStartIndex; i <= window->wTileEndIndex; i ++)
         {
             destroyClone("a_gui", i);
-        }
-        
+        }*/
+
         window->wTileStartIndex = -1;
         window->wTileEndIndex = -1;
     }
-    
+
     if (!window->iList) return;
-    
+
     ptr = window->iList;
-    
+
     while (ptr)
     {
         eraseWindowItem(ptr);

@@ -8,6 +8,7 @@ int actorExists(char *actorName);
 int actorExists2(Actor *a);
 Actor *gc2(char *actorName, int cloneNum);
 void destroyClone(const char *actorName, int cloneNum);
+void destroyClones(const char *actorName, int startIndex, int endIndex);
 void disableMouseEvents(char *actorName);
 void enableMouseEvents(char *actorName);
 int mouseOver(void);
@@ -66,6 +67,18 @@ void destroyClone(const char *actorName, int cloneNum)
     char cName[256];
     sprintf(cName, "%s.%i", actorName, cloneNum);
     DestroyActor(cName);
+}
+
+void destroyClones(const char *actorName, int startIndex, int endIndex)
+{
+    int i;
+    char cName[256];
+
+    for (i = startIndex; i <= endIndex; i ++)
+    {
+        sprintf(cName, "%s.%i", actorName, i);
+        DestroyActor(cName);
+    }
 }
 
 void disableMouseEvents(char *actorName)
