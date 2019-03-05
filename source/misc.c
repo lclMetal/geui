@@ -15,6 +15,7 @@ int mouseOver(void);
 int mouseOverRegion(void);
 int mouseOverPartOfRegion(int startX, int startY, int endX, int endY);
 int mouseOverActor(const char *actorName);
+int mouseOverClones(const char *actorName, int startIndex, int endIndex);
 
 char tempFullFileName[256];
 char *addFileExtension(char *fileName, char *fileExtension)
@@ -125,4 +126,18 @@ int mouseOverActor(const char *actorName)
             xmouse < actor->xscreen + HALF_WIDTH_ACTOR(actor) &&
             ymouse > actor->yscreen - HALF_HEIGHT_ACTOR(actor) &&
             ymouse < actor->yscreen + HALF_HEIGHT_ACTOR(actor));
+}
+
+int mouseOverClones(const char *actorName, int startIndex, int endIndex)
+{
+    int i;
+    char cName[256];
+
+    for (i = startIndex; i <= endIndex; i ++)
+    {
+        sprintf(cName, "%s.%i", actorName, i);
+        if (mouseOverActor(cName)) return 1;
+    }
+
+    return 0;
 }

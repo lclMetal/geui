@@ -263,7 +263,9 @@ void doMouseButtonUp(const char *actorName, short mButton)
     switch (item->type)
     {
         case GEUI_Button:
-            if (mouseOverActor(actorName))
+            if (mouseOverClones("a_gui",
+                item->data.button.bActorStartIndex,
+                item->data.button.bActorEndIndex))
             {
                 colorActor(item->data.button.actor, window->style.buttonHilitColor);
                 item->data.button.actionFunction(window, item);

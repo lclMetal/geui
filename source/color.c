@@ -46,6 +46,7 @@ Color getActorColor(const char *actorName);
 void colorThisActor(Color color);
 void colorActor(Actor *pActor, Color color);
 void colorActorByName(const char *actorName, Color color);
+void colorClones(const char *actorName, int startIndex, int endIndex);
 
 // This function creates a color with given values of red, green and blue, and then returns the color
 // rValue - the value of the red component of the color
@@ -277,4 +278,21 @@ void colorActorByName(const char *actorName, Color color)
     a->g = color.g;
     a->b = color.b;
     a->transp = 1.0 - color.alpha;
+}
+
+// This functions colors multiple sequential clones with a given color
+// actorName - the base name of the clones
+// startIndex - the index of the first clone to color
+// endIndex - the index of the last clone to color
+// color - the color to color the clones with
+void colorClones(const char *actorName, int startIndex, int endIndex, Color color)
+{
+    int i;
+    char cName[256];
+
+    for (i = startIndex; i <= endIndex; i ++)
+    {
+        sprintf(cName, "%s.%i", actorName, i);
+        colorActorByName(cName, color);
+    }
 }
