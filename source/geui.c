@@ -207,6 +207,7 @@ void doMouseEnter(const char *actorName)
     WindowItem *item;
 
     if (!actorExists2(actor = getclone(actorName))) return;
+    if (actor->myWindow < 0 || actor->myIndex < 0) return;
     if (!(window = searchWindowByIndex(actor->myWindow))) return;
     if (!(item = searchItemByIndex(window, actor->myIndex))) return;
 
@@ -232,6 +233,7 @@ void doMouseLeave(const char *actorName)
     WindowItem *item;
 
     if (!actorExists2(actor = getclone(actorName))) return;
+    if (actor->myWindow < 0 || actor->myIndex < 0) return;
     if (!(window = searchWindowByIndex(actor->myWindow))) return;
     if (!(item = searchItemByIndex(window, actor->myIndex))) return;
 
@@ -262,6 +264,7 @@ void doMouseButtonDown(const char *actorName, short mButton)
     WindowItem *item;
 
     if (!actorExists2(actor = getclone(actorName))) return;
+    if (actor->myWindow < 0 || actor->myIndex < 0) return;
     if (!(window = searchWindowByIndex(actor->myWindow))) return;
     if (!(item = searchItemByIndex(window, actor->myIndex))) return;
 
@@ -283,6 +286,7 @@ void doMouseButtonUp(const char *actorName, short mButton)
     WindowItem *item;
 
     if (!actorExists2(actor = getclone(actorName))) return;
+    if (actor->myWindow < 0 || actor->myIndex < 0) return;
     if (!(window = searchWindowByIndex(actor->myWindow))) return;
     if (!(item = searchItemByIndex(window, actor->myIndex))) return;
 
@@ -463,7 +467,7 @@ Window *openWindow(char tag[256])
 
                     ChangeZDepth(a->clonename, 1.0);
                     ChangeAnimationDirection(a->clonename, STOPPED);
-                    if (i == 0)a->animpos = 9;
+                    if (i == 0)a->animpos = 9; // TODO: calculate actual values
                     else a->animpos = 10;
 
                     if (ptr->data.button.bActorStartIndex == -1)
