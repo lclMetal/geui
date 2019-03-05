@@ -30,7 +30,6 @@ typedef struct WindowItemStruct
         {
             Text text;
             short state;
-            Actor *actor;           // TODO: change from actor* to cloneindices
             int bActorStartIndex;
             int bActorEndIndex;
             void (*actionFunction)(struct WindowStruct *, struct WindowItemStruct *);
@@ -154,7 +153,6 @@ WindowItem *addButton(Window *window, char tag[256], char *string, void (*action
     ptr->data.button.text = createText(string, window->style.textFont, "(none)", ABSOLUTE, 0, 0);
     setTextColor(&ptr->data.button.text, window->style.textColor);
     ptr->data.button.state = 0;
-    ptr->data.button.actor = NULL;
     ptr->data.button.bActorStartIndex = -1;
     ptr->data.button.bActorEndIndex = -1;
     ptr->data.button.actionFunction = actionFunction;
@@ -214,7 +212,11 @@ void doMouseEnter(const char *actorName)
 
     switch (item->type)
     {
-        case GEUI_Button: colorActor(item->data.button.actor, window->style.buttonHilitColor); break;
+        case GEUI_Button:
+            colorClones("a_gui",
+                item->data.button.bActorStartIndex,
+                item->data.button.bActorEndIndex, window->style.buttonHilitColor);
+        break;
     }
 }
 
@@ -230,7 +232,11 @@ void doMouseLeave(const char *actorName)
 
     switch (item->type)
     {
-        case GEUI_Button: colorActor(item->data.button.actor, window->style.buttonColor); break;
+        case GEUI_Button:
+            colorClones("a_gui",
+                item->data.button.bActorStartIndex,
+                item->data.button.bActorEndIndex, window->style.buttonColor);
+        break;
     }
 }
 
@@ -246,7 +252,11 @@ void doMouseButtonDown(const char *actorName, short mButton)
 
     switch (item->type)
     {
-        case GEUI_Button: colorActor(item->data.button.actor, window->style.buttonPressedColor); break;
+        case GEUI_Button:
+            colorClones("a_gui",
+                item->data.button.bActorStartIndex,
+                item->data.button.bActorEndIndex, window->style.buttonPressedColor);
+        break;
     }
 }
 
@@ -267,8 +277,16 @@ void doMouseButtonUp(const char *actorName, short mButton)
                 item->data.button.bActorStartIndex,
                 item->data.button.bActorEndIndex))
             {
-                colorActor(item->data.button.actor, window->style.buttonHilitColor);
+                colorClones("a_gui",
+                    item->data.button.bActorStartIndex,
+                    item->data.button.bActorEndIndex, window->style.buttonHilitColor);
                 item->data.button.actionFunction(window, item);
+            }
+            else
+            {
+                colorClones("a_gui",
+                    item->data.button.bActorStartIndex,
+                    item->data.button.bActorEndIndex, window->style.buttonColor);
             }
         break;
     }
@@ -296,18 +314,8 @@ void eraseWindowItem(WindowItem *ptr)
             if (ptr->data.button.bActorStartIndex > -1)
             {
                 destroyClones("a_gui", ptr->data.button.bActorStartIndex, ptr->data.button.bActorEndIndex);
-                /*for (i = window->wTileStartIndex; i <= window->wTileEndIndex; i ++)
-                {
-                    destroyClone("a_gui", i);
-                }*/
-
                 ptr->data.button.bActorStartIndex = -1;
                 ptr->data.button.bActorEndIndex = -1;
-            }
-            if (ptr->data.button.actor)
-            {
-                DestroyActor(ptr->data.button.actor->clonename);
-                ptr->data.button.actor = NULL;
             }
         break;
     }
@@ -325,18 +333,8 @@ void destroyWindowItem(WindowItem *ptr)
             if (ptr->data.button.bActorStartIndex > -1)
             {
                 destroyClones("a_gui", ptr->data.button.bActorStartIndex, ptr->data.button.bActorEndIndex);
-                /*for (i = window->wTileStartIndex; i <= window->wTileEndIndex; i ++)
-                {
-                    destroyClone("a_gui", i);
-                }*/
-
                 ptr->data.button.bActorStartIndex = -1;
                 ptr->data.button.bActorEndIndex = -1;
-            }
-            if (ptr->data.button.actor)
-            {
-                DestroyActor(ptr->data.button.actor->clonename);
-                ptr->data.button.actor = NULL;
             }
         break;
 
@@ -440,15 +438,13 @@ Window *openWindow(char tag[256])
             break;
 
             case GEUI_Button:
-                ptr->data.button.actor = CreateActor("a_gui", "gui_sheet_default", "(none)", "(none)", -20, -20, true);
-                ptr->data.button.actor->myWindow = window->index;
-                ptr->data.button.actor->myIndex = ptr->index;
-
-                for (i = 0; (i + 1) * 20 < ptr->data.button.text.width; i ++)
+                for (i = 0; i * 20 < ptr->data.button.text.width; i ++)
                 {
                     Actor *a = CreateActor("a_gui", "gui_sheet_default", "(none)", "(none)", -20 + i * 20, -20, true);
                     a->myWindow = window->index;
-                    a->myIndex = -1;
+                    a->myIndex = ptr->index;
+
+                    ChangeZDepth(a->clonename, 1.0);
 
                     if (ptr->data.button.bActorStartIndex == -1)
                         ptr->data.button.bActorStartIndex = a->cloneindex;
@@ -456,9 +452,11 @@ Window *openWindow(char tag[256])
                         ptr->data.button.bActorEndIndex = a->cloneindex;
                 }
 
-                colorActor(ptr->data.button.actor, window->style.buttonColor);
-                ChangeZDepth(ptr->data.button.actor->clonename, 1.0);
-                setTextParent(&ptr->data.button.text, ptr->data.button.actor->clonename, False);
+                colorClones("a_gui",
+                    ptr->data.button.bActorStartIndex,
+                    ptr->data.button.bActorEndIndex, window->style.buttonColor);
+                setTextParent(&ptr->data.button.text,
+                    gc2("a_gui", ptr->data.button.bActorStartIndex)->clonename, False);
                 refreshText(&ptr->data.button.text);
             break;
 
@@ -507,11 +505,6 @@ void closeWindow(Window *window)
     if (window->wTileStartIndex > -1)
     {
         destroyClones("a_gui", window->wTileStartIndex, window->wTileEndIndex);
-        /*for (i = window->wTileStartIndex; i <= window->wTileEndIndex; i ++)
-        {
-            destroyClone("a_gui", i);
-        }*/
-
         window->wTileStartIndex = -1;
         window->wTileEndIndex = -1;
     }
