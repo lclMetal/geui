@@ -55,6 +55,7 @@ typedef struct WindowStruct
 }Window;
 
 void initGEUI(void);
+int mouseIsOverClones(int startIndex, int endIndex);
 WindowItem *initNewItem(ItemType type, Window *window, char tag[256]);
 WindowItem *addItemToWindow(Window *window, WindowItem *ptr);
 WindowItem *addText(Window *window, char tag[256], char *string);
@@ -105,6 +106,29 @@ void initGEUI(void)
     GEUIController.wIndex = 0;
     GEUIController.sDefault = defStyle;
     GEUIController.wList = NULL;
+}
+
+int mouseIsOverClones(int startIndex, int endIndex)
+{
+    int count;
+    Actor *actors;
+
+    actors = getAllActorsInCollision("a_geuiMouse.0", &count);
+
+    if (actors)
+    {
+        int i;
+
+        for (i = 0; i < count; i ++)
+        {
+            if (!strcmp(actors[i].name, "a_gui") &&
+                actors[i].cloneindex >= startIndex &&
+                actors[i].cloneindex <= endIndex)
+                return 1;
+        }
+    }
+
+    return 0;
 }
 
 WindowItem *initNewItem(ItemType type, Window *window, char tag[256])
@@ -240,8 +264,7 @@ void doMouseLeave(const char *actorName)
     switch (item->type)
     {
         case GEUI_Button:
-            if (!mouseOverClones("a_gui",
-                item->data.button.bActorStartIndex,
+            if (!mouseIsOverClones(item->data.button.bActorStartIndex,
                 item->data.button.bActorEndIndex))
             {
                 if (item->data.button.state)
@@ -293,14 +316,14 @@ void doMouseButtonUp(const char *actorName, short mButton)
     switch (item->type)
     {
         case GEUI_Button:
-            if (mouseOverClones("a_gui",
-                item->data.button.bActorStartIndex,
+            if (mouseIsOverClones(item->data.button.bActorStartIndex,
                 item->data.button.bActorEndIndex))
             {
                 colorClones("a_gui",
                     item->data.button.bActorStartIndex,
                     item->data.button.bActorEndIndex, window->style.buttonHilitColor);
-                item->data.button.actionFunction(window, item);
+                if (item->data.button.state)
+                    item->data.button.actionFunction(window, item);
             }
             else
             {

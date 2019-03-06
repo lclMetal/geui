@@ -1,7 +1,7 @@
-#define HALF_WIDTH (width * 0.5)
-#define HALF_HEIGHT (height * 0.5)
-#define HALF_WIDTH_ACTOR(X) (X->width * 0.5)
-#define HALF_HEIGHT_ACTOR(X) (X->height * 0.5)
+#define HALF_WIDTH (width / 2)
+#define HALF_HEIGHT (height / 2)
+#define HALF_WIDTH_ACTOR(X) (X->width / 2)
+#define HALF_HEIGHT_ACTOR(X) (X->height / 2)
 
 char *addFileExtension(char *fileName, char *fileExtension);
 int actorExists(char *actorName);
@@ -100,20 +100,22 @@ void enableMouseEvents(char *actorName)
 
 int mouseOver(void)
 {
-    return (xmouse > xscreen - HALF_WIDTH && xmouse < xscreen + HALF_WIDTH &&
-            ymouse > yscreen - HALF_HEIGHT && ymouse < yscreen + HALF_HEIGHT);
+    return (xmouse >= xscreen - HALF_WIDTH &&
+            xmouse <  xscreen - HALF_WIDTH + width &&
+            ymouse >= yscreen - HALF_HEIGHT &&
+            ymouse <  yscreen - HALF_HEIGHT + height);
 }
 
 int mouseOverRegion(void)
 {
-    return (xmouse > xscreen && xmouse < xscreen + width &&
-            ymouse > yscreen && ymouse < yscreen + height);
+    return (xmouse >= xscreen && xmouse < xscreen + width &&
+            ymouse >= yscreen && ymouse < yscreen + height);
 }
 
 int mouseOverPartOfRegion(int startX, int startY, int endX, int endY)
 {
-    return (xmouse > xscreen + startX && xmouse < xscreen + width - endX &&
-            ymouse > yscreen + startY && ymouse < yscreen + height - endY);
+    return (xmouse >= xscreen + startX && xmouse < xscreen + width - endX &&
+            ymouse >= yscreen + startY && ymouse < yscreen + height - endY);
 }
 
 int mouseOverActor(const char *actorName)
@@ -122,10 +124,10 @@ int mouseOverActor(const char *actorName)
 
     if (!actorExists2(actor = getclone(actorName))) return 0;
 
-    return (xmouse > actor->xscreen - HALF_WIDTH_ACTOR(actor) &&
-            xmouse < actor->xscreen + HALF_WIDTH_ACTOR(actor) &&
-            ymouse > actor->yscreen - HALF_HEIGHT_ACTOR(actor) &&
-            ymouse < actor->yscreen + HALF_HEIGHT_ACTOR(actor));
+    return (xmouse >= actor->xscreen - HALF_WIDTH_ACTOR(actor) &&
+            xmouse <  actor->xscreen - HALF_WIDTH_ACTOR(actor) + actor->width &&
+            ymouse >= actor->yscreen - HALF_HEIGHT_ACTOR(actor) &&
+            ymouse <  actor->yscreen - HALF_HEIGHT_ACTOR(actor) + actor->height);
 }
 
 int mouseOverClones(const char *actorName, int startIndex, int endIndex)
