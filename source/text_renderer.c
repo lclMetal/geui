@@ -488,14 +488,14 @@ void setTextParent(Text *pText, char *parentCName, bool keepCurrentPosition)
     }
 
     pText->relative = (parentExists) ? True : False;
-    
+
     if (keepCurrentPosition)
     {
         int parentX = pParent->x * actorExists2(pParent);
         int parentY = pParent->y * actorExists2(pParent);
         int prevParentX = pPrevParent->x * actorExists2(pPrevParent);
         int prevParentY = pPrevParent->y * actorExists2(pPrevParent);
-        
+
         pText->beginX = prevParentX + pText->beginX - parentX;
         pText->beginY = prevParentY + pText->beginY - parentY;
     }
@@ -504,7 +504,7 @@ void setTextParent(Text *pText, char *parentCName, bool keepCurrentPosition)
 void setTextPosition(Text *pText, int posX, int posY)
 {
     if (!pText) return;
-    
+
     pText->beginX = posX;
     pText->beginY = posY;
 }

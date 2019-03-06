@@ -47,6 +47,7 @@ typedef struct WindowStruct
     int index;          // window index
     int iIndex;         // next available item index
     char tag[256];      // window identifier tag
+    bool isOpen;        // is window currently open or not
     Style style;        // window style
     int wTileStartIndex; // cloneindex of the first window tile
     int wTileEndIndex;   // cloneindex of the last window tile
@@ -89,6 +90,8 @@ struct GEUIControllerStruct
 
 void initGEUI(void)
 {
+    DEBUG_INIT();
+    
     strcpy(defStyle.guiAnim, "gui_sheet_default");  // GUI animation name
     defStyle.titleFont          = &defTitleFont;    // title font
     defStyle.labelFont          = &defLabelFont;    // label font
@@ -362,6 +365,8 @@ void eraseWindowItem(WindowItem *ptr)
                 ptr->data.button.bActorEndIndex = -1;
             }
         break;
+
+        default: break;
     }
 }
 
@@ -414,6 +419,7 @@ Window *createWindow(char tag[256])
     ptr->index = GEUIController.wIndex ++;
     ptr->iIndex = 0;
     strcpy(ptr->tag, tag);
+    ptr->isOpen = False;
     ptr->style = GEUIController.sDefault;
     ptr->wTileStartIndex = -1;
     ptr->wTileEndIndex = -1;
@@ -468,6 +474,7 @@ Window *openWindow(char tag[256])
     WindowItem *ptr = NULL;
 
     if (!window) {DEBUG_MSG_FROM("window is NULL", "openWindow"); return NULL;}
+    if (window->isOpen) { DEBUG_MSG_FROM("window is already open", "openWindow"); return window; }
 
     ptr = window->iList;
 
@@ -539,7 +546,9 @@ Window *openWindow(char tag[256])
         }
     }
 
-    return NULL;
+    window->isOpen = True;
+
+    return window;
 }
 
 void closeWindow(Window *window)
@@ -548,6 +557,8 @@ void closeWindow(Window *window)
     WindowItem *ptr = NULL;
 
     if (!window) {DEBUG_MSG_FROM("window is NULL", "openWindow"); return;}
+
+    window->isOpen = False;
 
     if (window->wTileStartIndex > -1)
     {
