@@ -7,6 +7,7 @@
     RES_MOUSE_WHEEL_DOWN,
     RES_MOUSE_BUTTONS     // Number of supported mouse buttons (5)
 };*/
+#define USE_DEFAULT_STYLE GEUIController.sDefault
 
 typedef enum ItemTypeEnum
 {
@@ -72,7 +73,7 @@ void doKeyUp(Window *window, WindowItem *item, short key);
 void eraseWindowItem(WindowItem *ptr);
 void destroyWindowItem(WindowItem *ptr);
 int calculateAnimpos(unsigned short w, unsigned short h, unsigned short i, unsigned short j);
-Window *createWindow(char tag[256]);
+Window *createWindow(char tag[256], Style style);
 Window *searchWindowByTag(char tag[256]);
 Window *searchWindowByIndex(int index);
 Window *openWindow(char tag[256]);
@@ -91,7 +92,7 @@ struct GEUIControllerStruct
 void initGEUI(void)
 {
     DEBUG_INIT();
-    
+
     strcpy(defStyle.guiAnim, "gui_sheet_default");  // GUI animation name
     defStyle.titleFont          = &defTitleFont;    // title font
     defStyle.labelFont          = &defLabelFont;    // label font
@@ -410,7 +411,7 @@ int calculateAnimpos(unsigned short w, unsigned short h, unsigned short i, unsig
     // 6, 7, 7, 7, 8
 }
 
-Window *createWindow(char tag[256])
+Window *createWindow(char tag[256], Style style)
 {
     Window *ptr = malloc(sizeof *ptr);
 
@@ -420,7 +421,7 @@ Window *createWindow(char tag[256])
     ptr->iIndex = 0;
     strcpy(ptr->tag, tag);
     ptr->isOpen = False;
-    ptr->style = GEUIController.sDefault;
+    ptr->style = style;
     ptr->wTileStartIndex = -1;
     ptr->wTileEndIndex = -1;
     ptr->iList = NULL;
@@ -535,9 +536,10 @@ Window *openWindow(char tag[256])
                 i * tileWidth, j * tileHeight, true);
             guiActor->myWindow = window->index;
             guiActor->myIndex = -1;
-            ChangeAnimationDirection(guiActor->clonename, STOPPED);
             ChangeZDepth(guiActor->clonename, 0.4);
+            ChangeAnimationDirection(guiActor->clonename, STOPPED);
             guiActor->animpos = calculateAnimpos(tilesH, tilesV, i, j);
+            colorActor(guiActor, window->style.windowBgColor);
 
             if (window->wTileStartIndex == -1)
                 window->wTileStartIndex = guiActor->cloneindex;
