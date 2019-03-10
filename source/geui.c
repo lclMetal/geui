@@ -9,6 +9,11 @@
 };*/
 #define USE_DEFAULT_STYLE GEUIController.sDefault
 
+enum guiPropertyFlags
+{
+    GEUI_DRAGGABLE = (1 << 0)
+};
+
 typedef enum ItemTypeEnum
 {
     GEUI_Text,
