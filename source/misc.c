@@ -9,6 +9,7 @@ int actorExists2(Actor *a);
 Actor *gc2(char *actorName, int cloneNum);
 void destroyClone(const char *actorName, int cloneNum);
 void destroyClones(const char *actorName, int startIndex, int endIndex);
+void changeParentOfClones(const char *actorName, int startIndex, int endIndex, const char *parentName);
 void disableMouseEvents(char *actorName);
 void enableMouseEvents(char *actorName);
 int mouseOver(void);
@@ -75,10 +76,26 @@ void destroyClones(const char *actorName, int startIndex, int endIndex)
     int i;
     char cName[256];
 
+    if (startIndex < 0 || endIndex < 0) return;
+
     for (i = startIndex; i <= endIndex; i ++)
     {
         sprintf(cName, "%s.%i", actorName, i);
         DestroyActor(cName);
+    }
+}
+
+void changeParentOfClones(const char *actorName, int startIndex, int endIndex, const char *parentName)
+{
+    int i;
+    char cName[256];
+
+    if (startIndex < 0 || endIndex < 0) return;
+
+    for (i = startIndex; i <= endIndex; i ++)
+    {
+        sprintf(cName, "%s.%i", actorName, i);
+        ChangeParent(cName, parentName);
     }
 }
 
@@ -134,6 +151,8 @@ int mouseOverClones(const char *actorName, int startIndex, int endIndex)
 {
     int i;
     char cName[256];
+
+    if (startIndex < 0 || endIndex < 0) return 0;
 
     for (i = startIndex; i <= endIndex; i ++)
     {

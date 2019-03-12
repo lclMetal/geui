@@ -1,4 +1,4 @@
-/*enum resMouseButtonsEnum
+/*enum resMouseButtonsEnum // TODO: add mouse buttons
 {
     RES_MOUSE_LEFT = 0,
     RES_MOUSE_RIGHT,
@@ -55,8 +55,9 @@ typedef struct WindowStruct
     char tag[256];      // window identifier tag
     bool isOpen;        // is window currently open or not
     Style style;        // window style
-    int wTileStartIndex; // cloneindex of the first window tile
-    int wTileEndIndex;   // cloneindex of the last window tile
+    char parentCName[256]; // clonename of the window parent actor
+    int wTileStartIndex;   // cloneindex of the first window tile
+    int wTileEndIndex;     // cloneindex of the last window tile
     struct WindowItemStruct *iList;  // list of items in window
     struct WindowStruct *next;       // pointer to next window in list
 }Window;
@@ -82,6 +83,7 @@ Window *createWindow(char tag[256], Style style);
 Window *searchWindowByTag(char tag[256]);
 Window *searchWindowByIndex(int index);
 Window *openWindow(char tag[256]);
+void setWindowBaseParent(Window *window, char *parentName);
 void closeWindow(Window *window);
 void destroyWindow(Window *window);
 void destroyWindowList(void);
@@ -96,7 +98,8 @@ struct GEUIControllerStruct
 
 void initGEUI(void)
 {
-    DEBUG_INIT();
+    //DEBUG_INIT(); // debug file initialization on startup disabled for now
+    // TODO: separate DEBUG_INIT() and DEBUG_INIT_FILE()
 
     strcpy(defStyle.guiAnim, "gui_sheet_default");  // GUI animation name
     defStyle.titleFont          = &defTitleFont;    // title font
@@ -296,6 +299,9 @@ void doMouseButtonDown(const char *actorName, short mButton)
     WindowItem *item;
 
     if (!actorExists2(actor = getclone(actorName))) return;
+
+    if (actor->myProperties & GEUI_DRAGGABLE) FollowMouse(actorName, BOTH_AXIS);
+
     if (actor->myWindow < 0 || actor->myIndex < 0) return;
     if (!(window = searchWindowByIndex(actor->myWindow))) return;
     if (!(item = searchItemByIndex(window, actor->myIndex))) return;
@@ -318,6 +324,9 @@ void doMouseButtonUp(const char *actorName, short mButton)
     WindowItem *item;
 
     if (!actorExists2(actor = getclone(actorName))) return;
+
+    if (actor->myProperties & GEUI_DRAGGABLE) FollowMouse(actorName, NONE_AXIS);
+
     if (actor->myWindow < 0 || actor->myIndex < 0) return;
     if (!(window = searchWindowByIndex(actor->myWindow))) return;
     if (!(item = searchItemByIndex(window, actor->myIndex))) return;
@@ -516,7 +525,8 @@ Window *openWindow(char tag[256])
                     ptr->data.button.bActorStartIndex,
                     ptr->data.button.bActorEndIndex, window->style.buttonColor);
                 setTextParent(&ptr->data.button.text,
-                    gc2("a_gui", ptr->data.button.bActorStartIndex)->clonename, False);
+                    gc2("a_gui", ptr->data.button.bActorEndIndex)->clonename, False);
+                setTextPosition(&ptr->data.button.text, -45, 0); // TODO: actual calculations
                 refreshText(&ptr->data.button.text);
             break;
 
@@ -531,13 +541,17 @@ Window *openWindow(char tag[256])
     tileHeight = guiActor->height;
     tilesH = ceil(width / (float)tileWidth);
     tilesV = ceil(height / (float)tileHeight);
-    DestroyActor(guiActor->clonename);
+    guiActor->myProperties = GEUI_DRAGGABLE; // for testing purposes only
+    ChangeZDepth(guiActor->clonename, 0.0);
+    //VisibilityState(window->parentCName, DONT_DRAW_ONLY); // disabled for testing purposes only
+
+    setWindowBaseParent(window, guiActor->clonename);
 
     for (j = 0; j < tilesV; j ++)
     {
         for (i = 0; i < tilesH; i ++)
         {
-            guiActor = CreateActor("a_gui", window->style.guiAnim, "(none)", "(none)",
+            guiActor = CreateActor("a_gui", window->style.guiAnim, window->parentCName, "(none)",
                 i * tileWidth, j * tileHeight, true);
             guiActor->myWindow = window->index;
             guiActor->myIndex = -1;
@@ -545,6 +559,7 @@ Window *openWindow(char tag[256])
             ChangeAnimationDirection(guiActor->clonename, STOPPED);
             guiActor->animpos = calculateAnimpos(tilesH, tilesV, i, j);
             colorActor(guiActor, window->style.windowBgColor);
+            if (j == 0) guiActor->myProperties = GEUI_DRAGGABLE; // window title bar
 
             if (window->wTileStartIndex == -1)
                 window->wTileStartIndex = guiActor->cloneindex;
@@ -558,14 +573,48 @@ Window *openWindow(char tag[256])
     return window;
 }
 
+void setWindowBaseParent(Window *window, char *parentName)
+{
+    WindowItem *ptr = NULL;
+
+    if (!window) {DEBUG_MSG_FROM("window is NULL", "setWindowBaseParent"); return;}
+    if (!actorExists(parentName)) {DEBUG_MSG_FROM("actor does not exist!", "setWindowBaseParent"); return;}
+
+    strcpy(window->parentCName, parentName);
+
+    if (window->wTileStartIndex > -1)
+        changeParentOfClones("a_gui", window->wTileStartIndex, window->wTileEndIndex, parentName);
+
+    ptr = window->iList;
+
+    while (ptr)
+    {
+        switch (ptr->type)
+        {
+            case GEUI_Text: setTextParent(&ptr->data.text.text, parentName, True); break;
+            case GEUI_Button:
+                //setTextParent(&ptr->data.button.text, parentName, False); // TODO: is this needed?
+                if (ptr->data.button.bActorStartIndex > -1)
+                    changeParentOfClones("a_gui", ptr->data.button.bActorStartIndex, ptr->data.button.bActorEndIndex, parentName);
+            break;
+
+            default: break;
+        }
+
+        ptr = ptr->next;
+    }
+}
+
 void closeWindow(Window *window)
 {
-    int i;
     WindowItem *ptr = NULL;
 
     if (!window) {DEBUG_MSG_FROM("window is NULL", "openWindow"); return;}
 
     window->isOpen = False;
+
+    DestroyActor(window->parentCName);
+    strcpy(window->parentCName, "\0");
 
     if (window->wTileStartIndex > -1)
     {
