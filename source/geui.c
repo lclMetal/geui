@@ -7,11 +7,14 @@
     RES_MOUSE_WHEEL_DOWN,
     RES_MOUSE_BUTTONS     // Number of supported mouse buttons (5)
 };*/
+#define DEFAULT_ZDEPTH 0.51
 #define USE_DEFAULT_STYLE GEUIController.sDefault
 
 enum guiPropertyFlags
 {
-    GEUI_DRAGGABLE = (1 << 0)
+    GEUI_TITLE_BAR  = (1 << 0),
+    GEUI_FAKE_ACTOR = (1 << 1),
+    GEUI_CLICKED    = (1 << 2)
 };
 
 typedef enum ItemTypeEnum
@@ -55,6 +58,7 @@ typedef struct WindowStruct
     char tag[256];      // window identifier tag
     bool isOpen;        // is window currently open or not
     Style style;        // window style
+    double zDepth;      // window z depth
     char parentCName[256]; // clonename of the window parent actor
     int wTileStartIndex;   // cloneindex of the first window tile
     int wTileEndIndex;     // cloneindex of the last window tile
@@ -292,6 +296,7 @@ void doMouseLeave(const char *actorName)
     }
 }
 
+// TODO: test without actorName, with just clonename
 void doMouseButtonDown(const char *actorName, short mButton)
 {
     Actor *actor;
@@ -299,12 +304,48 @@ void doMouseButtonDown(const char *actorName, short mButton)
     WindowItem *item;
 
     if (!actorExists2(actor = getclone(actorName))) return;
-
-    if (actor->myProperties & GEUI_DRAGGABLE) FollowMouse(actorName, BOTH_AXIS);
-
-    if (actor->myWindow < 0 || actor->myIndex < 0) return;
+    if (actor->myWindow < 0) return;
     if (!(window = searchWindowByIndex(actor->myWindow))) return;
-    if (!(item = searchItemByIndex(window, actor->myIndex))) return;
+
+    if (actor->myProperties & GEUI_TITLE_BAR)
+    {
+        Actor *fake;
+        Actor *wParent;
+        int xDist, yDist;
+
+        ChangeParent(actor->clonename, "(none)");
+
+        // store the current color of the event actor
+        actor->myColorR = actor->r;
+        actor->myColorG = actor->g;
+        actor->myColorB = actor->b;
+        //VisibilityState(actor->clonename, DONT_DRAW_ONLY);
+
+        // make the event actor white to keep children's colors unchanged after parenting
+        actor->r = actor->g = actor->b = 255;
+
+        // create fake actor to cover the now white event actor
+        fake = CreateActor("a_gui", window->style.guiAnim, window->parentCName, "(none)", 0, 0, false);
+        fake->myProperties = GEUI_FAKE_ACTOR;
+        actor->myFakeIndex = fake->cloneindex;
+        SendActivationEvent(gc2("a_gui", actor->myFakeIndex)->clonename);
+
+        wParent = getclone(window->parentCName);
+
+        // calculate the window base parent's coordinates relative to the event actor
+        xDist = ceil(wParent->x - x);
+        yDist = ceil(wParent->y - y);
+
+        // make event actor the parent of the window base parent
+        ChangeParent(wParent->clonename, actor->clonename);
+        wParent->x = xDist;
+        wParent->y = yDist;
+
+        actor->myProperties |= GEUI_CLICKED;
+        FollowMouse(actor->clonename, BOTH_AXIS);
+    }
+
+    if (actor->myIndex < 0 || !(item = searchItemByIndex(window, actor->myIndex))) return;
 
     switch (item->type)
     {
@@ -317,6 +358,7 @@ void doMouseButtonDown(const char *actorName, short mButton)
     }
 }
 
+// TODO: test without actorName, with just clonename
 void doMouseButtonUp(const char *actorName, short mButton)
 {
     Actor *actor;
@@ -324,12 +366,43 @@ void doMouseButtonUp(const char *actorName, short mButton)
     WindowItem *item;
 
     if (!actorExists2(actor = getclone(actorName))) return;
-
-    if (actor->myProperties & GEUI_DRAGGABLE) FollowMouse(actorName, NONE_AXIS);
-
-    if (actor->myWindow < 0 || actor->myIndex < 0) return;
+    if (actor->myWindow < 0) return;
     if (!(window = searchWindowByIndex(actor->myWindow))) return;
-    if (!(item = searchItemByIndex(window, actor->myIndex))) return;
+
+    if (actor->myProperties & GEUI_TITLE_BAR && actor->myProperties & GEUI_CLICKED)
+    {
+        Actor *fake;
+        Actor *wParent;
+        int xDist, yDist;
+
+        wParent = getclone(window->parentCName);
+
+        // reset window base parent's parent to none
+        ChangeParent(wParent->clonename, "(none)");
+
+        // calculate the event actor's coordinates relative to window the base parent
+        xDist = ceil(actor->x - wParent->x);
+        yDist = ceil(actor->y - wParent->y);
+
+        // make the window base parent the parent of the event actor
+        ChangeParent(actor->clonename, wParent->clonename);
+        actor->x = xDist;
+        actor->y = yDist;
+
+        actor->myProperties &= ~GEUI_CLICKED;
+        FollowMouse(actor->clonename, NONE_AXIS);
+
+        // restore the event actor's original color
+        actor->r = actor->myColorR;
+        actor->g = actor->myColorG;
+        actor->b = actor->myColorB;
+        //VisibilityState(actor->clonename, ENABLE);
+
+        // destroy the fake actor
+        DestroyActor(gc2("a_gui", actor->myFakeIndex)->clonename);
+    }
+
+    if (actor->myIndex < 0 || !(item = searchItemByIndex(window, actor->myIndex))) return;
 
     switch (item->type)
     {
@@ -436,6 +509,7 @@ Window *createWindow(char tag[256], Style style)
     strcpy(ptr->tag, tag);
     ptr->isOpen = False;
     ptr->style = style;
+    ptr->zDepth = DEFAULT_ZDEPTH;
     ptr->wTileStartIndex = -1;
     ptr->wTileEndIndex = -1;
     ptr->iList = NULL;
@@ -510,8 +584,6 @@ Window *openWindow(char tag[256])
                     a->myWindow = window->index;
                     a->myIndex = ptr->index;
 
-                    ChangeZDepth(a->clonename, 1.0);
-                    ChangeAnimationDirection(a->clonename, STOPPED);
                     if (i == 0)a->animpos = 9; // TODO: calculate actual values
                     else a->animpos = 10;
 
@@ -541,9 +613,8 @@ Window *openWindow(char tag[256])
     tileHeight = guiActor->height;
     tilesH = ceil(width / (float)tileWidth);
     tilesV = ceil(height / (float)tileHeight);
-    guiActor->myProperties = GEUI_DRAGGABLE; // for testing purposes only
-    ChangeZDepth(guiActor->clonename, 0.0);
-    //VisibilityState(window->parentCName, DONT_DRAW_ONLY); // disabled for testing purposes only
+    ChangeZDepth(guiActor->clonename, window->zDepth);
+    VisibilityState(window->parentCName, DISABLE);
 
     setWindowBaseParent(window, guiActor->clonename);
 
@@ -555,11 +626,10 @@ Window *openWindow(char tag[256])
                 i * tileWidth, j * tileHeight, true);
             guiActor->myWindow = window->index;
             guiActor->myIndex = -1;
-            ChangeZDepth(guiActor->clonename, 0.4);
-            ChangeAnimationDirection(guiActor->clonename, STOPPED);
             guiActor->animpos = calculateAnimpos(tilesH, tilesV, i, j);
             colorActor(guiActor, window->style.windowBgColor);
-            if (j == 0) guiActor->myProperties = GEUI_DRAGGABLE; // window title bar
+            ChangeZDepth(guiActor->clonename, window->zDepth);
+            if (j == 0) guiActor->myProperties = GEUI_TITLE_BAR; // window title bar
 
             if (window->wTileStartIndex == -1)
                 window->wTileStartIndex = guiActor->cloneindex;
@@ -614,7 +684,7 @@ void closeWindow(Window *window)
     window->isOpen = False;
 
     DestroyActor(window->parentCName);
-    strcpy(window->parentCName, "\0");
+    strcpy(window->parentCName, "(none)");
 
     if (window->wTileStartIndex > -1)
     {
