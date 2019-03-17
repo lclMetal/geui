@@ -444,7 +444,10 @@ void eraseWindowItem(WindowItem *ptr)
 
     switch (ptr->type)
     {
-        case GEUI_Text: eraseText(&ptr->data.text.text); break;
+        case GEUI_Text:
+            eraseText(&ptr->data.text.text);
+            setTextParent(&ptr->data.text.text, "(none)", False);
+        break;
         case GEUI_Button:
             eraseText(&ptr->data.button.text);
             if (ptr->data.button.bActorStartIndex > -1)

@@ -481,10 +481,13 @@ void setTextParent(Text *pText, char *parentCName, bool keepCurrentPosition)
     else
         strcpy(pText->parentCName, parentCName);
 
-    for (i = pText->firstCharIndex; i <= pText->lastCharIndex; i ++)
+    if (pText->firstCharIndex > -1 && pText->lastCharIndex > -1)
     {
-        sprintf(temp, "%s.%i", typeActorName[pText->lastRenderFrame], i);
-        ChangeParent(temp, pText->parentCName);
+        for (i = pText->firstCharIndex; i <= pText->lastCharIndex; i ++)
+        {
+            sprintf(temp, "%s.%i", typeActorName[pText->lastRenderFrame], i);
+            ChangeParent(temp, pText->parentCName);
+        }
     }
 
     pText->relative = (parentExists) ? True : False;
@@ -558,10 +561,13 @@ void destroyText(Text *pText)
 
     if (pText->pString)
     {
-        for (i = pText->firstCharIndex; i <= pText->lastCharIndex; i ++)
+        if (pText->firstCharIndex > -1 && pText->lastCharIndex > -1)
         {
-            sprintf(actorName, "%s.%i", (pText->lastRenderFrame)?"a_typeActor2":"a_typeActor", i);
-            DestroyActor(actorName);
+            for (i = pText->firstCharIndex; i <= pText->lastCharIndex; i ++)
+            {
+                sprintf(actorName, "%s.%i", (pText->lastRenderFrame)?"a_typeActor2":"a_typeActor", i);
+                DestroyActor(actorName);
+            }
         }
 
         pText->firstCharIndex = -1;
