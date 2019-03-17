@@ -326,6 +326,7 @@ void doMouseButtonDown(const char *actorName, short mButton)
 
         // create fake actor to cover the now white event actor
         fake = CreateActor("a_gui", window->style.guiAnim, window->parentCName, "(none)", 0, 0, false);
+        fake->myWindow = window->index;
         fake->myProperties = GEUI_FAKE_ACTOR;
         actor->myFakeIndex = fake->cloneindex;
         SendActivationEvent(gc2("a_gui", actor->myFakeIndex)->clonename);
