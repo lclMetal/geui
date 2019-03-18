@@ -582,7 +582,7 @@ Window *openWindow(char tag[256])
             break;
 
             case GEUI_Button:
-                for (i = 0; i * 20 < ptr->data.button.text.width; i ++)
+                for (i = 0; i * 20 < ptr->data.button.text.width + window->style.padding * 2; i ++)
                 {
                     Actor *a = CreateActor("a_gui", window->style.guiAnim, "(none)", "(none)", -20 + i * 20, -20, true);
                     a->myWindow = window->index;
@@ -602,7 +602,9 @@ Window *openWindow(char tag[256])
                     ptr->data.button.bActorEndIndex, window->style.buttonColor);
                 setTextParent(&ptr->data.button.text,
                     gc2("a_gui", ptr->data.button.bActorEndIndex)->clonename, False);
-                setTextPosition(&ptr->data.button.text, -45, 0); // TODO: actual calculations
+                setTextAlignment(&ptr->data.button.text, ALIGN_CENTER);
+                setTextPosition(&ptr->data.button.text,
+                     ceil((gc2("a_gui", ptr->data.button.bActorStartIndex)->x - gc2("a_gui", ptr->data.button.bActorEndIndex)->x)*0.5), 0); // TODO: actual calculations
                 refreshText(&ptr->data.button.text);
             break;
 
