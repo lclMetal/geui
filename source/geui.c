@@ -67,7 +67,7 @@ typedef struct WindowStruct
 }Window;
 
 void initGEUI(void);
-int mouseIsOverClones(int startIndex, int endIndex);
+int isTopmostGuiElementAtMouse(Window *window, WindowItem *item);
 WindowItem *initNewItem(ItemType type, Window *window, char tag[256]);
 WindowItem *addItemToWindow(Window *window, WindowItem *ptr);
 WindowItem *addText(Window *window, char tag[256], char *string);
@@ -124,7 +124,7 @@ void initGEUI(void)
     GEUIController.wList = NULL;
 }
 
-int mouseIsOverClones(int startIndex, int endIndex)
+int isTopmostGuiElementAtMouse(Window *window, WindowItem *item)
 {
     int count;
     Actor *actors;
@@ -135,12 +135,14 @@ int mouseIsOverClones(int startIndex, int endIndex)
     {
         int i;
 
-        for (i = 0; i < count; i ++)
+        for (i = count - 1; i >= 0; i --)
         {
             if (!strcmp(actors[i].name, "a_gui") &&
-                actors[i].cloneindex >= startIndex &&
-                actors[i].cloneindex <= endIndex)
-                return 1;
+                actors[i].myIndex > -1)
+            {
+                return (actors[i].myWindow == item->parent->index &&
+                    actors[i].myIndex == item->index);
+            }
         }
     }
 
@@ -160,6 +162,7 @@ WindowItem *initNewItem(ItemType type, Window *window, char tag[256])
     ptr->type = type;
     ptr->index = window->iIndex ++;
     strcpy(ptr->tag, tag);
+    ptr->parent = window;
 
     return ptr;
 }
@@ -256,14 +259,18 @@ void doMouseEnter(const char *actorName)
     switch (item->type)
     {
         case GEUI_Button:
-            if (item->data.button.state)
-                colorClones("a_gui",
-                    item->data.button.bActorStartIndex,
-                    item->data.button.bActorEndIndex, window->style.buttonPressedColor);
-            else
-                colorClones("a_gui",
-                    item->data.button.bActorStartIndex,
-                    item->data.button.bActorEndIndex, window->style.buttonHilitColor);
+            if (isTopmostGuiElementAtMouse(window, item))
+            {
+                if (item->data.button.state)
+                    colorClones("a_gui",
+                        item->data.button.bActorStartIndex,
+                        item->data.button.bActorEndIndex, window->style.buttonPressedColor);
+                else
+                    colorClones("a_gui",
+                        item->data.button.bActorStartIndex,
+                        item->data.button.bActorEndIndex, window->style.buttonHilitColor);
+            }
+            else doMouseLeave(actorName);
         break;
     }
 }
@@ -282,8 +289,7 @@ void doMouseLeave(const char *actorName)
     switch (item->type)
     {
         case GEUI_Button:
-            if (!mouseIsOverClones(item->data.button.bActorStartIndex,
-                item->data.button.bActorEndIndex))
+            if (!isTopmostGuiElementAtMouse(window, item))
             {
                 if (item->data.button.state)
                     colorClones("a_gui",
@@ -410,8 +416,7 @@ void doMouseButtonUp(const char *actorName, short mButton)
     switch (item->type)
     {
         case GEUI_Button:
-            if (mouseIsOverClones(item->data.button.bActorStartIndex,
-                item->data.button.bActorEndIndex))
+            if (isTopmostGuiElementAtMouse(window, item))
             {
                 colorClones("a_gui",
                     item->data.button.bActorStartIndex,
@@ -637,6 +642,7 @@ Window *openWindow(char tag[256])
             guiActor->animpos = calculateAnimpos(tilesH, tilesV, i, j);
             colorActor(guiActor, window->style.windowBgColor);
             ChangeZDepth(guiActor->clonename, window->zDepth);
+            CollisionState(guiActor->clonename, DISABLE);
             if (j == 0) guiActor->myProperties = GEUI_TITLE_BAR; // window title bar
 
             if (window->wTileStartIndex == -1)
