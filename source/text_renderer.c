@@ -94,10 +94,10 @@ int calculateTextWidth(Text *pText);
 int calculateLineWidth(Text *pText, char *pString, int line);
 int parseToNextLineStart(Text *pText, int startPosition, Color *pTempColor, bool *pCustomColorPrint);
 void replaceChar(char *pString, char replace, char new);
-void handleEscapeSequences(Text *pText, int *iterator, int *pPrevX, int *pPrevY, Color *pTempColor, bool *pCustomColorPrint);
+void handleEscapeSequences(Text *pText, int *iterator, int *pPrevX, int *pPrevY, Color *pTempColor, bool *pCustomColorPrint, bool *firstOnLine);
 void skipEscapeSequences(char *pString, int *iterator, Color *pTempColor, bool *pCustomColorPrint);
 void renderText(Text *pText);
-int renderCharacter(Text *pText, char printChar, Color color, bool relative, int xPos, int yPos);
+int renderCharacter(Text *pText, char printChar, Color color, bool relative, int xPos, int yPos, bool firstOnLine);
 
 int fromASCII(int num)
 {
@@ -602,7 +602,7 @@ void destroyText(Text *pText)
     }
 }
 
-void handleEscapeSequences(Text *pText, int *iterator, int *pPrevX, int *pPrevY, Color *pTempColor, bool *pCustomColorPrint)
+void handleEscapeSequences(Text *pText, int *iterator, int *pPrevX, int *pPrevY, Color *pTempColor, bool *pCustomColorPrint, bool *firstOnLine)
 {
     int len = strlen(pText->pString);
 
@@ -614,9 +614,11 @@ void handleEscapeSequences(Text *pText, int *iterator, int *pPrevX, int *pPrevY,
                 *iterator += SKIP_ESCAPE_SEQUENCE_MARKER;
 
                if (!*pCustomColorPrint)
-                    *pPrevX = renderCharacter(pText, pText->pString[*iterator], pText->color, pText->relative, *pPrevX, *pPrevY);
+                    *pPrevX = renderCharacter(pText, pText->pString[*iterator], pText->color, pText->relative, *pPrevX, *pPrevY, *firstOnLine);
                 else
-                    *pPrevX = renderCharacter(pText, pText->pString[*iterator], *pTempColor, pText->relative, *pPrevX, *pPrevY);
+                    *pPrevX = renderCharacter(pText, pText->pString[*iterator], *pTempColor, pText->relative, *pPrevX, *pPrevY, *firstOnLine);
+
+                *firstOnLine = False;
             break;
 
             case '_':
@@ -719,6 +721,7 @@ void renderText(Text *pText)
 
     Color tempColor;
     bool printWithCustomColor = False;
+    bool firstOnLine = True;
 
     if (pText->rendered)
         eraseText(pText);
@@ -746,6 +749,7 @@ void renderText(Text *pText)
                 {
                     i = skipTo - 1;
                     currentLine ++;
+                    firstOnLine = True;
 
                     switch (pText->alignment)
                     {
@@ -768,6 +772,7 @@ void renderText(Text *pText)
             case '\n':
             case '\v':
                 currentLine ++;
+                firstOnLine = True;
 
                 switch (pText->alignment)
                 {
@@ -786,14 +791,16 @@ void renderText(Text *pText)
                 }
             break;
             case '$': // Handle custom escape sequences
-                handleEscapeSequences(pText, &i, &prevX, &prevY, &tempColor, &printWithCustomColor);
+                handleEscapeSequences(pText, &i, &prevX, &prevY, &tempColor, &printWithCustomColor, &firstOnLine);
             break;
 
             default:
                 if (!printWithCustomColor)
-                    prevX = renderCharacter(pText, pText->pString[i], pText->color, pText->relative, prevX, prevY);
+                    prevX = renderCharacter(pText, pText->pString[i], pText->color, pText->relative, prevX, prevY, firstOnLine);
                 else
-                    prevX = renderCharacter(pText, pText->pString[i], tempColor, pText->relative, prevX, prevY);
+                    prevX = renderCharacter(pText, pText->pString[i], tempColor, pText->relative, prevX, prevY, firstOnLine);
+
+                firstOnLine = False;
             break;
         }
     }
@@ -802,14 +809,14 @@ void renderText(Text *pText)
     pText->lastRenderFrame = frame % 2;
 }
 
-int renderCharacter(Text *pText, char printChar, Color color, bool relative, int xPos, int yPos)
+int renderCharacter(Text *pText, char printChar, Color color, bool relative, int xPos, int yPos, bool firstOnLine)
 {
     Actor *a, *pParent = getclone(pText->parentCName);
     int letterNum = fromASCII(printChar);
     double prevX = xPos;
     Font *pFont = pText->pFont;
 
-    prevX += floor(pFont->fontCharWidths[letterNum] * 0.5) + pFont->letterSpacing * (xPos != pText->beginX);
+    prevX += floor(pFont->fontCharWidths[letterNum] * 0.5) + pFont->letterSpacing * (!firstOnLine);
 
     if (!pText->fitInArea || (pText->fitInArea && yPos >= pText->textAreaTopY + pFont->lineSpacing * 0.5 && yPos <= pText->textAreaBottomY - pFont->lineSpacing * 0.5))
     {
