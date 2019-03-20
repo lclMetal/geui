@@ -60,6 +60,7 @@ typedef struct
     int width;
     int height;
 
+    double zDepth;
     char parentCName[256];
 
     Font *pFont;
@@ -77,6 +78,7 @@ void readFontDataFile(char *fileName, Font *fontData);
 Text createText(char *string, Font *pFont, const char *parentCName, bool relative, int startX, int startY);
 void setTextAlignment(Text *pText, int alignment);
 void setTextColor(Text *pText, Color color);
+void setTextZDepth(Text *pText, double zDepth);
 void setTextParent(Text *pText, char *parentCName, bool keepCurrentPosition);
 void setTextPosition(Text *pText, int posX, int posY);
 void setTextText(Text *pText, char *string);
@@ -424,6 +426,7 @@ Text createText(char *string, Font *pFont, const char *parentCName, bool relativ
         temp.alignment = ALIGN_LEFT;
         temp.firstCharIndex = -1;
         temp.lastCharIndex = -1;
+        temp.zDepth = 0.5;
         strcpy(temp.parentCName, parentCName);
         temp.pFont = pFont;
         temp.color = createRGB(255, 255, 255, 1.0);
@@ -463,6 +466,25 @@ void setTextAlignment(Text *pText, int alignment)
 void setTextColor(Text *pText, Color color)
 {
     pText->color = color;
+}
+
+void setTextZDepth(Text *pText, double zDepth)
+{
+    if (!pText) return;
+
+    pText->zDepth = zDepth;
+
+    if (pText->firstCharIndex > -1 && pText->lastCharIndex > -1)
+    {
+        int i;
+        char temp[256];
+
+        for (i = pText->firstCharIndex; i <= pText->lastCharIndex; i ++)
+        {
+            sprintf(temp, "%s.%i", typeActorName[pText->lastRenderFrame], i);
+            ChangeZDepth(temp, pText->zDepth);
+        }
+    }
 }
 
 void setTextParent(Text *pText, char *parentCName, bool keepCurrentPosition)
@@ -800,6 +822,7 @@ int renderCharacter(Text *pText, char printChar, Color color, bool relative, int
             ChangeParent(a->clonename, pText->parentCName);
 
         colorActor(a, color);
+        ChangeZDepth(a->clonename, pText->zDepth);
 
         if (pText->firstCharIndex == -1)
             pText->firstCharIndex = a->cloneindex;
