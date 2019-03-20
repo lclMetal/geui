@@ -181,6 +181,7 @@ WindowItem *addText(Window *window, char tag[256], char *string)
 
     ptr->data.text.text = createText(string, window->style.textFont, "(none)", ABSOLUTE, 0, 0);
     setTextColor(&ptr->data.text.text, window->style.textColor);
+    setTextZDepth(&ptr->data.text.text, 1.0);
 
     return addItemToWindow(window, ptr);
 }
@@ -192,6 +193,7 @@ WindowItem *addButton(Window *window, char tag[256], char *string, void (*action
 
     ptr->data.button.text = createText(string, window->style.textFont, "(none)", ABSOLUTE, 0, 0);
     setTextColor(&ptr->data.button.text, window->style.textColor);
+    setTextZDepth(&ptr->data.button.text, 1.0);
     ptr->data.button.state = 0;
     ptr->data.button.bActorStartIndex = -1;
     ptr->data.button.bActorEndIndex = -1;
