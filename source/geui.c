@@ -621,8 +621,8 @@ Window *openWindow(char tag[256])
                 colorClones("a_gui",
                     ptr->data.button.bActorStartIndex,
                     ptr->data.button.bActorEndIndex, window->style.buttonColor);
-                /*setTextParent(&ptr->data.button.text,
-                    gc2("a_gui", ptr->data.button.bActorEndIndex)->clonename, False);*/
+                setTextParent(&ptr->data.button.text,
+                    "(none)", False);
                 setTextZDepth(&ptr->data.button.text, 0.4);
                 setTextAlignment(&ptr->data.button.text, ALIGN_CENTER);
                 setTextPosition(&ptr->data.button.text,
