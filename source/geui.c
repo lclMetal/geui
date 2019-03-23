@@ -588,6 +588,13 @@ Window *openWindow(char tag[256])
 
     ptr = window->iList;
 
+    guiActor = CreateActor("a_gui", window->style.guiAnim, "(none)", "(none)", 0, 0, true);
+    tileWidth = guiActor->width;
+    tileHeight = guiActor->height;
+    ChangeZDepth(guiActor->clonename, window->zDepth);
+    CollisionState(guiActor->clonename, DISABLE);
+    VisibilityState(window->parentCName, DISABLE);
+
     while (ptr)
     {
         switch (ptr->type)
@@ -600,9 +607,11 @@ Window *openWindow(char tag[256])
             break;
 
             case GEUI_Button:
-                for (i = 0; i * 20 < ptr->data.button.text.width + window->style.padding * 2; i ++)
+                for (i = 0; i * tileWidth < ptr->data.button.text.width + window->style.padding * 2; i ++)
                 {
-                    Actor *a = CreateActor("a_gui", window->style.guiAnim, "(none)", "(none)", -20 + i * 20, -20 + 25 * ptr->index, true);
+                    Actor *a = CreateActor("a_gui", window->style.guiAnim, "(none)", "(none)",
+                                            -tileWidth + i * tileWidth,
+                                            -tileHeight + 25 * ptr->index, true); // TODO: calculate actual values
                     a->myWindow = window->index;
                     a->myIndex = ptr->index;
                     ChangeZDepth(a->clonename, 0.3);
@@ -636,14 +645,8 @@ Window *openWindow(char tag[256])
         ptr = ptr->next;
     }
 
-    guiActor = CreateActor("a_gui", window->style.guiAnim, "(none)", "(none)", 0, 0, true);
-    tileWidth = guiActor->width;
-    tileHeight = guiActor->height;
     tilesH = ceil(width / (float)tileWidth);
     tilesV = ceil(height / (float)tileHeight);
-    ChangeZDepth(guiActor->clonename, window->zDepth);
-    CollisionState(guiActor->clonename, DISABLE);
-    VisibilityState(window->parentCName, DISABLE);
 
     setWindowBaseParent(window, guiActor->clonename);
 
@@ -652,7 +655,8 @@ Window *openWindow(char tag[256])
         for (i = 0; i < tilesH; i ++)
         {
             guiActor = CreateActor("a_gui", window->style.guiAnim, window->parentCName, "(none)",
-                i * tileWidth, j * tileHeight, true);
+                i * tileWidth  + (i == tilesH - 1) * (width  - tilesH * tileWidth),
+                j * tileHeight + (j == tilesV - 1) * (height - tilesV * tileHeight), true);
             guiActor->myWindow = window->index;
             guiActor->myIndex = -1;
             guiActor->animpos = calculateAnimpos(tilesH, tilesV, i, j);
