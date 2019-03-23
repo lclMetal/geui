@@ -132,8 +132,6 @@ int isTopmostGuiElementAtMouse(Window *window, WindowItem *item)
     int count;
     Actor *actors;
 
-    if (window->index != GEUIController.topIndex) return 0;
-
     actors = getAllActorsInCollision("a_geuiMouse.0", &count);
 
     if (actors)
@@ -660,7 +658,6 @@ Window *openWindow(char tag[256])
             guiActor->animpos = calculateAnimpos(tilesH, tilesV, i, j);
             colorActor(guiActor, window->style.windowBgColor);
             ChangeZDepth(guiActor->clonename, 0.1);
-            CollisionState(guiActor->clonename, DISABLE);
             if (j == 0) guiActor->myProperties = GEUI_TITLE_BAR; // window title bar
 
             if (window->wTileStartIndex == -1)
