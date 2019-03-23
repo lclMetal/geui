@@ -577,7 +577,8 @@ Window *openWindow(char tag[256])
 {
     int i, j;
     Actor *guiActor = NULL;
-    unsigned short width = 0, height = 0;
+    unsigned short windowWidth = 0, windowHeight = 0;
+    unsigned short tempWidth = 0;
     unsigned short tileWidth = 0, tileHeight = 0;
     unsigned short tilesH = 0, tilesV = 0;
     Window *window = searchWindowByTag(tag);
@@ -600,24 +601,28 @@ Window *openWindow(char tag[256])
         switch (ptr->type)
         {
             case GEUI_Text:
-                width = ptr->data.text.text.width + window->style.padding * 2;
-                height = ptr->data.text.text.height + window->style.padding * 2;
+                windowWidth = ptr->data.text.text.width + window->style.padding * 2;
+                windowHeight = ptr->data.text.text.height + window->style.padding * 2;
                 setTextZDepth(&ptr->data.text.text, 0.3);
                 refreshText(&ptr->data.text.text);
             break;
 
             case GEUI_Button:
-                for (i = 0; i * tileWidth < ptr->data.button.text.width + window->style.padding * 2; i ++)
+                tempWidth = ptr->data.button.text.width + window->style.padding * 2;
+                tilesH = ceil(tempWidth / (float)tileWidth);
+
+                for (i = 0; i < tilesH; i ++)
                 {
                     Actor *a = CreateActor("a_gui", window->style.guiAnim, "(none)", "(none)",
-                                            -tileWidth + i * tileWidth,
-                                            -tileHeight + 25 * ptr->index, true); // TODO: calculate actual values
+                        -tileWidth + i * tileWidth + (i == tilesH - 1) * (tempWidth - tilesH * tileWidth),
+                        -tileHeight + 25 * ptr->index, true); // TODO: calculate actual values
                     a->myWindow = window->index;
                     a->myIndex = ptr->index;
                     ChangeZDepth(a->clonename, 0.3);
 
-                    if (i == 0)a->animpos = 9; // TODO: calculate actual values
-                    else a->animpos = 10;
+                    if (i == 0)                 a->animpos = 9;  // left end
+                    else if (i < tilesH - 1)    a->animpos = 10; // middle
+                    else                        a->animpos = 11; // right end
 
                     if (ptr->data.button.bActorStartIndex == -1)
                         ptr->data.button.bActorStartIndex = a->cloneindex;
@@ -633,7 +638,7 @@ Window *openWindow(char tag[256])
                 setTextZDepth(&ptr->data.button.text, 0.4);
                 setTextAlignment(&ptr->data.button.text, ALIGN_CENTER);
                 setTextPosition(&ptr->data.button.text,
-                     ceil((gc2("a_gui", ptr->data.button.bActorEndIndex)->x -
+                     ((gc2("a_gui", ptr->data.button.bActorEndIndex)->x -
                            gc2("a_gui", ptr->data.button.bActorStartIndex)->x)*0.5 + gc2("a_gui", ptr->data.button.bActorStartIndex)->x),
                            gc2("a_gui", ptr->data.button.bActorStartIndex)->y); // TODO: actual calculations
                 refreshText(&ptr->data.button.text);
@@ -645,8 +650,8 @@ Window *openWindow(char tag[256])
         ptr = ptr->next;
     }
 
-    tilesH = ceil(width / (float)tileWidth);
-    tilesV = ceil(height / (float)tileHeight);
+    tilesH = ceil(windowWidth / (float)tileWidth);
+    tilesV = ceil(windowHeight / (float)tileHeight);
 
     setWindowBaseParent(window, guiActor->clonename);
 
@@ -655,8 +660,8 @@ Window *openWindow(char tag[256])
         for (i = 0; i < tilesH; i ++)
         {
             guiActor = CreateActor("a_gui", window->style.guiAnim, window->parentCName, "(none)",
-                i * tileWidth  + (i == tilesH - 1) * (width  - tilesH * tileWidth),
-                j * tileHeight + (j == tilesV - 1) * (height - tilesV * tileHeight), true);
+                i * tileWidth  + (i == tilesH - 1) * (windowWidth  - tilesH * tileWidth),
+                j * tileHeight + (j == tilesV - 1) * (windowHeight - tilesV * tileHeight), true);
             guiActor->myWindow = window->index;
             guiActor->myIndex = -1;
             guiActor->animpos = calculateAnimpos(tilesH, tilesV, i, j);
