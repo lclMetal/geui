@@ -614,11 +614,11 @@ Window *openWindow(char tag[256])
                 for (i = 0; i < tilesH; i ++)
                 {
                     Actor *a = CreateActor("a_gui", window->style.guiAnim, "(none)", "(none)",
-                        -tileWidth + i * tileWidth + (i == tilesH - 1) * (tempWidth - tilesH * tileWidth),
+                        -tileWidth + i * tileWidth + (i >= 2 && i >= tilesH - 2) * (tempWidth - tilesH * tileWidth),
                         -tileHeight + 25 * ptr->index, true); // TODO: calculate actual values
                     a->myWindow = window->index;
                     a->myIndex = ptr->index;
-                    ChangeZDepth(a->clonename, 0.3);
+                    ChangeZDepth(a->clonename, 0.35); // TODO: change back to 0.3 after testing
 
                     if (i == 0)                 a->animpos = 9;  // left end
                     else if (i < tilesH - 1)    a->animpos = 10; // middle
@@ -660,8 +660,8 @@ Window *openWindow(char tag[256])
         for (i = 0; i < tilesH; i ++)
         {
             guiActor = CreateActor("a_gui", window->style.guiAnim, window->parentCName, "(none)",
-                i * tileWidth  + (i == tilesH - 1) * (windowWidth  - tilesH * tileWidth),
-                j * tileHeight + (j == tilesV - 1) * (windowHeight - tilesV * tileHeight), true);
+                i * tileWidth  + (i >= 2 && i >= tilesH - 2) * (windowWidth  - tilesH * tileWidth),
+                j * tileHeight + (j >= 2 && j >= tilesV - 2) * (windowHeight - tilesV * tileHeight), true);
             guiActor->myWindow = window->index;
             guiActor->myIndex = -1;
             guiActor->animpos = calculateAnimpos(tilesH, tilesV, i, j);
