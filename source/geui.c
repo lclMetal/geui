@@ -17,6 +17,14 @@ enum guiPropertyFlags
     GEUI_CLICKED    = (1 << 2)
 };
 
+typedef struct LayoutStruct
+{
+    int widthPercent;
+    int heightPercent;
+    int width;
+    int height;
+}Layout;
+
 typedef enum ItemTypeEnum
 {
     GEUI_Text,
@@ -29,6 +37,7 @@ typedef struct WindowItemStruct
 {
     int index;          // item index
     char tag[256];      // item identifier tag
+    Layout layout;
 
     ItemType type;      // item type
 
@@ -59,6 +68,7 @@ typedef struct WindowStruct
     bool isOpen;        // is window currently open or not
     Style style;        // window style
     double zDepth;      // window z depth
+    Layout layout;
     char parentCName[256]; // clonename of the window parent actor
     int wTileStartIndex;   // cloneindex of the first window tile
     int wTileEndIndex;     // cloneindex of the last window tile
@@ -74,6 +84,8 @@ WindowItem *addText(Window *window, char tag[256], char *string);
 WindowItem *addButton(Window *window, char tag[256], char *string, void (*actionFunction)(Window *, WindowItem *));
 WindowItem *searchItemByTag(Window *window, char tag[256]);
 WindowItem *searchItemByIndex(Window *window, int index);
+void setSizeByPercent(Window *window, WindowItem *item, int wp, int hp);
+void setSize(Window *window, WindowItem *item, int w, int h);
 void doMouseEnter(const char *actorName);
 void doMouseLeave(const char *actorName);
 void doMouseButtonDown(const char *actorName, short mButton);
@@ -248,6 +260,22 @@ WindowItem *searchItemByIndex(Window *window, int index)
     return NULL;
 }
 
+void setSizeByPercent(Window *window, WindowItem *item, int wp, int hp)
+{
+    item->layout.widthPercent = wp;
+    item->layout.heightPercent = hp;
+    item->layout.width = window->layout.width * wp * 0.01;
+    item->layout.height = window->layout.height * hp * 0.01;
+}
+
+void setSize(Window *window, WindowItem *item, int w, int h)
+{
+    item->layout.widthPercent = w / (double)window->layout.width * 100;
+    item->layout.heightPercent = h / (double)window->layout.height * 100;
+    item->layout.width = w;
+    item->layout.height = h;
+}
+
 void doMouseEnter(const char *actorName)
 {
     Actor *actor;
@@ -256,7 +284,7 @@ void doMouseEnter(const char *actorName)
 
     if (!actorExists2(actor = getclone(actorName))) return;
     if (actor->myWindow < 0 || actor->myIndex < 0) return;
-    if (!(window = searchWindowByIndex(actor->myWindow))) return;
+    if (!(window = searchWindowByIndex(actor->myWindow))) { DEBUG_MSG_FROM("window not found", "doMouseEnter"); return; }
     if (!(item = searchItemByIndex(window, actor->myIndex))) return;
 
     switch (item->type)
@@ -286,7 +314,7 @@ void doMouseLeave(const char *actorName)
 
     if (!actorExists2(actor = getclone(actorName))) return;
     if (actor->myWindow < 0 || actor->myIndex < 0) return;
-    if (!(window = searchWindowByIndex(actor->myWindow))) return;
+    if (!(window = searchWindowByIndex(actor->myWindow))) { DEBUG_MSG_FROM("window not found", "doMouseLeave"); return; }
     if (!(item = searchItemByIndex(window, actor->myIndex))) return;
 
     switch (item->type)
@@ -316,9 +344,9 @@ void doMouseButtonDown(const char *actorName, short mButton)
 
     if (!actorExists2(actor = getclone(actorName))) return;
     if (actor->myWindow < 0) return;
-    if (!(window = searchWindowByIndex(actor->myWindow))) return;
+    if (!(window = searchWindowByIndex(actor->myWindow))) { DEBUG_MSG_FROM("window not found", "doMouseButtonDown"); return; }
 
-    if (actor->myProperties & GEUI_TITLE_BAR)
+    if (actor->myProperties & GEUI_TITLE_BAR && mButton == 1)
     {
         Actor *fake;
         Actor *wParent;
@@ -342,6 +370,8 @@ void doMouseButtonDown(const char *actorName, short mButton)
         fake->myProperties = GEUI_FAKE_ACTOR;
         actor->myFakeIndex = fake->cloneindex;
         ChangeZDepth(fake->clonename, 0.2);
+        disableMouseEvents(fake->clonename);
+        CollisionState(fake->clonename, DISABLE);
         SendActivationEvent(gc2("a_gui", actor->myFakeIndex)->clonename);
 
         wParent = getclone(window->parentCName);
@@ -356,7 +386,7 @@ void doMouseButtonDown(const char *actorName, short mButton)
         wParent->y = yDist;
 
         actor->myProperties |= GEUI_CLICKED;
-        FollowMouse(actor->clonename, BOTH_AXIS);
+        //FollowMouse(actor->clonename, BOTH_AXIS);
     }
 
     bringWindowToFront(window);
@@ -369,7 +399,7 @@ void doMouseButtonDown(const char *actorName, short mButton)
             colorClones("a_gui",
                 item->data.button.bActorStartIndex,
                 item->data.button.bActorEndIndex, window->style.buttonPressedColor);
-            item->data.button.state = mButton + 1;
+            item->data.button.state = mButton;
         break;
     }
 }
@@ -383,7 +413,7 @@ void doMouseButtonUp(const char *actorName, short mButton)
 
     if (!actorExists2(actor = getclone(actorName))) return;
     if (actor->myWindow < 0) return;
-    if (!(window = searchWindowByIndex(actor->myWindow))) return;
+    if (!(window = searchWindowByIndex(actor->myWindow))) { DEBUG_MSG_FROM("window not found", "doMouseButtonUp"); return; }
 
     if (actor->myProperties & GEUI_TITLE_BAR && actor->myProperties & GEUI_CLICKED)
     {
@@ -407,7 +437,7 @@ void doMouseButtonUp(const char *actorName, short mButton)
         actor->y = yDist;
 
         actor->myProperties &= ~GEUI_CLICKED;
-        FollowMouse(actor->clonename, NONE_AXIS);
+        //FollowMouse(actor->clonename, NONE_AXIS);
 
         // restore the event actor's original color
         actor->r = actor->myColorR;
@@ -431,7 +461,7 @@ void doMouseButtonUp(const char *actorName, short mButton)
                 colorClones("a_gui",
                     item->data.button.bActorStartIndex,
                     item->data.button.bActorEndIndex, window->style.buttonHilitColor);
-                if (item->data.button.state)
+                if (item->data.button.state == 1)
                     item->data.button.actionFunction(window, item);
             }
             else
@@ -569,7 +599,6 @@ Window *searchWindowByIndex(int index)
         ptr = ptr->next;
     }
 
-    DEBUG_MSG_FROM("window not found", "searchWindowByIndex");
     return NULL;
 }
 
@@ -593,6 +622,7 @@ Window *openWindow(char tag[256])
     tileWidth = guiActor->width;
     tileHeight = guiActor->height;
     ChangeZDepth(guiActor->clonename, window->zDepth);
+    disableMouseEvents(guiActor->clonename);
     CollisionState(guiActor->clonename, DISABLE);
     VisibilityState(window->parentCName, DISABLE);
 
@@ -659,7 +689,7 @@ Window *openWindow(char tag[256])
     {
         for (i = 0; i < tilesH; i ++)
         {
-            guiActor = CreateActor("a_gui", window->style.guiAnim, window->parentCName, "(none)",
+            guiActor = CreateActor((j==0)?"a_guiDraggable":"a_gui", window->style.guiAnim, window->parentCName, "(none)",
                 i * tileWidth  + (i >= 2 && i >= tilesH - 2) * (windowWidth  - tilesH * tileWidth),
                 j * tileHeight + (j >= 2 && j >= tilesV - 2) * (windowHeight - tilesV * tileHeight), true);
             guiActor->myWindow = window->index;
