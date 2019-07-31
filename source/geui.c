@@ -6,7 +6,7 @@
 
 #define GEUI_CLONENAME_SIZE 42
 
-enum mouseButtonsEnum
+enum mouseButtonsEnum // Used as array indices, don't touch!
 {
     GEUI_MOUSE_LEFT = 0,
     GEUI_MOUSE_RIGHT,
@@ -16,12 +16,9 @@ enum mouseButtonsEnum
     GEUI_MOUSE_BUTTONS     // Number of supported mouse buttons (5)
 };
 
-enum guiPropertyFlags
-{
-    GEUI_TITLE_BAR  = (1 << 0),
-    GEUI_FAKE_ACTOR = (1 << 1),
-    GEUI_CLICKED    = (1 << 2)
-};
+const unsigned long GEUI_TITLE_BAR  = (1 << 0);
+const unsigned long GEUI_FAKE_ACTOR = (1 << 1);
+const unsigned long GEUI_CLICKED    = (1 << 2);
 
 typedef enum ItemTypeEnum
 {
@@ -120,7 +117,7 @@ struct GEUIControllerStruct
                                                                         // with the highest z depth
     int mButtonActorCount[GEUI_MOUSE_BUTTONS];  // Amount of clicked actors by mouse button
     int mButtonState[GEUI_MOUSE_BUTTONS];       // Mouse button states
-    enum mouseButtonsEnum activeButton;     // The last active mouse button
+    enum mouseButtonsEnum activeButton;         // The last active mouse button
 }GEUIController;
 
 void initGEUI(void)
