@@ -2,6 +2,9 @@ typedef struct StyleStruct
 {
     char guiAnim[100];
 
+    short tileWidth;
+    short tileHeight;
+
     Font *titleFont;
     Font *labelFont;
     Font *textFont;
@@ -21,8 +24,27 @@ typedef struct StyleStruct
 }Style;
 
 Style defStyle;
+Style *setDimensions;
 
-Style createStyle();
+Style createStyle(const char guiAnim[100], Font *titleFont, Font *labelFont, Font *textFont,
+                  short padding, Color titleBgColor, Color windowBgColor, Color titleColor,
+                  Color labelColor, Color textColor, Color buttonColor, Color buttonHilitColor,
+                  Color buttonPressedColor);
+
+void getTileDimensions(Style *style)
+{
+    Actor*a=CreateActor("a_gui", style->guiAnim, "(none)", "(none)", 0, 0, true);
+    setDimensions = style;
+    SendActivationEvent(a->clonename);
+    DestroyActor(a->clonename);
+}
+
+void setTileDimensions()
+{
+    (*setDimensions).tileWidth = width;
+    (*setDimensions).tileHeight = height;
+    setDimensions = NULL;
+}
 
 Style createStyle(const char guiAnim[100], Font *titleFont, Font *labelFont, Font *textFont,
                   short padding, Color titleBgColor, Color windowBgColor, Color titleColor,

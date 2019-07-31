@@ -68,6 +68,7 @@ typedef struct WindowStruct
 }Window;
 
 void initGEUI(void);
+void quitGEUI(void);
 Actor *getTile(long index);
 int isTopmostItemAtMouse(Window *window, WindowItem *item);
 WindowItem *initNewItem(ItemType type, Window *window, char tag[256]);
@@ -125,6 +126,7 @@ void initGEUI(void)
     // TODO: separate DEBUG_INIT() and DEBUG_INIT_FILE()
 
     strcpy(defStyle.guiAnim, "gui_sheet_default");  // GUI animation name
+    getTileDimensions(&defStyle);
     defStyle.titleFont          = &defTitleFont;    // title font
     defStyle.labelFont          = &defLabelFont;    // label font
     defStyle.textFont           = &defTextFont;     // text font
@@ -142,6 +144,19 @@ void initGEUI(void)
     GEUIController.topIndex = 0;
     GEUIController.sDefault = defStyle;
     GEUIController.wList = NULL;
+}
+
+void quitGEUI(void)
+{
+    int mb;
+
+    for (mb = 0; mb < GEUI_MOUSE_BUTTONS; mb ++)
+    {
+        if (GEUIController.mButtonActors[mb])
+            free(GEUIController.mButtonActors[mb]);
+    }
+
+    destroyWindowList();
 }
 
 Actor *getTile(long index)
@@ -690,12 +705,17 @@ Window *createWindow(char tag[256], Style style)
     ptr->isOpen = False;
     ptr->style = style;
     ptr->zDepth = DEFAULT_ZDEPTH;
+    strcpy(ptr->parentCName, "");
     ptr->wTileStartIndex = -1;
     ptr->wTileEndIndex = -1;
     ptr->iList = NULL;
     ptr->next = GEUIController.wList;
 
     GEUIController.wList = ptr;
+
+    getTileDimensions(&ptr->style);
+    ptr->style.tileWidth = defStyle.tileWidth;
+    ptr->style.tileHeight = defStyle.tileHeight;
 
     return ptr;
 }
@@ -732,6 +752,45 @@ Window *searchWindowByIndex(int index)
     return NULL;
 }
 
+/*void buildItems(Window *window)
+{
+    WindowItem *ptr;
+
+    if (!window || !window->isOpen) return;
+
+    ptr = window->iList;
+
+    while (ptr)
+    {
+        buildItem(window, ptr);
+        ptr = ptr->next;
+    }
+}
+
+void buildItem(Window *window, WindowItem *ptr)
+{
+    switch (ptr->type)
+    {
+        case GEUI_Text:   buildText(window, ptr);   break;
+        case GEUI_Button: buildButton(window, ptr); break;
+    }
+}
+
+void buildText(Window *window, WindowItem *ptr)
+{
+    if (ptr->type != GEUI_Text) return;
+
+    setTextZDepth(&ptr->data.text.text, 0.3);
+    refreshText(&ptr->data.text.text);
+}
+
+void buildButton(Window *window, WindowItem *ptr)
+{
+    if (ptr->type != GEUI_Button) return;
+
+
+}*/
+
 Window *openWindow(char tag[256])
 {
     int i, j;
@@ -750,11 +809,12 @@ Window *openWindow(char tag[256])
     ptr = window->iList;
 
     guiActor = CreateActor("a_gui", window->style.guiAnim, "(none)", "(none)", 0, 0, true);
-    tileWidth = guiActor->width;
-    tileHeight = guiActor->height;
+    tileWidth = window->style.tileWidth;
+    tileHeight = window->style.tileHeight;
     ChangeZDepth(guiActor->clonename, window->zDepth);
     CollisionState(guiActor->clonename, DISABLE);
-    VisibilityState(window->parentCName, DISABLE);
+    guiActor->animpos = 0;
+    // VisibilityState(window->parentCName, DISABLE);
 
     while (ptr)
     {
