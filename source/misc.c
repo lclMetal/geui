@@ -6,17 +6,17 @@
 char *addFileExtension(char *fileName, char *fileExtension);
 int actorExists(char *actorName);
 int actorExists2(Actor *a);
-Actor *gc2(char *actorName, int cloneNum);
-void destroyClone(const char *actorName, int cloneNum);
-void destroyClones(const char *actorName, int startIndex, int endIndex);
-void changeParentOfClones(const char *actorName, int startIndex, int endIndex, const char *parentName);
+Actor *gc2(char *actorName, long cloneNum);
+void destroyClone(const char *actorName, long cloneNum);
+void destroyClones(const char *actorName, long startIndex, long endIndex);
+void changeParentOfClones(const char *actorName, long startIndex, long endIndex, const char *parentName);
 void disableMouseEvents(char *actorName);
 void enableMouseEvents(char *actorName);
 int mouseOver(void);
 int mouseOverRegion(void);
 int mouseOverPartOfRegion(int startX, int startY, int endX, int endY);
 int mouseOverActor(const char *actorName);
-int mouseOverClones(const char *actorName, int startIndex, int endIndex);
+int mouseOverClones(const char *actorName, long startIndex, long endIndex);
 
 char tempFullFileName[256];
 char *addFileExtension(char *fileName, char *fileExtension)
@@ -57,21 +57,21 @@ int actorExists2(Actor *a)
     return (a->cloneindex != -1);
 }
 
-Actor *gc2(char *actorName, int cloneNum)
+Actor *gc2(char *actorName, long cloneNum)
 {
     char cName[256];
-    sprintf(cName, "%s.%i", actorName, cloneNum);
+    sprintf(cName, "%s.%d", actorName, cloneNum);
     return getclone(cName);
 }
 
-void destroyClone(const char *actorName, int cloneNum)
+void destroyClone(const char *actorName, long cloneNum)
 {
     char cName[256];
-    sprintf(cName, "%s.%i", actorName, cloneNum);
+    sprintf(cName, "%s.%d", actorName, cloneNum);
     DestroyActor(cName);
 }
 
-void destroyClones(const char *actorName, int startIndex, int endIndex)
+void destroyClones(const char *actorName, long startIndex, long endIndex)
 {
     int i;
     char cName[256];
@@ -80,12 +80,12 @@ void destroyClones(const char *actorName, int startIndex, int endIndex)
 
     for (i = startIndex; i <= endIndex; i ++)
     {
-        sprintf(cName, "%s.%i", actorName, i);
+        sprintf(cName, "%s.%d", actorName, i);
         DestroyActor(cName);
     }
 }
 
-void changeParentOfClones(const char *actorName, int startIndex, int endIndex, const char *parentName)
+void changeParentOfClones(const char *actorName, long startIndex, long endIndex, const char *parentName)
 {
     int i;
     char cName[256];
@@ -94,7 +94,7 @@ void changeParentOfClones(const char *actorName, int startIndex, int endIndex, c
 
     for (i = startIndex; i <= endIndex; i ++)
     {
-        sprintf(cName, "%s.%i", actorName, i);
+        sprintf(cName, "%s.%d", actorName, i);
         ChangeParent(cName, parentName);
     }
 }
@@ -147,7 +147,7 @@ int mouseOverActor(const char *actorName)
             ymouse <  actor->yscreen - HALF_HEIGHT_ACTOR(actor) + actor->height);
 }
 
-int mouseOverClones(const char *actorName, int startIndex, int endIndex)
+int mouseOverClones(const char *actorName, long startIndex, long endIndex)
 {
     int i;
     char cName[256];
@@ -156,7 +156,7 @@ int mouseOverClones(const char *actorName, int startIndex, int endIndex)
 
     for (i = startIndex; i <= endIndex; i ++)
     {
-        sprintf(cName, "%s.%i", actorName, i);
+        sprintf(cName, "%s.%d", actorName, i);
         if (mouseOverActor(cName)) return 1;
     }
 
