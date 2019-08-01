@@ -43,7 +43,7 @@ typedef struct WindowItemStruct
             Text text;
             char state;
             long bTileStartIndex;
-            long bTileEndtIndex;
+            long bTileEndIndex;
             void (*actionFunction)(struct WindowStruct *, struct WindowItemStruct *);
         }button;
     }data;
@@ -70,6 +70,7 @@ typedef struct WindowStruct
 void initGEUI(void);
 void quitGEUI(void);
 Actor *getTile(long index);
+void updateIndexBounds(long *low, long *hi, long val);
 int isTopmostItemAtMouse(Window *window, WindowItem *item);
 WindowItem *initNewItem(ItemType type, Window *window, char tag[256]);
 WindowItem *addItemToWindow(Window *window, WindowItem *ptr);
@@ -97,6 +98,11 @@ int calculateAnimpos(unsigned short w, unsigned short h, unsigned short i, unsig
 Window *createWindow(char tag[256], Style style);
 Window *searchWindowByTag(char tag[256]);
 Window *searchWindowByIndex(int index);
+void buildItems(Window *window);
+void buildItem(Window *window, WindowItem *ptr);
+void buildText(Window *window, WindowItem *ptr);
+void buildButton(Window *window, WindowItem *ptr);
+void buildWindow(Window *window);
 Window *openWindow(char tag[256]);
 void setWindowBaseParent(Window *window, char *parentName);
 void bringWindowToFront(Window *window);
@@ -162,6 +168,14 @@ void quitGEUI(void)
 Actor *getTile(long index)
 {
     return gc2("a_gui", index);
+}
+
+void updateIndexBounds(long *low, long *hi, long val)
+{
+    if (*low == -1)
+        *low = val;
+    if (*hi < val)
+        *hi = val;
 }
 
 int isTopmostItemAtMouse(Window *window, WindowItem *item)
@@ -239,7 +253,7 @@ WindowItem *addButton(Window *window, char tag[256], char *string, void (*action
     setTextZDepth(&ptr->data.button.text, 0.5);
     ptr->data.button.state = 0;
     ptr->data.button.bTileStartIndex = -1;
-    ptr->data.button.bTileEndtIndex = -1;
+    ptr->data.button.bTileEndIndex = -1;
     ptr->data.button.actionFunction = actionFunction;
 
     return addItemToWindow(window, ptr);
@@ -302,7 +316,7 @@ void doMouseEnter(const char *actorName)
             if (isTopmostItemAtMouse(window, item))
             {
                 long start = item->data.button.bTileStartIndex;
-                long end   = item->data.button.bTileEndtIndex;
+                long end   = item->data.button.bTileEndIndex;
 
                 if (item->data.button.state)
                     colorClones("a_gui", start, end, window->style.buttonPressedColor);
@@ -331,7 +345,7 @@ void doMouseLeave(const char *actorName)
             if (!isTopmostItemAtMouse(window, item))
             {
                 long start = item->data.button.bTileStartIndex;
-                long end   = item->data.button.bTileEndtIndex;
+                long end   = item->data.button.bTileEndIndex;
 
                 if (item->data.button.state)
                     colorClones("a_gui", start, end, window->style.buttonPressedColor);
@@ -403,7 +417,7 @@ void doMouseButtonDown(const char *actorName, enum mouseButtonsEnum mButtonNumbe
         case GEUI_Button:
             colorClones("a_gui",
                 item->data.button.bTileStartIndex,
-                item->data.button.bTileEndtIndex, window->style.buttonPressedColor);
+                item->data.button.bTileEndIndex, window->style.buttonPressedColor);
             item->data.button.state = 1;
         break;
     }
@@ -463,7 +477,7 @@ void doMouseButtonUp(const char *actorName, enum mouseButtonsEnum mButtonNumber)
         case GEUI_Button:
         {
             long start = item->data.button.bTileStartIndex;
-            long end   = item->data.button.bTileEndtIndex;
+            long end   = item->data.button.bTileEndIndex;
 
             if (isTopmostItemAtMouse(window, item))
             {
@@ -643,9 +657,9 @@ void eraseWindowItem(WindowItem *ptr)
             eraseText(&ptr->data.button.text);
             if (ptr->data.button.bTileStartIndex > -1)
             {
-                destroyClones("a_gui", ptr->data.button.bTileStartIndex, ptr->data.button.bTileEndtIndex);
+                destroyClones("a_gui", ptr->data.button.bTileStartIndex, ptr->data.button.bTileEndIndex);
                 ptr->data.button.bTileStartIndex = -1;
-                ptr->data.button.bTileEndtIndex = -1;
+                ptr->data.button.bTileEndIndex = -1;
             }
         break;
 
@@ -664,9 +678,9 @@ void destroyWindowItem(WindowItem *ptr)
             destroyText(&ptr->data.button.text);
             if (ptr->data.button.bTileStartIndex > -1)
             {
-                destroyClones("a_gui", ptr->data.button.bTileStartIndex, ptr->data.button.bTileEndtIndex);
+                destroyClones("a_gui", ptr->data.button.bTileStartIndex, ptr->data.button.bTileEndIndex);
                 ptr->data.button.bTileStartIndex = -1;
-                ptr->data.button.bTileEndtIndex = -1;
+                ptr->data.button.bTileEndIndex = -1;
             }
         break;
 
@@ -752,11 +766,9 @@ Window *searchWindowByIndex(int index)
     return NULL;
 }
 
-/*void buildItems(Window *window)
+void buildItems(Window *window)
 {
     WindowItem *ptr;
-
-    if (!window || !window->isOpen) return;
 
     ptr = window->iList;
 
@@ -771,14 +783,14 @@ void buildItem(Window *window, WindowItem *ptr)
 {
     switch (ptr->type)
     {
-        case GEUI_Text:   buildText(window, ptr);   break;
+        case GEUI_Text: buildText(window, ptr); break;
         case GEUI_Button: buildButton(window, ptr); break;
     }
 }
 
 void buildText(Window *window, WindowItem *ptr)
 {
-    if (ptr->type != GEUI_Text) return;
+    if (ptr->type != GEUI_Text) { DEBUG_MSG_FROM("Item was not a valid Text item", "buildText"); return; }
 
     setTextZDepth(&ptr->data.text.text, 0.3);
     refreshText(&ptr->data.text.text);
@@ -786,115 +798,104 @@ void buildText(Window *window, WindowItem *ptr)
 
 void buildButton(Window *window, WindowItem *ptr)
 {
-    if (ptr->type != GEUI_Button) return;
+    unsigned short i;
+    Text *buttonText;
+    long start, end;
+    unsigned short buttonWidth;
+    unsigned short tilesHorizontal;
+    unsigned short tileWidth = window->style.tileWidth;
+    unsigned short tileHeight = window->style.tileHeight;
 
+    if (ptr->type != GEUI_Button) { DEBUG_MSG_FROM("Item was not a valid Button item", "buildButton"); return; }
 
-}*/
+    buttonWidth = ptr->data.button.text.width + window->style.padding * 2;
+    tilesHorizontal = ceil(buttonWidth / (float)tileWidth);
+
+    for (i = 0; i < tilesHorizontal; i ++)
+    {
+        Actor *a;
+        a = CreateActor("a_gui", window->style.guiAnim, window->parentCName, "(none)", 0, 0, true);
+        // TODO: actual positioning
+        a->x = -tileWidth + i * tileWidth + (i >= 2 && i >= tilesHorizontal - 2) * (buttonWidth - tilesHorizontal * tileWidth);
+        a->y = -tileHeight + 25 * ptr->index;
+        a->myWindow = window->index;
+        a->myIndex  = ptr->index;
+        ChangeZDepth(a->clonename, 0.35); // TODO: change back to 0.3 after testing
+        a->animpos = 9 + ((i) ? (i / (tilesHorizontal - 1)) + 1 : 0);
+
+        updateIndexBounds(&ptr->data.button.bTileStartIndex, &ptr->data.button.bTileEndIndex, a->cloneindex);
+    }
+
+    start = ptr->data.button.bTileStartIndex;
+    end = ptr->data.button.bTileEndIndex;
+
+    buttonText = &ptr->data.button.text;
+
+    colorClones("a_gui", start, end, window->style.buttonColor);
+    setTextZDepth(buttonText, 0.4);
+    setTextAlignment(buttonText, ALIGN_CENTER);
+    setTextPosition(buttonText,
+        (getTile(end)->x - getTile(start)->x) * 0.5 + getTile(start)->x, getTile(start)->y);
+    refreshText(buttonText);
+}
+
+void buildWindow(Window *window)
+{
+    unsigned short i, j;
+    Actor *baseParent, *tile;
+
+    unsigned short tileWidth, tileHeight;
+    unsigned short windowWidth, windowHeight;
+    unsigned short tilesHorizontal, tilesVertical;
+
+    baseParent = CreateActor("a_gui", window->style.guiAnim, "(none)", "(none)", 0, 0, true);
+    baseParent->animpos = 0;
+    ChangeZDepth(baseParent->clonename, window->zDepth);
+    CollisionState(baseParent->clonename, DISABLE);
+
+    setWindowBaseParent(window, baseParent->clonename);
+
+    tileWidth = window->style.tileWidth;
+    tileHeight = window->style.tileHeight;
+
+    windowWidth = 300; // TODO: window size calculations
+    windowHeight = 200;
+
+    tilesHorizontal = ceil(windowWidth / (float)tileWidth);
+    tilesVertical = ceil(windowHeight / (float)tileHeight);
+
+    for (j = 0; j < tilesVertical; j ++)
+    {
+        for (i = 0; i < tilesHorizontal; i ++)
+        {
+            tile = CreateActor("a_gui", window->style.guiAnim,
+                               window->parentCName, "(none)", 0, 0, true);
+            // TODO: actual positioning
+            tile->x = i * tileWidth  + (i >= 2 && i >= tilesHorizontal - 2) * (windowWidth  - tilesHorizontal * tileWidth);
+            tile->y = j * tileHeight + (j >= 2 && j >= tilesVertical - 2) * (windowHeight - tilesVertical * tileHeight);
+            tile->myWindow = window->index;
+            tile->myIndex = -1;
+            tile->animpos = calculateAnimpos(tilesHorizontal, tilesVertical, i, j);
+            colorActor(tile, window->style.windowBgColor);
+            ChangeZDepth(tile->clonename, 0.1);
+
+            if (j == 0) tile->myProperties = GEUI_TITLE_BAR; // part of the window title bar
+
+            updateIndexBounds(&window->wTileStartIndex, &window->wTileEndIndex, tile->cloneindex);
+        }
+    }
+}
 
 Window *openWindow(char tag[256])
 {
-    int i, j;
-    Actor *guiActor = NULL;
-    long start, end;
-    unsigned short windowWidth = 0, windowHeight = 0;
-    unsigned short tempWidth = 0;
-    unsigned short tileWidth = 0, tileHeight = 0;
-    unsigned short tilesH = 0, tilesV = 0;
     Window *window = searchWindowByTag(tag);
-    WindowItem *ptr = NULL;
+    WindowItem *ptr;
 
-    if (!window) {DEBUG_MSG_FROM("window is NULL", "openWindow"); return NULL;}
-    if (window->isOpen) { DEBUG_MSG_FROM("window is already open", "openWindow"); return window; }
+    if (!window) { DEBUG_MSG_FROM("Window is NULL", "openWindow"); return NULL; }
+    if (window->isOpen) { DEBUG_MSG_FROM("Window is already open", "openWindow"); return window; }
 
-    ptr = window->iList;
-
-    guiActor = CreateActor("a_gui", window->style.guiAnim, "(none)", "(none)", 0, 0, true);
-    tileWidth = window->style.tileWidth;
-    tileHeight = window->style.tileHeight;
-    ChangeZDepth(guiActor->clonename, window->zDepth);
-    CollisionState(guiActor->clonename, DISABLE);
-    guiActor->animpos = 0;
-    // VisibilityState(window->parentCName, DISABLE);
-
-    while (ptr)
-    {
-        switch (ptr->type)
-        {
-            case GEUI_Text:
-                windowWidth = ptr->data.text.text.width + window->style.padding * 2;
-                windowHeight = ptr->data.text.text.height + window->style.padding * 2;
-                setTextZDepth(&ptr->data.text.text, 0.3);
-                refreshText(&ptr->data.text.text);
-            break;
-
-            case GEUI_Button:
-                tempWidth = ptr->data.button.text.width + window->style.padding * 2;
-                tilesH = ceil(tempWidth / (float)tileWidth);
-
-                for (i = 0; i < tilesH; i ++)
-                {
-                    Actor *a = CreateActor("a_gui", window->style.guiAnim, "(none)", "(none)",
-                        -tileWidth + i * tileWidth + (i >= 2 && i >= tilesH - 2) * (tempWidth - tilesH * tileWidth),
-                        -tileHeight + 25 * ptr->index, true); // TODO: calculate actual values
-                    a->myWindow = window->index;
-                    a->myIndex = ptr->index;
-                    ChangeZDepth(a->clonename, 0.35); // TODO: change back to 0.3 after testing
-
-                    if (i == 0)                 a->animpos = 9;  // left end
-                    else if (i < tilesH - 1)    a->animpos = 10; // middle
-                    else                        a->animpos = 11; // right end
-
-                    if (ptr->data.button.bTileStartIndex == -1)
-                        ptr->data.button.bTileStartIndex = a->cloneindex;
-                    if (ptr->data.button.bTileEndtIndex < a->cloneindex)
-                        ptr->data.button.bTileEndtIndex = a->cloneindex;
-                }
-
-                start = ptr->data.button.bTileStartIndex;
-                end   = ptr->data.button.bTileEndtIndex;
-
-                colorClones("a_gui", start, end, window->style.buttonColor);
-                setTextParent(&ptr->data.button.text,
-                    "(none)", False);
-                setTextZDepth(&ptr->data.button.text, 0.4);
-                setTextAlignment(&ptr->data.button.text, ALIGN_CENTER);
-                setTextPosition(&ptr->data.button.text,
-                    (getTile(end)->x - getTile(start)->x)*0.5 + getTile(start)->x,
-                    getTile(start)->y); // TODO: actual calculations
-                refreshText(&ptr->data.button.text);
-            break;
-
-            default: break;
-        }
-
-        ptr = ptr->next;
-    }
-
-    tilesH = ceil(windowWidth / (float)tileWidth);
-    tilesV = ceil(windowHeight / (float)tileHeight);
-
-    setWindowBaseParent(window, guiActor->clonename);
-
-    for (j = 0; j < tilesV; j ++)
-    {
-        for (i = 0; i < tilesH; i ++)
-        {
-            guiActor = CreateActor("a_gui", window->style.guiAnim, window->parentCName, "(none)",
-                i * tileWidth  + (i >= 2 && i >= tilesH - 2) * (windowWidth  - tilesH * tileWidth),
-                j * tileHeight + (j >= 2 && j >= tilesV - 2) * (windowHeight - tilesV * tileHeight), true);
-            guiActor->myWindow = window->index;
-            guiActor->myIndex = -1;
-            guiActor->animpos = calculateAnimpos(tilesH, tilesV, i, j);
-            colorActor(guiActor, window->style.windowBgColor);
-            ChangeZDepth(guiActor->clonename, 0.1);
-            if (j == 0) guiActor->myProperties = GEUI_TITLE_BAR; // window title bar
-
-            if (window->wTileStartIndex == -1)
-                window->wTileStartIndex = guiActor->cloneindex;
-            if (window->wTileEndIndex < guiActor->cloneindex)
-                window->wTileEndIndex = guiActor->cloneindex;
-        }
-    }
+    buildWindow(window);
+    buildItems(window);
 
     window->isOpen = True;
     bringWindowToFront(window);
@@ -922,9 +923,9 @@ void setWindowBaseParent(Window *window, char *parentName)
         {
             case GEUI_Text: setTextParent(&ptr->data.text.text, parentName, True); break;
             case GEUI_Button:
-                setTextParent(&ptr->data.button.text, parentName, True); // TODO: is this needed?
+                setTextParent(&ptr->data.button.text, parentName, True);
                 if (ptr->data.button.bTileStartIndex > -1)
-                    changeParentOfClones("a_gui", ptr->data.button.bTileStartIndex, ptr->data.button.bTileEndtIndex, parentName);
+                    changeParentOfClones("a_gui", ptr->data.button.bTileStartIndex, ptr->data.button.bTileEndIndex, parentName);
             break;
 
             default: break;

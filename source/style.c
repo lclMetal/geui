@@ -2,8 +2,8 @@ typedef struct StyleStruct
 {
     char guiAnim[100];
 
-    short tileWidth;
-    short tileHeight;
+    unsigned short tileWidth;
+    unsigned short tileHeight;
 
     Font *titleFont;
     Font *labelFont;

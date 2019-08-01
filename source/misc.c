@@ -73,7 +73,7 @@ void destroyClone(const char *actorName, long cloneNum)
 
 void destroyClones(const char *actorName, long startIndex, long endIndex)
 {
-    int i;
+    long i;
     char cName[256];
 
     if (startIndex < 0 || endIndex < 0) return;
@@ -87,7 +87,7 @@ void destroyClones(const char *actorName, long startIndex, long endIndex)
 
 void changeParentOfClones(const char *actorName, long startIndex, long endIndex, const char *parentName)
 {
-    int i;
+    long i;
     char cName[256];
 
     if (startIndex < 0 || endIndex < 0) return;
@@ -149,7 +149,7 @@ int mouseOverActor(const char *actorName)
 
 int mouseOverClones(const char *actorName, long startIndex, long endIndex)
 {
-    int i;
+    long i;
     char cName[256];
 
     if (startIndex < 0 || endIndex < 0) return 0;
