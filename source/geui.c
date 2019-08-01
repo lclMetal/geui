@@ -575,24 +575,10 @@ int updateMouseButtonDown(enum mouseButtonsEnum mButtonNumber)
 
     GEUIController.activeButton = mButtonNumber; // Set the mouse button as the active one
 
+    // Of the clicked actors, find the one with the highest z depth
     if (GEUIController.mButtonActorCount[mButtonNumber] > 0)
         strcpy(GEUIController.mButtonTopActorCName[mButtonNumber],
             GEUIController.mButtonActors[mButtonNumber][GEUIController.mButtonActorCount[mButtonNumber] - 1].clonename);
-    // Of the clicked actors, find the one with the highest z depth. To achieve this, start
-    // from the end of the array and iterate through it backwards until a valid actor (any other
-    // than resActorDetector) has been found or the beginning of the array is reached
-    // for (i = GEUIController.mButtonActorCount[mButtonNumber] - 1; i >= 0; i --)
-    // {
-        // If the actor is not resActorDetector
-        // if (strcmp(GEUIController.mButtonActors[mButtonNumber][i].clonename,
-            // "resActorDetector.0") != 0)
-        // {
-            // Get the name of the top actor for the mouse button in question
-            // strcpy(GEUIController.mButtonTopActorCName[mButtonNumber],
-                // GEUIController.mButtonActors[mButtonNumber][i].clonename);
-            // break; // Exit the loop
-        // }
-    // }
 
     // Iterate through the array of actors and send an activation event to each of them
     for (i = 0; i < GEUIController.mButtonActorCount[mButtonNumber]; i ++)
