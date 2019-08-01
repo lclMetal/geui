@@ -19,8 +19,8 @@
 
 #if DEBUG == 1
     #define DEBUG_INIT() debugCreateFile()
-    #define DEBUG_MSG(X) debugMsg(X)
-    #define DEBUG_MSG_FROM(X, Y) debugMsgFrom(X, Y, __LINE__)
+    #define DEBUG_MSG(X) debugMsg((X))
+    #define DEBUG_MSG_FROM(X, Y) debugMsgFrom((X), (Y), __LINE__)
 #else
     #define DEBUG_INIT()
     #define DEBUG_MSG(X)
