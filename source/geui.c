@@ -48,6 +48,7 @@ typedef struct WindowItemStruct
         }button;
     }data;
 
+    Layout layout;
     struct WindowStruct *parent;     // pointer to parent window
     struct WindowItemStruct *next;   // pointer to next item in list
 }WindowItem;
@@ -60,6 +61,7 @@ typedef struct WindowStruct
     bool isOpen;        // is window currently open or not
     Style style;        // window style
     double zDepth;      // window z depth
+    Layout layout;
     char parentCName[256]; // clonename of the window parent actor
     long wTileStartIndex;   // cloneindex of the first window tile
     long wTileEndIndex;     // cloneindex of the last window tile
