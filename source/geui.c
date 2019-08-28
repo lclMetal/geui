@@ -911,6 +911,7 @@ void buildText(WindowItem *ptr)
     if (ptr->type != GEUI_Text) { DEBUG_MSG_FROM("Item was not a valid Text item", "buildText"); return; }
 
     setTextZDepth(&ptr->data.text.text, 0.3);
+    // TODO: layout / positioning
     refreshText(&ptr->data.text.text);
 }
 
@@ -955,7 +956,7 @@ void buildButton(WindowItem *ptr)
     {
         Actor *a;
         a = CreateActor("a_gui", ptr->parent->style.guiAnim, ptr->parent->parentCName, "(none)", 0, 0, true);
-        // TODO: actual positioning
+        // TODO: layout / positioning
         a->x = tileWidth + i * tileWidth + (i >= 2 && i >= tilesHorizontal - 2) * (buttonWidth - tilesHorizontal * tileWidth);
         a->y = tileHeight + 25 * ptr->index;
         a->myWindow = ptr->parent->index;
