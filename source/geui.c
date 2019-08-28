@@ -23,10 +23,12 @@ const unsigned long GEUI_CLICKED    = (1 << 2);
 typedef enum ItemTypeEnum
 {
     GEUI_Text,
-    GEUI_Button
+    GEUI_Button,
+    GEUI_Panel
 }ItemType;
 
 struct WindowStruct;
+struct PanelStruct;
 
 typedef struct WindowItemStruct
 {
@@ -46,26 +48,38 @@ typedef struct WindowItemStruct
             long bTileEndIndex;
             void (*actionFunction)(struct WindowStruct *, struct WindowItemStruct *);
         }button;
+        struct PanelItem
+        {
+            struct PanelStruct *panel;
+        }panel;
     }data;
 
-    Layout layout;
+    // Layout layout;
+    struct PanelStruct *myPanel;
     struct WindowStruct *parent;     // pointer to parent window
     struct WindowItemStruct *next;   // pointer to next item in list
 }WindowItem;
 
+typedef struct PanelStruct
+{
+    int iIndex;
+    struct WindowItemStruct *iList;
+}Panel;
+
 typedef struct WindowStruct
 {
     int index;          // window index
-    int iIndex;         // next available item index
+    // int iIndex;         // next available item index
     char tag[256];      // window identifier tag
     bool isOpen;        // is window currently open or not
     Style style;        // window style
     double zDepth;      // window z depth
-    Layout layout;
+    // Layout layout;
     char parentCName[256]; // clonename of the window parent actor
     long wTileStartIndex;   // cloneindex of the first window tile
     long wTileEndIndex;     // cloneindex of the last window tile
-    struct WindowItemStruct *iList;  // list of items in window
+    Panel mainPanel;
+    // struct WindowItemStruct *iList;  // list of items in window
     struct WindowStruct *next;       // pointer to next window in list
 }Window;
 
@@ -74,11 +88,13 @@ void quitGEUI(void);
 Actor *getTile(long index);
 void updateIndexBounds(long *low, long *hi, long val);
 int isTopmostItemAtMouse(WindowItem *item);
-WindowItem *initNewItem(ItemType type, Window *window, char tag[256]);
+WindowItem *initNewItem(ItemType type, Window *window, Panel *panel, char tag[256]);
 WindowItem *addItemToWindow(WindowItem *ptr);
-WindowItem *addText(Window *window, char tag[256], char *string);
-WindowItem *addButton(Window *window, char tag[256], char *string, void (*actionFunction)(Window *, WindowItem *));
+WindowItem *addText(Window *window, Panel *panel, char tag[256], char *string);
+WindowItem *addButton(Window *window, Panel *panel, char tag[256], char *string, void (*actionFunction)(Window *, WindowItem *));
+WindowItem *getItemFromPanelByTag(Panel *panel, char tag[256]);
 WindowItem *getItemByTag(Window *window, char tag[256]);
+WindowItem *getItemFromPanelByIndex(Panel *panel, int index);
 WindowItem *getItemByIndex(Window *window, int index);
 void doMouseEnter(const char *actorName);
 void doMouseLeave(const char *actorName);
@@ -100,20 +116,24 @@ int calculateAnimpos(unsigned short w, unsigned short h, unsigned short i, unsig
 Window *createWindow(char tag[256], Style style);
 Window *getWindowByTag(char tag[256]);
 Window *getWindowByIndex(int index);
-void buildItems(Window *window);
+void buildItems(Panel *panel);
 void buildItem(WindowItem *ptr);
 void buildText(WindowItem *ptr);
+void buildPanel(WindowItem *ptr);
 void buildButtonText(WindowItem *ptr);
 void buildButton(WindowItem *ptr);
 void buildWindow(Window *window);
 Window *openWindow(char tag[256]);
 Actor *createWindowBaseParent(Window *window);
+void setPanelBaseParent(Panel *panel, char *parentName);
 void setWindowBaseParent(Window *window, char *parentName);
 void bringWindowToFront(Window *window);
+void closePanel(Panel *panel);
 void closeWindow(Window *window);
 void destroyWindow(Window *window);
 void destroyWindowList(void);
-void destroyWindowItemList(Window *window);
+void destroyPanel(Panel *panel);
+// void destroyWindowItemList(Window *window);
 
 struct GEUIControllerStruct
 {
@@ -207,19 +227,20 @@ int isTopmostItemAtMouse(WindowItem *item)
     return 0;
 }
 
-WindowItem *initNewItem(ItemType type, Window *window, char tag[256])
+WindowItem *initNewItem(ItemType type, Window *window, Panel *panel, char tag[256])
 {
     WindowItem *ptr = NULL;
 
-    if (!window) return NULL;
+    if (!panel) return NULL;
 
     ptr = malloc(sizeof *ptr);
 
     if (!ptr) return NULL;
 
     ptr->type = type;
-    ptr->index = window->iIndex ++;
+    ptr->index = panel->iIndex ++;
     strcpy(ptr->tag, tag);
+    ptr->myPanel = panel;
     ptr->parent = window;
 
     return ptr;
@@ -229,15 +250,15 @@ WindowItem *addItemToWindow(WindowItem *ptr)
 {
     if (!ptr) return NULL;
 
-    ptr->next = ptr->parent->iList;
-    ptr->parent->iList = ptr;
+    ptr->next = ptr->myPanel->iList;
+    ptr->myPanel->iList = ptr;
 
     return ptr;
 }
 
-WindowItem *addText(Window *window, char tag[256], char *string)
+WindowItem *addText(Window *window, Panel *panel, char tag[256], char *string)
 {
-    WindowItem *ptr = initNewItem(GEUI_Text, window, tag);
+    WindowItem *ptr = initNewItem(GEUI_Text, window, panel, tag);
     if (!ptr) return NULL;
 
     ptr->data.text.text = createText(string, window->style.textFont, "(none)", ABSOLUTE, 0, 0);
@@ -247,9 +268,9 @@ WindowItem *addText(Window *window, char tag[256], char *string)
     return addItemToWindow(ptr);
 }
 
-WindowItem *addButton(Window *window, char tag[256], char *string, void (*actionFunction)(Window *, WindowItem *))
+WindowItem *addButton(Window *window, Panel *panel, char tag[256], char *string, void (*actionFunction)(Window *, WindowItem *))
 {
-    WindowItem *ptr = initNewItem(GEUI_Button, window, tag);
+    WindowItem *ptr = initNewItem(GEUI_Button, window, panel, tag);
     if (!ptr) return NULL;
 
     ptr->data.button.text = createText(string, window->style.textFont, "(none)", ABSOLUTE, 0, 0);
@@ -263,41 +284,102 @@ WindowItem *addButton(Window *window, char tag[256], char *string, void (*action
     return addItemToWindow(ptr);
 }
 
-WindowItem *getItemByTag(Window *window, char tag[256])
+WindowItem *addPanel(Window *window, Panel *panel, char tag[256])
 {
-    WindowItem *ptr = NULL;
+    WindowItem *ptr = initNewItem(GEUI_Panel, window, panel, tag);
+    if (!ptr) return NULL;
 
-    if (!window) return NULL;
+    ptr->data.panel.panel = malloc(sizeof *ptr->data.panel.panel);
+    if (!ptr->data.panel.panel)
+    {
+        free(ptr);
+        return NULL;
+    }
 
-    ptr = window->iList;
+    return addItemToWindow(ptr);
+}
+
+WindowItem *getItemFromPanelByTag(Panel *panel, char tag[256])
+{
+    WindowItem *ptr;
+    WindowItem *result = NULL;
+
+    if (!panel) return NULL;
+
+    ptr = panel->iList;
 
     while (ptr)
     {
         if (!strcmp(ptr->tag, tag))
             return ptr;
 
+        if (ptr->type == GEUI_Panel)
+        {
+            result = getItemFromPanelByTag(ptr->data.panel.panel, tag);
+
+            if (result)
+                return result;
+        }
+
         ptr = ptr->next;
     }
+
+    return NULL;
+}
+
+WindowItem *getItemByTag(Window *window, char tag[256])
+{
+    WindowItem *ptr;
+
+    if (!window) return NULL;
+
+    ptr = getItemFromPanelByTag(&window->mainPanel, tag);
+
+    if (ptr)
+        return ptr;
 
     DEBUG_MSG_FROM("item not found", "getItemByTag");
     return NULL;
 }
 
-WindowItem *getItemByIndex(Window *window, int index)
+WindowItem *getItemFromPanelByIndex(Panel *panel, int index)
 {
-    WindowItem *ptr = NULL;
+    WindowItem *ptr;
+    WindowItem *result = NULL;
 
-    if (!window) return NULL;
+    if (!panel) return NULL;
 
-    ptr = window->iList;
+    ptr = panel->iList;
 
     while (ptr)
     {
         if (ptr->index == index)
             return ptr;
 
+        if (ptr->type == GEUI_Panel)
+        {
+            result = getItemFromPanelByIndex(ptr->data.panel.panel, index);
+
+            if (result)
+                return result;
+        }
+
         ptr = ptr->next;
     }
+
+    return NULL;
+}
+
+WindowItem *getItemByIndex(Window *window, int index)
+{
+    WindowItem *ptr;
+
+    if (!window) return NULL;
+
+    ptr = getItemFromPanelByIndex(&window->mainPanel, index);
+
+    if (ptr)
+        return ptr;
 
     DEBUG_MSG_FROM("item not found", "getItemByIndex");
     return NULL;
@@ -652,6 +734,9 @@ void eraseWindowItem(WindowItem *ptr)
                 ptr->data.button.bTileEndIndex = -1;
             }
         break;
+        case GEUI_Panel:
+            closePanel(ptr->data.panel.panel);
+        break;
 
         default: break;
     }
@@ -672,6 +757,10 @@ void destroyWindowItem(WindowItem *ptr)
                 ptr->data.button.bTileStartIndex = -1;
                 ptr->data.button.bTileEndIndex = -1;
             }
+        break;
+        case GEUI_Panel:
+            destroyPanel(ptr->data.panel.panel);
+            free(ptr->data.panel.panel);
         break;
 
         default: break;
@@ -704,7 +793,7 @@ Window *createWindow(char tag[256], Style style)
     if (!ptr) return NULL;
 
     ptr->index = GEUIController.wIndex ++;
-    ptr->iIndex = 0;
+    // ptr->iIndex = 0;
     strcpy(ptr->tag, tag);
     ptr->isOpen = False;
     ptr->style = style;
@@ -712,7 +801,9 @@ Window *createWindow(char tag[256], Style style)
     strcpy(ptr->parentCName, "");
     ptr->wTileStartIndex = -1;
     ptr->wTileEndIndex = -1;
-    ptr->iList = NULL;
+    // ptr->iList = NULL;
+    ptr->mainPanel.iIndex = 0;
+    ptr->mainPanel.iList = NULL;
     ptr->next = GEUIController.wList;
 
     GEUIController.wList = ptr;
@@ -756,11 +847,11 @@ Window *getWindowByIndex(int index)
     return NULL;
 }
 
-void buildItems(Window *window)
+void buildItems(Panel *panel)
 {
     WindowItem *ptr;
 
-    ptr = window->iList;
+    ptr = panel->iList;
 
     while (ptr)
     {
@@ -775,6 +866,7 @@ void buildItem(WindowItem *ptr)
     {
         case GEUI_Text: buildText(ptr); break;
         case GEUI_Button: buildButton(ptr); break;
+        case GEUI_Panel: buildPanel(ptr); break;
     }
 }
 
@@ -784,6 +876,13 @@ void buildText(WindowItem *ptr)
 
     setTextZDepth(&ptr->data.text.text, 0.3);
     refreshText(&ptr->data.text.text);
+}
+
+void buildPanel(WindowItem *ptr)
+{
+    if (ptr->type != GEUI_Panel) { DEBUG_MSG_FROM("Item was not a valid Panel item", "buildPanel"); return; }
+
+    buildItems(ptr->data.panel.panel);
 }
 
 void buildButtonText(WindowItem *ptr)
@@ -884,7 +983,7 @@ Window *openWindow(char tag[256])
     if (window->isOpen) { DEBUG_MSG_FROM("Window is already open", "openWindow"); return window; }
 
     buildWindow(window);
-    buildItems(window);
+    buildItems(&window->mainPanel);
 
     window->isOpen = True;
     bringWindowToFront(window);
@@ -904,6 +1003,34 @@ Actor *createWindowBaseParent(Window *window)
     return baseParent;
 }
 
+void setPanelBaseParent(Panel *panel, char *parentName)
+{
+    WindowItem *ptr;
+
+    if (!panel) { DEBUG_MSG_FROM("Panel is NULL", "setPanelBaseParent"); return; }
+    if (!actorExists(parentName)) { DEBUG_MSG_FROM("Actor does not exist!", "setPanelBaseParent"); return; }
+
+    ptr = panel->iList;
+
+    while (ptr)
+    {
+        switch (ptr->type)
+        {
+            case GEUI_Text: setTextParent(&ptr->data.text.text, parentName, True); break;
+            case GEUI_Button:
+                setTextParent(&ptr->data.button.text, parentName, True);
+                if (ptr->data.button.bTileStartIndex > -1)
+                    changeParentOfClones("a_gui", ptr->data.button.bTileStartIndex, ptr->data.button.bTileEndIndex, parentName);
+                break;
+             case GEUI_Panel: setPanelBaseParent(ptr->data.panel.panel,  parentName); break;
+
+            default: break;
+        }
+
+        ptr = ptr->next;
+    }
+}
+
 void setWindowBaseParent(Window *window, char *parentName)
 {
     WindowItem *ptr = NULL;
@@ -916,24 +1043,7 @@ void setWindowBaseParent(Window *window, char *parentName)
     if (window->wTileStartIndex > -1)
         changeParentOfClones("a_gui", window->wTileStartIndex, window->wTileEndIndex, parentName);
 
-    ptr = window->iList;
-
-    while (ptr)
-    {
-        switch (ptr->type)
-        {
-            case GEUI_Text: setTextParent(&ptr->data.text.text, parentName, True); break;
-            case GEUI_Button:
-                setTextParent(&ptr->data.button.text, parentName, True);
-                if (ptr->data.button.bTileStartIndex > -1)
-                    changeParentOfClones("a_gui", ptr->data.button.bTileStartIndex, ptr->data.button.bTileEndIndex, parentName);
-            break;
-
-            default: break;
-        }
-
-        ptr = ptr->next;
-    }
+    setPanelBaseParent(&window->mainPanel, parentName);
 }
 
 void bringWindowToFront(Window *window)
@@ -962,11 +1072,26 @@ void bringWindowToFront(Window *window)
     }
 }
 
+void closePanel(Panel *panel)
+{
+    WindowItem *ptr;
+
+    if (!panel) { DEBUG_MSG_FROM("Panel is NULL", "closePanel"); return; }
+
+    ptr = panel->iList;
+
+    while (ptr)
+    {
+        eraseWindowItem(ptr);
+        ptr = ptr->next;
+    }
+}
+
 void closeWindow(Window *window)
 {
     WindowItem *ptr = NULL;
 
-    if (!window) {DEBUG_MSG_FROM("window is NULL", "openWindow"); return;}
+    if (!window) {DEBUG_MSG_FROM("window is NULL", "closeWindow"); return;}
 
     window->isOpen = False;
 
@@ -980,15 +1105,7 @@ void closeWindow(Window *window)
         window->wTileEndIndex = -1;
     }
 
-    if (!window->iList) return;
-
-    ptr = window->iList;
-
-    while (ptr)
-    {
-        eraseWindowItem(ptr);
-        ptr = ptr->next;
-    }
+    closePanel(&window->mainPanel);
 }
 
 void destroyWindow(Window *window)
@@ -1005,7 +1122,7 @@ void destroyWindowList(void)
     {
         temp = ptr->next;
         closeWindow(ptr);
-        destroyWindowItemList(ptr);
+        destroyPanel(&ptr->mainPanel);
         free(ptr);
         ptr = temp;
     }
@@ -1014,14 +1131,14 @@ void destroyWindowList(void)
     GEUIController.wIndex = 0;
 }
 
-void destroyWindowItemList(Window *window)
+void destroyPanel(Panel *panel)
 {
-    WindowItem *temp = NULL;
-    WindowItem *ptr = NULL;
+    WindowItem *temp;
+    WindowItem *ptr;
 
-    if (!window || !window->iList) return;
+    if (!panel) return;
 
-    ptr = window->iList;
+    ptr = panel->iList;
 
     while (ptr)
     {
@@ -1031,6 +1148,6 @@ void destroyWindowItemList(Window *window)
         ptr = temp;
     }
 
-    window->iList = NULL;
-    window->iIndex = 0;
+    panel->iList = NULL;
+    panel->iIndex = 0;
 }
