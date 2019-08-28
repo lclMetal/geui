@@ -1,10 +1,27 @@
-typedef struct LayoutStruct
+void updatePanelLayout(Panel *panel);
+void setPosition(WindowItem *this, short row, short col);
+short getColWidth(Panel *panel, short col);
+short getRowHeight(Panel *panel, short row);
+short getPanelWidth(Panel *panel);
+short getPanelHeight(Panel *panel);
+
+void updatePanelLayout(Panel *panel)
 {
-    short row;
-    short col;
-    short width;
-    short height;
-}Layout;
+    WindowItem *item;
+
+    if (!panel) return;
+
+    for (item = panel->iList; item != NULL; item = item->next)
+    {
+        if (item->layout.row > panel->layout.row)
+            panel->layout.row = item->layout.row + 1;
+        if (item->layout.col > panel->layout.col)
+            panel->layout.col = item->layout.col + 1;
+    }
+
+    panel->layout.width = getPanelWidth(panel);
+    panel->layout.height = getPanelHeight(panel);
+}
 
 void setPosition(WindowItem *this, short row, short col)
 {
@@ -12,18 +29,21 @@ void setPosition(WindowItem *this, short row, short col)
 
     this->layout.row = row;
     this->layout.col = col;
+
+    updatePanelLayout(this->myPanel);
 }
 
-short getColWidth(Window *window, short col)
+short getColWidth(Panel *panel, short col)
 {
     short width = 0;
     WindowItem *item;
 
-    if (!window || !window->layout.col) return -1;
-    if (col < 0 || col >= window->layout.col) return -2;
+    if (!panel || !panel->layout.col) return -1;
+    if (col < 0 || col >= panel->layout.col) return -2;
 
-    for (item = window->iList; item != NULL; item = item->next)
+    for (item = panel->iList; item != NULL; item = item->next)
     {
+        if (item->type == GEUI_Panel) updatePanelLayout(item->data.panel.panel);
         if (item->layout.col == col && item->layout.width > width)
             width = item->layout.width;
     }
@@ -31,16 +51,17 @@ short getColWidth(Window *window, short col)
     return width;
 }
 
-short getRowHeight(Window *window, short row)
+short getRowHeight(Panel *panel, short row)
 {
     short height = 0;
     WindowItem *item;
 
-    if (!window || !window->layout.row) return -1;
-    if (row < 0 || row >= window->layout.row) return -2;
+    if (!panel || !panel->layout.row) return -1;
+    if (row < 0 || row >= panel->layout.row) return -2;
 
-    for (item = window->iList; item != NULL; item = item->next)
+    for (item = panel->iList; item != NULL; item = item->next)
     {
+        if (item->type == GEUI_Panel) updatePanelLayout(item->data.panel.panel);
         if (item->layout.row == row && item->layout.height > height)
             height = item->layout.height;
     }
@@ -48,34 +69,40 @@ short getRowHeight(Window *window, short row)
     return height;
 }
 
-int getWindowWidth(Window *window)
+short getPanelWidth(Panel *panel)
 {
     short col;
-    int width = 0;
-    int tempWidth;
+    short width = 0;
+    short tempWidth;
 
-    if (!window || !window->layout.col) return -1;
+    if (!panel) return -1;
+    updatePanelLayout(panel);
 
-    for (col = 0; col < window->layout.col; col ++)
+    if (!panel->layout.col) return -2;
+
+    for (col = 0; col < panel->layout.col; col ++)
     {
-        if ((tempWidth = getColWidth(window, col)) >= 0)
+        if ((tempWidth = getColWidth(panel, col)) >= 0)
             width += tempWidth;
     }
 
     return width;
 }
 
-int getWindowHeight(Window *window)
+short getPanelHeight(Panel *panel)
 {
     short row;
-    int height = 0;
-    int tempHeight;
+    short height = 0;
+    short tempHeight;
 
-    if (!window || !window->layout.row) return -1;
+    if (!panel) return -1;
+    updatePanelLayout(panel);
 
-    for (row = 0; row < window->layout.row; row ++)
+    if (!panel->layout.row) return -2;
+
+    for (row = 0; row < panel->layout.row; row ++)
     {
-        if ((tempHeight = getRowHeight(window, row)) >= 0)
+        if ((tempHeight = getRowHeight(panel, row)) >= 0)
             height += tempHeight;
     }
 

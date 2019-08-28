@@ -16,6 +16,14 @@ enum mouseButtonsEnum // Used as array indices, don't touch!
     GEUI_MOUSE_BUTTONS     // Number of supported mouse buttons (5)
 };
 
+typedef struct LayoutStruct
+{
+    short row;
+    short col;
+    short width;
+    short height;
+}Layout;
+
 const unsigned long GEUI_TITLE_BAR  = (1 << 0);
 const unsigned long GEUI_FAKE_ACTOR = (1 << 1);
 const unsigned long GEUI_CLICKED    = (1 << 2);
@@ -54,7 +62,7 @@ typedef struct WindowItemStruct
         }panel;
     }data;
 
-    // Layout layout;
+    Layout layout;
     struct PanelStruct *myPanel;
     struct WindowStruct *parent;     // pointer to parent window
     struct WindowItemStruct *next;   // pointer to next item in list
@@ -63,8 +71,16 @@ typedef struct WindowItemStruct
 typedef struct PanelStruct
 {
     int iIndex;
+    Layout layout;
     struct WindowItemStruct *iList;
 }Panel;
+
+void updatePanelLayout(Panel *panel);
+void setPosition(WindowItem *this, short row, short col);
+short getColWidth(Panel *panel, short col);
+short getRowHeight(Panel *panel, short row);
+short getPanelWidth(Panel *panel);
+short getPanelHeight(Panel *panel);
 
 typedef struct WindowStruct
 {
@@ -112,7 +128,7 @@ void doKeyDown(WindowItem *item, short key);
 void doKeyUp(WindowItem *item, short key);
 void eraseWindowItem(WindowItem *ptr);
 void destroyWindowItem(WindowItem *ptr);
-int calculateAnimpos(unsigned short w, unsigned short h, unsigned short i, unsigned short j);
+int calculateAnimpos(short w, short h, short i, short j);
 Window *createWindow(char tag[256], Style style);
 Window *getWindowByTag(char tag[256]);
 Window *getWindowByIndex(int index);
@@ -265,6 +281,11 @@ WindowItem *addText(Window *window, Panel *panel, char tag[256], char *string)
     setTextColor(&ptr->data.text.text, window->style.textColor);
     setTextZDepth(&ptr->data.text.text, 0.6);
 
+    ptr->layout.row = 0;
+    ptr->layout.col = 0;
+    ptr->layout.width = ptr->data.text.text.width;
+    ptr->layout.height = ptr->data.text.text.height;
+
     return addItemToWindow(ptr);
 }
 
@@ -281,6 +302,11 @@ WindowItem *addButton(Window *window, Panel *panel, char tag[256], char *string,
     ptr->data.button.bTileEndIndex = -1;
     ptr->data.button.actionFunction = actionFunction;
 
+    ptr->layout.row = 0;
+    ptr->layout.col = 0;
+    ptr->layout.width = ptr->data.button.text.width + ptr->parent->style.padding * 2;
+    ptr->layout.height = ptr->parent->style.tileHeight;
+
     return addItemToWindow(ptr);
 }
 
@@ -295,6 +321,16 @@ WindowItem *addPanel(Window *window, Panel *panel, char tag[256])
         free(ptr);
         return NULL;
     }
+
+    ptr->data.panel.panel->layout.row = 0;
+    ptr->data.panel.panel->layout.col = 0;
+    ptr->data.panel.panel->layout.width = -1;
+    ptr->data.panel.panel->layout.height = -1;
+
+    ptr->layout.row = 0;
+    ptr->layout.col = 0;
+    ptr->layout.width = -1;
+    ptr->layout.height = -1;
 
     return addItemToWindow(ptr);
 }
@@ -767,10 +803,10 @@ void destroyWindowItem(WindowItem *ptr)
     }
 }
 
-int calculateAnimpos(unsigned short w, unsigned short h, unsigned short i, unsigned short j)
+int calculateAnimpos(short w, short h, short i, short j)
 {
-    unsigned short pw = (i) ? (i / (w - 1)) + 1 : 0; // column  0, 1 or 2
-    unsigned short ph = (j) ? (j / (h - 1)) + 1 : 0; //    row  0, 1 or 2
+    short pw = (i) ? (i / (w - 1)) + 1 : 0; // column  0, 1 or 2
+    short ph = (j) ? (j / (h - 1)) + 1 : 0; //    row  0, 1 or 2
 
     // Array of possible outcomes:
     // 0, 1, 2,
@@ -902,17 +938,17 @@ void buildButtonText(WindowItem *ptr)
 
 void buildButton(WindowItem *ptr)
 {
-    unsigned short i;
+    short i;
     Text *buttonText;
     long start, end;
-    unsigned short buttonWidth;
-    unsigned short tilesHorizontal;
-    unsigned short tileWidth = ptr->parent->style.tileWidth;
-    unsigned short tileHeight = ptr->parent->style.tileHeight;
+    short buttonWidth;
+    short tilesHorizontal;
+    short tileWidth = ptr->parent->style.tileWidth;
+    short tileHeight = ptr->parent->style.tileHeight;
 
     if (ptr->type != GEUI_Button) { DEBUG_MSG_FROM("Item was not a valid Button item", "buildButton"); return; }
 
-    buttonWidth = ptr->data.button.text.width + ptr->parent->style.padding * 2;
+    buttonWidth = ptr->layout.width; //ptr->data.button.text.width + ptr->parent->style.padding * 2;
     tilesHorizontal = ceil(buttonWidth / (float)tileWidth);
 
     for (i = 0; i < tilesHorizontal; i ++)
@@ -935,12 +971,12 @@ void buildButton(WindowItem *ptr)
 
 void buildWindow(Window *window)
 {
-    unsigned short i, j;
+    short i, j;
     Actor *tile;
 
-    unsigned short tileWidth, tileHeight;
-    unsigned short windowWidth, windowHeight;
-    unsigned short tilesHorizontal, tilesVertical;
+    short tileWidth, tileHeight;
+    short windowWidth, windowHeight;
+    short tilesHorizontal, tilesVertical;
 
     setWindowBaseParent(window, createWindowBaseParent(window)->clonename);
 
