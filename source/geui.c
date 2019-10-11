@@ -22,6 +22,8 @@ typedef struct LayoutStruct
     short col;
     short width;
     short height;
+    short startx;
+    short starty;
 }Layout;
 
 const unsigned long GEUI_TITLE_BAR  = (1 << 0);
@@ -285,6 +287,8 @@ WindowItem *addText(Window *window, Panel *panel, char tag[256], char *string)
     ptr->layout.col = 0;
     ptr->layout.width = ptr->data.text.text.width;
     ptr->layout.height = ptr->data.text.text.height;
+    ptr->layout.startx = 0;
+    ptr->layout.starty = 0;
 
     return addItemToWindow(ptr);
 }
@@ -306,6 +310,8 @@ WindowItem *addButton(Window *window, Panel *panel, char tag[256], char *string,
     ptr->layout.col = 0;
     ptr->layout.width = ptr->data.button.text.width + ptr->parent->style.padding * 2;
     ptr->layout.height = ptr->parent->style.tileHeight;
+    ptr->layout.startx = 0;
+    ptr->layout.starty = 0;
 
     return addItemToWindow(ptr);
 }
@@ -326,11 +332,15 @@ WindowItem *addPanel(Window *window, Panel *panel, char tag[256])
     ptr->data.panel.panel->layout.col = 0;
     ptr->data.panel.panel->layout.width = -1;
     ptr->data.panel.panel->layout.height = -1;
+    ptr->data.panel.panel->layout.startx = 0;
+    ptr->data.panel.panel->layout.starty = 0;
 
     ptr->layout.row = 0;
     ptr->layout.col = 0;
     ptr->layout.width = -1;
     ptr->layout.height = -1;
+    ptr->layout.startx = 0;
+    ptr->layout.starty = 0;
 
     return addItemToWindow(ptr);
 }
@@ -839,6 +849,12 @@ Window *createWindow(char tag[256], Style style)
     ptr->wTileEndIndex = -1;
     // ptr->iList = NULL;
     ptr->mainPanel.iIndex = 0;
+    ptr->mainPanel.layout.row = 0;
+    ptr->mainPanel.layout.col = 0;
+    ptr->mainPanel.layout.width = -1;
+    ptr->mainPanel.layout.height = -1;
+    ptr->mainPanel.layout.startx = 0;
+    ptr->mainPanel.layout.starty = 0;
     ptr->mainPanel.iList = NULL;
     ptr->next = GEUIController.wList;
 
