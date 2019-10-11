@@ -73,6 +73,8 @@ typedef struct WindowItemStruct
 typedef struct PanelStruct
 {
     int iIndex;
+    short rows;
+    short cols;
     Layout layout;
     struct WindowItemStruct *iList;
 }Panel;
@@ -328,6 +330,8 @@ WindowItem *addPanel(Window *window, Panel *panel, char tag[256])
         return NULL;
     }
 
+    ptr->data.panel.panel->rows = 0;
+    ptr->data.panel.panel->cols = 0;
     ptr->data.panel.panel->layout.row = 0;
     ptr->data.panel.panel->layout.col = 0;
     ptr->data.panel.panel->layout.width = -1;
@@ -849,6 +853,8 @@ Window *createWindow(char tag[256], Style style)
     ptr->wTileEndIndex = -1;
     // ptr->iList = NULL;
     ptr->mainPanel.iIndex = 0;
+    ptr->mainPanel.rows = 0;
+    ptr->mainPanel.cols = 0;
     ptr->mainPanel.layout.row = 0;
     ptr->mainPanel.layout.col = 0;
     ptr->mainPanel.layout.width = -1;
@@ -1213,10 +1219,10 @@ void updatePanelLayout(Panel *panel)
 
     for (item = panel->iList; item != NULL; item = item->next)
     {
-        if (item->layout.row > panel->layout.row)
-            panel->layout.row = item->layout.row + 1;
-        if (item->layout.col > panel->layout.col)
-            panel->layout.col = item->layout.col + 1;
+        if (item->layout.row > panel->rows)
+            panel->rows = item->layout.row + 1;
+        if (item->layout.col > panel->cols)
+            panel->cols = item->layout.col + 1;
     }
 
     panel->layout.width = getPanelWidth(panel);
@@ -1238,8 +1244,8 @@ short getColWidth(Panel *panel, short col)
     short width = 0;
     WindowItem *item;
 
-    if (!panel || !panel->layout.col) return -1;
-    if (col < 0 || col >= panel->layout.col) return -2;
+    if (!panel || !panel->cols) return -1;
+    if (col < 0 || col >= panel->cols) return -2;
 
     for (item = panel->iList; item != NULL; item = item->next)
     {
@@ -1256,8 +1262,8 @@ short getRowHeight(Panel *panel, short row)
     short height = 0;
     WindowItem *item;
 
-    if (!panel || !panel->layout.row) return -1;
-    if (row < 0 || row >= panel->layout.row) return -2;
+    if (!panel || !panel->rows) return -1;
+    if (row < 0 || row >= panel->rows) return -2;
 
     for (item = panel->iList; item != NULL; item = item->next)
     {
@@ -1278,9 +1284,9 @@ short getPanelWidth(Panel *panel)
     if (!panel) return -1;
     updatePanelLayout(panel);
 
-    if (!panel->layout.col) return -2;
+    if (!panel->cols) return -2;
 
-    for (col = 0; col < panel->layout.col; col ++)
+    for (col = 0; col < panel->cols; col ++)
     {
         if ((tempWidth = getColWidth(panel, col)) >= 0)
             width += tempWidth;
@@ -1298,9 +1304,9 @@ short getPanelHeight(Panel *panel)
     if (!panel) return -1;
     updatePanelLayout(panel);
 
-    if (!panel->layout.row) return -2;
+    if (!panel->rows) return -2;
 
-    for (row = 0; row < panel->layout.row; row ++)
+    for (row = 0; row < panel->rows; row ++)
     {
         if ((tempHeight = getRowHeight(panel, row)) >= 0)
             height += tempHeight;
