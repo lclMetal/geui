@@ -400,7 +400,7 @@ WindowItem *getItemByTag(Window *window, char tag[256])
     return NULL;
 }
 
-WindowItem *getItemFromPanelByIndex(Panel *panel, int index) // is this going to work if fetching from a nested panel??
+WindowItem *getItemFromPanelByIndex(Panel *panel, int index)
 {
     WindowItem *ptr;
     WindowItem *result = NULL;
@@ -413,14 +413,6 @@ WindowItem *getItemFromPanelByIndex(Panel *panel, int index) // is this going to
     {
         if (ptr->index == index)
             return ptr;
-
-        if (ptr->type == GEUI_Panel)
-        {
-            result = getItemFromPanelByIndex(ptr->data.panel.panel, index);
-
-            if (result)
-                return result;
-        }
 
         ptr = ptr->next;
     }
