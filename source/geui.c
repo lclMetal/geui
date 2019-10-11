@@ -153,7 +153,8 @@ void closeWindow(Window *window);
 void destroyWindow(Window *window);
 void destroyWindowList(void);
 void destroyPanel(Panel *panel);
-// void destroyWindowItemList(Window *window);
+void calculateRowsAndCols(Panel *panel);
+void updatePanelLayout(WindowItem *panelItem, Panel *panel);
 
 struct GEUIControllerStruct
 {
@@ -819,8 +820,8 @@ void destroyWindowItem(WindowItem *ptr)
 
 int calculateAnimpos(short w, short h, short i, short j)
 {
-    short pw = (i) ? (i / (w - 1)) + 1 : 0; // column  0, 1 or 2
-    short ph = (j) ? (j / (h - 1)) + 1 : 0; //    row  0, 1 or 2
+    short pw = (i > 0) + (i == w - 1); // column 0, 1 or 2
+    short ph = (j > 0) + (j == h - 1); // row 0, 1 or 2
 
     // Array of possible outcomes:
     // 0, 1, 2,
@@ -934,6 +935,9 @@ void buildText(WindowItem *ptr)
 
     setTextZDepth(&ptr->data.text.text, 0.3);
     // TODO: layout / positioning
+    setTextPosition(&ptr->data.text.text,
+        ptr->layout.startx + ptr->parent->style.padding,
+        ptr->layout.starty + ptr->data.text.text.pFont->lineSpacing * 0.5 + ptr->parent->style.padding);
     refreshText(&ptr->data.text.text);
 }
 
@@ -979,8 +983,8 @@ void buildButton(WindowItem *ptr)
         Actor *a;
         a = CreateActor("a_gui", ptr->parent->style.guiAnim, ptr->parent->parentCName, "(none)", 0, 0, true);
         // TODO: layout / positioning
-        a->x = tileWidth + i * tileWidth + (i >= 2 && i >= tilesHorizontal - 2) * (buttonWidth - tilesHorizontal * tileWidth);
-        a->y = tileHeight + 25 * ptr->index;
+        a->x = ptr->layout.startx + tileWidth + i * tileWidth + (i >= 2 && i >= tilesHorizontal - 2) * (buttonWidth - tilesHorizontal * tileWidth);
+        a->y = ptr->layout.starty + tileHeight;// + 25 * ptr->index;
         a->myWindow = ptr->parent->index;
         a->myIndex  = ptr->index;
         ChangeZDepth(a->clonename, 0.35); // TODO: change back to 0.3 after testing
@@ -1006,8 +1010,8 @@ void buildWindow(Window *window)
     tileWidth = window->style.tileWidth;
     tileHeight = window->style.tileHeight;
 
-    windowWidth = 300; // TODO: window size calculations
-    windowHeight = 200;
+    windowWidth = window->mainPanel.layout.width;//300; // TODO: window size calculations
+    windowHeight = window->mainPanel.layout.height;//200;
 
     tilesHorizontal = ceil(windowWidth / (float)tileWidth);
     tilesVertical = ceil(windowHeight / (float)tileHeight);
@@ -1041,6 +1045,7 @@ Window *openWindow(char tag[256])
     if (!window) { DEBUG_MSG_FROM("Window is NULL", "openWindow"); return NULL; }
     if (window->isOpen) { DEBUG_MSG_FROM("Window is already open", "openWindow"); return window; }
 
+    updatePanelLayout(NULL, &window->mainPanel);
     buildWindow(window);
     buildItems(&window->mainPanel);
 
@@ -1211,7 +1216,7 @@ void destroyPanel(Panel *panel)
     panel->iIndex = 0;
 }
 
-void updatePanelLayout(Panel *panel)
+void calculateRowsAndCols(Panel *panel)
 {
     WindowItem *item;
 
@@ -1219,14 +1224,66 @@ void updatePanelLayout(Panel *panel)
 
     for (item = panel->iList; item != NULL; item = item->next)
     {
-        if (item->layout.row > panel->rows)
+        if (item->layout.row >= panel->rows)
             panel->rows = item->layout.row + 1;
-        if (item->layout.col > panel->cols)
+        if (item->layout.col >= panel->cols)
             panel->cols = item->layout.col + 1;
+    }
+}
+
+void updatePanelLayout(WindowItem *panelItem, Panel *panel)
+{
+    short i;
+    short startx = 0;
+    short starty = 0;
+    short origx=0;
+    short origy=0;
+    short *rowValues;
+    short *colValues;
+    WindowItem *item;
+
+    if (!panel) return;
+
+    if (panelItem && panelItem->type == GEUI_Panel)
+    {
+        origx=startx = panelItem->layout.startx;
+        origy=starty = panelItem->layout.starty;
+    }
+    else panelItem = NULL;
+
+    calculateRowsAndCols(panel);
+
+    if (!panel->rows || !panel->cols) return;
+
+    rowValues = malloc((panel->rows + 1) * sizeof *rowValues);
+    if (!rowValues) return;
+    colValues = malloc((panel->cols + 1) * sizeof *colValues);
+    if (!colValues) { free(rowValues); return; }
+
+    rowValues[0] = origy;
+    colValues[0] = origx;
+    for (i = 0; i < panel->rows; i++)
+        starty = rowValues[i+1] = starty + getRowHeight(panel, i);
+    for (i = 0; i < panel->cols; i++)
+        startx = colValues[i+1] = startx + getColWidth(panel, i);
+
+    for (item = panel->iList; item != NULL; item = item->next)
+    {
+        item->layout.startx = colValues[item->layout.col];
+        item->layout.starty = rowValues[item->layout.row];
     }
 
     panel->layout.width = getPanelWidth(panel);
     panel->layout.height = getPanelHeight(panel);
+
+    if (panelItem)
+    {
+        panelItem->layout.width = panel->layout.width;
+        panelItem->layout.height = panel->layout.height;
+    }
+
+    free(rowValues);
+    free(colValues);
 }
 
 void setPosition(WindowItem *this, short row, short col)
@@ -1235,8 +1292,6 @@ void setPosition(WindowItem *this, short row, short col)
 
     this->layout.row = row;
     this->layout.col = col;
-
-    updatePanelLayout(this->myPanel);
 }
 
 short getColWidth(Panel *panel, short col)
@@ -1249,7 +1304,7 @@ short getColWidth(Panel *panel, short col)
 
     for (item = panel->iList; item != NULL; item = item->next)
     {
-        if (item->type == GEUI_Panel) updatePanelLayout(item->data.panel.panel);
+        if (item->type == GEUI_Panel) updatePanelLayout(item, item->data.panel.panel);
         if (item->layout.col == col && item->layout.width > width)
             width = item->layout.width;
     }
@@ -1267,7 +1322,7 @@ short getRowHeight(Panel *panel, short row)
 
     for (item = panel->iList; item != NULL; item = item->next)
     {
-        if (item->type == GEUI_Panel) updatePanelLayout(item->data.panel.panel);
+        if (item->type == GEUI_Panel) updatePanelLayout(item, item->data.panel.panel);
         if (item->layout.row == row && item->layout.height > height)
             height = item->layout.height;
     }
@@ -1282,7 +1337,6 @@ short getPanelWidth(Panel *panel)
     short tempWidth;
 
     if (!panel) return -1;
-    updatePanelLayout(panel);
 
     if (!panel->cols) return -2;
 
@@ -1302,7 +1356,6 @@ short getPanelHeight(Panel *panel)
     short tempHeight;
 
     if (!panel) return -1;
-    updatePanelLayout(panel);
 
     if (!panel->rows) return -2;
 
