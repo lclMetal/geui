@@ -10,3 +10,5 @@
 # Executables
 *.exe
 
+# GIMP project files
+*.xcf
