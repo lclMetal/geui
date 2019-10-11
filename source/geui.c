@@ -76,7 +76,8 @@ typedef struct PanelStruct
     int iIndex;
     short rows;
     short cols;
-    Layout layout;
+    short width;
+    short height;
     struct WindowItemStruct *iList;
 }Panel;
 
@@ -340,12 +341,8 @@ WindowItem *addPanel(Window *window, Panel *panel, char tag[256])
     ptr->data.panel.panel->iIndex = 0;
     ptr->data.panel.panel->rows = 0;
     ptr->data.panel.panel->cols = 0;
-    ptr->data.panel.panel->layout.row = 0;
-    ptr->data.panel.panel->layout.col = 0;
-    ptr->data.panel.panel->layout.width = -1;
-    ptr->data.panel.panel->layout.height = -1;
-    ptr->data.panel.panel->layout.startx = 0;
-    ptr->data.panel.panel->layout.starty = 0;
+    ptr->data.panel.panel->width = -1;
+    ptr->data.panel.panel->height = -1;
 
     ptr->layout.row = 0;
     ptr->layout.col = 0;
@@ -907,12 +904,8 @@ Window *createWindow(char tag[256], Style style)
     ptr->mainPanel.iIndex = 0;
     ptr->mainPanel.rows = 0;
     ptr->mainPanel.cols = 0;
-    ptr->mainPanel.layout.row = 0;
-    ptr->mainPanel.layout.col = 0;
-    ptr->mainPanel.layout.width = -1;
-    ptr->mainPanel.layout.height = -1;
-    ptr->mainPanel.layout.startx = 0;
-    ptr->mainPanel.layout.starty = 0;
+    ptr->mainPanel.width = -1;
+    ptr->mainPanel.height = -1;
     ptr->mainPanel.iList = NULL;
     ptr->next = GEUIController.wList;
 
@@ -1062,8 +1055,8 @@ void buildWindow(Window *window)
     tileWidth = window->style.tileWidth;
     tileHeight = window->style.tileHeight;
 
-    windowWidth = window->mainPanel.layout.width;//300; // TODO: window size calculations
-    windowHeight = window->mainPanel.layout.height;//200;
+    windowWidth = window->mainPanel.width;//300; // TODO: window size calculations
+    windowHeight = window->mainPanel.height;//200;
 
     tilesHorizontal = ceil(windowWidth / (float)tileWidth);
     tilesVertical = ceil(windowHeight / (float)tileHeight);
@@ -1326,13 +1319,13 @@ void updatePanelLayout(WindowItem *panelItem, Panel *panel)
         item->layout.starty = rowValues[item->layout.row];
     }
 
-    panel->layout.width = getPanelWidth(panel);
-    panel->layout.height = getPanelHeight(panel);
+    panel->width = getPanelWidth(panel);
+    panel->height = getPanelHeight(panel);
 
     if (panelItem)
     {
-        panelItem->layout.width = panel->layout.width;
-        panelItem->layout.height = panel->layout.height;
+        panelItem->layout.width = panel->width;
+        panelItem->layout.height = panel->height;
     }
 
     free(rowValues);
