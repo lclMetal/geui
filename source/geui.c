@@ -72,6 +72,7 @@ typedef struct WindowItemStruct
 
 typedef struct PanelStruct
 {
+    int index;
     int iIndex;
     short rows;
     short cols;
@@ -89,6 +90,7 @@ short getPanelHeight(Panel *panel);
 typedef struct WindowStruct
 {
     int index;          // window index
+    int pIndex;         // next available panel index
     // int iIndex;         // next available item index
     char tag[256];      // window identifier tag
     bool isOpen;        // is window currently open or not
@@ -116,6 +118,8 @@ WindowItem *getItemFromPanelByTag(Panel *panel, char tag[256]);
 WindowItem *getItemByTag(Window *window, char tag[256]);
 WindowItem *getItemFromPanelByIndex(Panel *panel, int index);
 WindowItem *getItemByIndex(Window *window, int index);
+Panel *getPanelByTag(Panel *panel, char tag[256]);
+Panel *getPanelByIndex(Panel *panel, int index);
 void doMouseEnter(const char *actorName);
 void doMouseLeave(const char *actorName);
 void doMouseButtonDown(const char *actorName, enum mouseButtonsEnum mButtonNumber);
@@ -240,6 +244,7 @@ int isTopmostItemAtMouse(WindowItem *item)
             {
                 return (actors[i].myIndex > -1 &&
                         actors[i].myWindow == item->parent->index &&
+                        actors[i].myPanel == item->myPanel->index &&
                         actors[i].myIndex == item->index);
             }
         }
@@ -331,6 +336,8 @@ WindowItem *addPanel(Window *window, Panel *panel, char tag[256])
         return NULL;
     }
 
+    ptr->data.panel.panel->index = window->pIndex++;
+    ptr->data.panel.panel->iIndex = 0;
     ptr->data.panel.panel->rows = 0;
     ptr->data.panel.panel->cols = 0;
     ptr->data.panel.panel->layout.row = 0;
@@ -393,7 +400,7 @@ WindowItem *getItemByTag(Window *window, char tag[256])
     return NULL;
 }
 
-WindowItem *getItemFromPanelByIndex(Panel *panel, int index)
+WindowItem *getItemFromPanelByIndex(Panel *panel, int index) // is this going to work if fetching from a nested panel??
 {
     WindowItem *ptr;
     WindowItem *result = NULL;
@@ -436,6 +443,51 @@ WindowItem *getItemByIndex(Window *window, int index)
     return NULL;
 }
 
+Panel *getPanelByTag(Panel *panel, char tag[256])
+{
+    WindowItem *ptr;
+
+    if (!panel) return NULL;
+
+    for (ptr = panel->iList; ptr != NULL; ptr = ptr->next)
+    {
+        if (!strcmp(ptr->tag, tag))
+            return ptr->data.panel.panel;
+        if (ptr->type == GEUI_Panel)
+        {
+            Panel *p = getPanelByTag(ptr->data.panel.panel, tag);
+            if (p) return p;
+        }
+    }
+
+    return NULL;
+}
+
+Panel *getPanelByIndex(Panel *panel, int index)
+{
+    WindowItem *ptr;
+
+    if (!panel) return NULL;
+
+    if (panel->index == index) return panel;
+
+    for (ptr = panel->iList; ptr != NULL; ptr = ptr->next)
+    {
+        if (ptr->type == GEUI_Panel)
+        {
+            Panel *p;
+
+            if (ptr->data.panel.panel->index == index)
+                return ptr->data.panel.panel;
+
+            p = getPanelByIndex(ptr->data.panel.panel, index);
+            if (p) return p;
+        }
+    }
+
+    return NULL;
+}
+
 void doMouseEnter(const char *actorName)
 {
     Actor *actor;
@@ -443,9 +495,10 @@ void doMouseEnter(const char *actorName)
     WindowItem *item;
 
     if (!actorExists2(actor = getclone(actorName))) return;
-    if (actor->myWindow < 0 || actor->myIndex < 0) return;
+    if (actor->myWindow < 0 || actor->myPanel < 0 || actor->myIndex < 0) return;
     if (!(window = getWindowByIndex(actor->myWindow))) return;
-    if (!(item = getItemByIndex(window, actor->myIndex))) return;
+    if (!(item = getItemFromPanelByIndex(getPanelByIndex(&window->mainPanel, actor->myPanel), actor->myIndex))) return;
+    // if (!(item = getItemByIndex(window, actor->myIndex))) return;
 
     switch (item->type)
     {
@@ -472,9 +525,10 @@ void doMouseLeave(const char *actorName)
     WindowItem *item;
 
     if (!actorExists2(actor = getclone(actorName))) return;
-    if (actor->myWindow < 0 || actor->myIndex < 0) return;
+    if (actor->myWindow < 0 || actor->myPanel < 0 || actor->myIndex < 0) return;
     if (!(window = getWindowByIndex(actor->myWindow))) return;
-    if (!(item = getItemByIndex(window, actor->myIndex))) return;
+    if (!(item = getItemFromPanelByIndex(getPanelByIndex(&window->mainPanel, actor->myPanel), actor->myIndex))) return;
+    // if (!(item = getItemByIndex(window, actor->myIndex))) return;
 
     switch (item->type)
     {
@@ -525,6 +579,7 @@ void doMouseButtonDown(const char *actorName, enum mouseButtonsEnum mButtonNumbe
         // create fake actor to cover the now white event actor
         fake = CreateActor("a_gui", window->style.guiAnim, window->parentCName, "(none)", 0, 0, false);
         fake->myWindow = window->index;
+        fake->myPanel = -1;
         fake->myProperties = GEUI_FAKE_ACTOR;
         actor->myFakeIndex = fake->cloneindex;
         ChangeZDepth(fake->clonename, 0.2);
@@ -547,7 +602,8 @@ void doMouseButtonDown(const char *actorName, enum mouseButtonsEnum mButtonNumbe
 
     bringWindowToFront(window);
 
-    if (actor->myIndex < 0 || !(item = getItemByIndex(window, actor->myIndex))) return;
+    if (actor->myIndex < 0 || !(item = getItemFromPanelByIndex(getPanelByIndex(&window->mainPanel, actor->myPanel), actor->myIndex))) return;
+    // if (actor->myIndex < 0 || !(item = getItemByIndex(window, actor->myIndex))) return;
 
     switch (item->type)
     {
@@ -607,7 +663,8 @@ void doMouseButtonUp(const char *actorName, enum mouseButtonsEnum mButtonNumber)
 
     //ChangeZDepth(window->parentCName, 0.5);
 
-    if (actor->myIndex < 0 || !(item = getItemByIndex(window, actor->myIndex))) return;
+    if (actor->myIndex < 0 || !(item = getItemFromPanelByIndex(getPanelByIndex(&window->mainPanel, actor->myPanel), actor->myIndex))) return;
+    // if (actor->myIndex < 0 || !(item = getItemByIndex(window, actor->myIndex))) return;
 
     switch (item->type)
     {
@@ -844,6 +901,7 @@ Window *createWindow(char tag[256], Style style)
     if (!ptr) return NULL;
 
     ptr->index = GEUIController.wIndex ++;
+    ptr->pIndex = 0;
     // ptr->iIndex = 0;
     strcpy(ptr->tag, tag);
     ptr->isOpen = False;
@@ -853,6 +911,7 @@ Window *createWindow(char tag[256], Style style)
     ptr->wTileStartIndex = -1;
     ptr->wTileEndIndex = -1;
     // ptr->iList = NULL;
+    ptr->mainPanel.index = ptr->pIndex++;
     ptr->mainPanel.iIndex = 0;
     ptr->mainPanel.rows = 0;
     ptr->mainPanel.cols = 0;
@@ -986,6 +1045,7 @@ void buildButton(WindowItem *ptr)
         a->x = ptr->layout.startx + tileWidth + i * tileWidth + (i >= 2 && i >= tilesHorizontal - 2) * (buttonWidth - tilesHorizontal * tileWidth);
         a->y = ptr->layout.starty + tileHeight;// + 25 * ptr->index;
         a->myWindow = ptr->parent->index;
+        a->myPanel  = ptr->myPanel->index;
         a->myIndex  = ptr->index;
         ChangeZDepth(a->clonename, 0.35); // TODO: change back to 0.3 after testing
         a->animpos = 9 + ((i) ? (i / (tilesHorizontal - 1)) + 1 : 0);
@@ -1026,6 +1086,7 @@ void buildWindow(Window *window)
             tile->x = i * tileWidth  + (i >= 2 && i >= tilesHorizontal - 2) * (windowWidth  - tilesHorizontal * tileWidth);
             tile->y = j * tileHeight + (j >= 2 && j >= tilesVertical - 2) * (windowHeight - tilesVertical * tileHeight);
             tile->myWindow = window->index;
+            tile->myPanel = window->mainPanel.index;
             tile->myIndex = -1;
             tile->animpos = calculateAnimpos(tilesHorizontal, tilesVertical, i, j);
             colorActor(tile, window->style.windowBgColor);
