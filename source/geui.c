@@ -92,18 +92,15 @@ typedef struct WindowStruct
 {
     int index;          // window index
     int pIndex;         // next available panel index
-    // int iIndex;         // next available item index
     char tag[256];      // window identifier tag
     bool isOpen;        // is window currently open or not
     Style style;        // window style
     double zDepth;      // window z depth
-    // Layout layout;
     char parentCName[256]; // clonename of the window parent actor
     long wTileStartIndex;   // cloneindex of the first window tile
     long wTileEndIndex;     // cloneindex of the last window tile
-    Panel mainPanel;
-    // struct WindowItemStruct *iList;  // list of items in window
-    struct WindowStruct *next;       // pointer to next window in list
+    Panel mainPanel;            // window main panel
+    struct WindowStruct *next;  // pointer to next window in list
 }Window;
 
 void initGEUI(void);
@@ -168,12 +165,11 @@ struct GEUIControllerStruct
     Style sDefault;
     Window *wList;
 
-    Actor *mButtonActors[GEUI_MOUSE_BUTTONS];   // Clicked actors by mouse button
-    char mButtonTopActorCName[GEUI_MOUSE_BUTTONS][GEUI_CLONENAME_SIZE]; // ...and of those the one
-                                                                        // with the highest z depth
-    int mButtonActorCount[GEUI_MOUSE_BUTTONS];  // Amount of clicked actors by mouse button
-    int mButtonState[GEUI_MOUSE_BUTTONS];       // Mouse button states
-    enum mouseButtonsEnum activeButton;         // The last active mouse button
+    Actor *mButtonActors[GEUI_MOUSE_BUTTONS];
+    char mButtonTopActorCName[GEUI_MOUSE_BUTTONS][GEUI_CLONENAME_SIZE];
+    int mButtonActorCount[GEUI_MOUSE_BUTTONS];
+    int mButtonState[GEUI_MOUSE_BUTTONS];
+    enum mouseButtonsEnum activeButton;
 }GEUIController;
 
 void initGEUI(void)
@@ -183,18 +179,18 @@ void initGEUI(void)
 
     strcpy(defStyle.guiAnim, "gui_sheet_default");  // GUI animation name
     getTileDimensions(&defStyle);
-    defStyle.titleFont          = &defTitleFont;    // title font
-    defStyle.labelFont          = &defLabelFont;    // label font
-    defStyle.textFont           = &defTextFont;     // text font
-    defStyle.padding            = 10;               // padding in pixels
-    defStyle.titleBgColor       = DEFAULT_COLOR;    // title background color
-    defStyle.windowBgColor      = DEFAULT_COLOR;    // window background color
-    defStyle.titleColor         = BLACK;            // title color
-    defStyle.labelColor         = BLACK;            // label color
-    defStyle.textColor          = BLACK;            // text color
-    defStyle.buttonColor        = DEFAULT_COLOR;    // button color
-    defStyle.buttonHilitColor   = CYAN;             // button hilit color
-    defStyle.buttonPressedColor = BLUE;             // button pressed color
+    defStyle.titleFont          = &defTitleFont;
+    defStyle.labelFont          = &defLabelFont;
+    defStyle.textFont           = &defTextFont;
+    defStyle.padding            = 10;
+    defStyle.titleBgColor       = DEFAULT_COLOR;
+    defStyle.windowBgColor      = DEFAULT_COLOR;
+    defStyle.titleColor         = BLACK;
+    defStyle.labelColor         = BLACK;
+    defStyle.textColor          = BLACK;
+    defStyle.buttonColor        = DEFAULT_COLOR;
+    defStyle.buttonHilitColor   = CYAN;
+    defStyle.buttonPressedColor = BLUE;
 
     GEUIController.wIndex = 0;
     GEUIController.topIndex = 0;
@@ -341,13 +337,13 @@ WindowItem *addPanel(Window *window, Panel *panel, char tag[256])
     ptr->data.panel.panel->iIndex = 0;
     ptr->data.panel.panel->rows = 0;
     ptr->data.panel.panel->cols = 0;
-    ptr->data.panel.panel->width = -1;
-    ptr->data.panel.panel->height = -1;
+    ptr->data.panel.panel->width = 0;
+    ptr->data.panel.panel->height = 0;
 
     ptr->layout.row = 0;
     ptr->layout.col = 0;
-    ptr->layout.width = -1;
-    ptr->layout.height = -1;
+    ptr->layout.width = 0;
+    ptr->layout.height = 0;
     ptr->layout.startx = 0;
     ptr->layout.starty = 0;
 
@@ -716,26 +712,23 @@ int isMouseButtonUp(enum mouseButtonsEnum mButtonNumber)
 
 int updateMouseButtonDown(enum mouseButtonsEnum mButtonNumber)
 {
-    int i;         // Array iterator variable
-    int count;     // Count of actors in collision
-    Actor *actors = NULL; // A pointer for the array of actors in collision
+    int i;
+    int count;
+    Actor *actors = NULL;
 
-    // Set the mouse button's state to pressed
     GEUIController.mButtonState[mButtonNumber] = GEUI_MOUSE_DOWN;
 
     // Get the actors currently in collision with the mouse actor, and their count
     actors = getAllActorsInCollision("a_geuiMouse.0", &count);
 
-    // If there's no actors in collision with the mouse actor
-    if (!actors) return 1; // Finish
+    if (!actors) return 1;
 
     // If there currently is an array of actors stored for the mouse button, it needs to be emptied
     if (GEUIController.mButtonActors[mButtonNumber])
     {
-
-        free(GEUIController.mButtonActors[mButtonNumber]);   // Free the memory
-        GEUIController.mButtonActors[mButtonNumber] = NULL;  // Set the pointer to NULL
-        GEUIController.mButtonActorCount[mButtonNumber] = 0; // Set the count to 0
+        free(GEUIController.mButtonActors[mButtonNumber]);
+        GEUIController.mButtonActors[mButtonNumber] = NULL;
+        GEUIController.mButtonActorCount[mButtonNumber] = 0;
     }
 
     // Reset the variable used to store the top actor's name
@@ -752,9 +745,9 @@ int updateMouseButtonDown(enum mouseButtonsEnum mButtonNumber)
         memcpy(GEUIController.mButtonActors[mButtonNumber], actors, count * sizeof *actors);
     }
     else // If the memory allocation failed
-        return 2; // Finish
+        return 2;
 
-    GEUIController.activeButton = mButtonNumber; // Set the mouse button as the active one
+    GEUIController.activeButton = mButtonNumber;
 
     // Of the clicked actors, find the one with the highest z depth
     if (GEUIController.mButtonActorCount[mButtonNumber] > 0)
@@ -767,16 +760,15 @@ int updateMouseButtonDown(enum mouseButtonsEnum mButtonNumber)
         SendActivationEvent(GEUIController.mButtonActors[mButtonNumber][i].clonename);
     }
 
-    return 0; // Finish
+    return 0;
 }
 
 void updateMouseButtonUp(enum mouseButtonsEnum mButtonNumber)
 {
-    int i; // Array iterator variable
+    int i;
 
-    // Set the mouse button's state to not pressed
     GEUIController.mButtonState[mButtonNumber] = GEUI_MOUSE_UP;
-    GEUIController.activeButton = mButtonNumber; // Set the mouse button as the active one
+    GEUIController.activeButton = mButtonNumber;
 
     // If a top actor exists
     if (strlen(GEUIController.mButtonTopActorCName[mButtonNumber]) > 0)
@@ -795,10 +787,9 @@ void updateMouseButtonUp(enum mouseButtonsEnum mButtonNumber)
             SendActivationEvent(GEUIController.mButtonActors[mButtonNumber][i].clonename);
         }
 
-        // Empty the array of actors
-        free(GEUIController.mButtonActors[mButtonNumber]);   // Free the memory
-        GEUIController.mButtonActors[mButtonNumber] = NULL;  // Set the pointer to NULL
-        GEUIController.mButtonActorCount[mButtonNumber] = 0; // Set the count to 0
+        free(GEUIController.mButtonActors[mButtonNumber]);
+        GEUIController.mButtonActors[mButtonNumber] = NULL;
+        GEUIController.mButtonActorCount[mButtonNumber] = 0;
     }
 }
 
@@ -891,7 +882,6 @@ Window *createWindow(char tag[256], Style style)
 
     ptr->index = GEUIController.wIndex ++;
     ptr->pIndex = 0;
-    // ptr->iIndex = 0;
     strcpy(ptr->tag, tag);
     ptr->isOpen = False;
     ptr->style = style;
@@ -899,7 +889,6 @@ Window *createWindow(char tag[256], Style style)
     strcpy(ptr->parentCName, "");
     ptr->wTileStartIndex = -1;
     ptr->wTileEndIndex = -1;
-    // ptr->iList = NULL;
     ptr->mainPanel.index = ptr->pIndex++;
     ptr->mainPanel.iIndex = 0;
     ptr->mainPanel.rows = 0;
@@ -1028,7 +1017,7 @@ void buildButton(WindowItem *ptr)
         a = CreateActor("a_gui", ptr->parent->style.guiAnim, ptr->parent->parentCName, "(none)", 0, 0, true);
         // TODO: layout / positioning
         a->x = ptr->layout.startx + tileWidth + i * tileWidth + (i >= 2 && i >= tilesHorizontal - 2) * (buttonWidth - tilesHorizontal * tileWidth);
-        a->y = ptr->layout.starty + tileHeight;// + 25 * ptr->index;
+        a->y = ptr->layout.starty + tileHeight;
         a->myWindow = ptr->parent->index;
         a->myPanel  = ptr->myPanel->index;
         a->myIndex  = ptr->index;
@@ -1055,8 +1044,8 @@ void buildWindow(Window *window)
     tileWidth = window->style.tileWidth;
     tileHeight = window->style.tileHeight;
 
-    windowWidth = window->mainPanel.width;//300; // TODO: window size calculations
-    windowHeight = window->mainPanel.height;//200;
+    windowWidth = window->mainPanel.width;
+    windowHeight = window->mainPanel.height;
 
     tilesHorizontal = ceil(windowWidth / (float)tileWidth);
     tilesVertical = ceil(windowHeight / (float)tileHeight);
