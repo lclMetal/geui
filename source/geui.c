@@ -155,6 +155,8 @@ void closeWindow(Window *window);
 void destroyWindow(Window *window);
 void destroyWindowList(void);
 void destroyPanel(Panel *panel);
+short getRowStart(WindowItem *panelItem, Panel *panel, short row);
+short getColStart(WindowItem *panelItem, Panel *panel, short col);
 void calculateRowsAndCols(Panel *panel);
 void updatePanelLayout(WindowItem *panelItem, Panel *panel);
 
@@ -1016,8 +1018,8 @@ void buildButton(WindowItem *ptr)
         Actor *a;
         a = CreateActor("a_gui", ptr->parent->style.guiAnim, ptr->parent->parentCName, "(none)", 0, 0, true);
         // TODO: layout / positioning
-        a->x = ptr->layout.startx + tileWidth + i * tileWidth + (i >= 2 && i >= tilesHorizontal - 2) * (buttonWidth - tilesHorizontal * tileWidth);
-        a->y = ptr->layout.starty + tileHeight;
+        a->x = ptr->layout.startx + tileWidth + i * tileWidth + (i >= 2 && i >= tilesHorizontal - 2) * (buttonWidth - tilesHorizontal * tileWidth)-tileWidth/2;
+        a->y = ptr->layout.starty + tileHeight-tileWidth/2;
         a->myWindow = ptr->parent->index;
         a->myPanel  = ptr->myPanel->index;
         a->myIndex  = ptr->index;
@@ -1249,6 +1251,50 @@ void destroyPanel(Panel *panel)
 
     panel->iList = NULL;
     panel->iIndex = 0;
+}
+
+short getRowStart(WindowItem *panelItem, Panel *panel, short row)
+{
+    WindowItem *ptr;
+
+    if (!panel || !panel->iList) return 0;
+
+    updatePanelLayout(panelItem, panel);
+
+    if (row >= panel->rows)
+        return panel->height + getRowStart(panelItem, panel, 0);
+
+    for (ptr = panel->iList; ptr != NULL; ptr = ptr->next)
+    {
+        if (ptr->layout.row == row)
+        {
+            return ptr->layout.starty;
+        }
+    }
+
+    return 0;
+}
+
+short getColStart(WindowItem *panelItem, Panel *panel, short col)
+{
+    WindowItem *ptr;
+
+    if (!panel || !panel->iList) return 0;
+
+    updatePanelLayout(panelItem, panel);
+
+    if (col >= panel->cols)
+        return panel->width + getColStart(panelItem, panel, 0);
+
+    for (ptr = panel->iList; ptr != NULL; ptr = ptr->next)
+    {
+        if (ptr->layout.col == col)
+        {
+            return ptr->layout.startx;
+        }
+    }
+
+    return 0;
 }
 
 void calculateRowsAndCols(Panel *panel)
