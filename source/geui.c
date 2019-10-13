@@ -256,11 +256,11 @@ WindowItem *initNewItem(ItemType type, Window *window, Panel *panel, char tag[25
 {
     WindowItem *ptr = NULL;
 
-    if (!panel) return NULL;
+    if (!panel) { DEBUG_MSG_FROM("panel is NULL", "initNewItem"); return NULL; }
 
     ptr = malloc(sizeof *ptr);
 
-    if (!ptr) return NULL;
+    if (!ptr) { DEBUG_MSG_FROM("memory allocation failed", "initNewItem"); return NULL; }
 
     ptr->type = type;
     ptr->index = panel->iIndex ++;
@@ -273,7 +273,7 @@ WindowItem *initNewItem(ItemType type, Window *window, Panel *panel, char tag[25
 
 WindowItem *addItemToWindow(WindowItem *ptr)
 {
-    if (!ptr) return NULL;
+    if (!ptr) { DEBUG_MSG_FROM("item is NULL", "addItemToWindow"); return NULL; }
 
     ptr->next = ptr->myPanel->iList;
     ptr->myPanel->iList = ptr;
@@ -284,7 +284,7 @@ WindowItem *addItemToWindow(WindowItem *ptr)
 WindowItem *addText(Window *window, Panel *panel, char tag[256], char *string)
 {
     WindowItem *ptr = initNewItem(GEUI_Text, window, panel, tag);
-    if (!ptr) return NULL;
+    if (!ptr) { DEBUG_MSG_FROM("item is NULL", "addText"); return NULL; }
 
     ptr->data.text.text = createText(string, window->style.textFont, "(none)", ABSOLUTE, 0, 0);
     setTextColor(&ptr->data.text.text, window->style.textColor);
@@ -303,7 +303,7 @@ WindowItem *addText(Window *window, Panel *panel, char tag[256], char *string)
 WindowItem *addButton(Window *window, Panel *panel, char tag[256], char *string, void (*actionFunction)(Window *, WindowItem *))
 {
     WindowItem *ptr = initNewItem(GEUI_Button, window, panel, tag);
-    if (!ptr) return NULL;
+    if (!ptr) { DEBUG_MSG_FROM("item is NULL", "addButton"); return NULL; }
 
     ptr->data.button.text = createText(string, window->style.textFont, "(none)", ABSOLUTE, 0, 0);
     setTextColor(&ptr->data.button.text, window->style.textColor);
@@ -326,12 +326,13 @@ WindowItem *addButton(Window *window, Panel *panel, char tag[256], char *string,
 WindowItem *addPanel(Window *window, Panel *panel, char tag[256])
 {
     WindowItem *ptr = initNewItem(GEUI_Panel, window, panel, tag);
-    if (!ptr) return NULL;
+    if (!ptr) { DEBUG_MSG_FROM("item is NULL", "addPanel"); return NULL; }
 
     ptr->data.panel.panel = malloc(sizeof *ptr->data.panel.panel);
     if (!ptr->data.panel.panel)
     {
         free(ptr);
+        DEBUG_MSG_FROM("memory allocation failed", "addPanel");
         return NULL;
     }
 
@@ -357,7 +358,7 @@ WindowItem *getItemFromPanelByTag(Panel *panel, char tag[256])
     WindowItem *ptr;
     WindowItem *result = NULL;
 
-    if (!panel) return NULL;
+    if (!panel) { DEBUG_MSG_FROM("panel is NULL", "getItemFromPanelByTag"); return NULL; }
 
     ptr = panel->iList;
 
@@ -384,14 +385,13 @@ WindowItem *getItemByTag(Window *window, char tag[256])
 {
     WindowItem *ptr;
 
-    if (!window) return NULL;
+    if (!window) { DEBUG_MSG_FROM("panel is NULL", "getItemByTag"); return NULL; }
 
     ptr = getItemFromPanelByTag(&window->mainPanel, tag);
 
     if (ptr)
         return ptr;
 
-    DEBUG_MSG_FROM("item not found", "getItemByTag");
     return NULL;
 }
 
@@ -400,7 +400,7 @@ WindowItem *getItemFromPanelByIndex(Panel *panel, int index)
     WindowItem *ptr;
     WindowItem *result = NULL;
 
-    if (!panel) return NULL;
+    if (!panel) { DEBUG_MSG_FROM("panel is NULL", "getItemFromPanelByIndex"); return NULL; }
 
     ptr = panel->iList;
 
@@ -419,14 +419,13 @@ WindowItem *getItemByIndex(Window *window, int index)
 {
     WindowItem *ptr;
 
-    if (!window) return NULL;
+    if (!window) { DEBUG_MSG_FROM("window is NULL", "getItemByIndex"); return NULL; }
 
     ptr = getItemFromPanelByIndex(&window->mainPanel, index);
 
     if (ptr)
         return ptr;
 
-    DEBUG_MSG_FROM("item not found", "getItemByIndex");
     return NULL;
 }
 
@@ -434,7 +433,7 @@ Panel *getPanelByTag(Panel *panel, char tag[256])
 {
     WindowItem *ptr;
 
-    if (!panel) return NULL;
+    if (!panel) { DEBUG_MSG_FROM("panel is NULL", "getPanelByTag"); return NULL; }
 
     for (ptr = panel->iList; ptr != NULL; ptr = ptr->next)
     {
@@ -454,7 +453,7 @@ Panel *getPanelByIndex(Panel *panel, int index)
 {
     WindowItem *ptr;
 
-    if (!panel) return NULL;
+    if (!panel) { DEBUG_MSG_FROM("panel is NULL", "getPanelByIndex"); return NULL; }
 
     if (panel->index == index) return panel;
 
@@ -481,11 +480,14 @@ void doMouseEnter(const char *actorName)
     Window *window;
     WindowItem *item;
 
-    if (!actorExists2(actor = getclone(actorName))) return;
-    if (actor->myWindow < 0 || actor->myPanel < 0 || actor->myIndex < 0) return;
-    if (!(window = getWindowByIndex(actor->myWindow))) return;
-    if (!(item = getItemFromPanelByIndex(getPanelByIndex(&window->mainPanel, actor->myPanel), actor->myIndex))) return;
-    // if (!(item = getItemByIndex(window, actor->myIndex))) return;
+    if (!actorExists2(actor = getclone(actorName)))
+        { DEBUG_MSG_FROM("actor doesn't exist", "doMouseEnter"); return; }
+    if (actor->myWindow < 0 || actor->myPanel < 0 || actor->myIndex < 0)
+        { DEBUG_MSG_FROM("actor window, panel or index is invalid", "doMouseEnter"); return; }
+    if (!(window = getWindowByIndex(actor->myWindow)))
+        { DEBUG_MSG_FROM("window is NULL", "doMouseEnter"); return; }
+    if (!(item = getItemFromPanelByIndex(getPanelByIndex(&window->mainPanel, actor->myPanel), actor->myIndex)))
+        { DEBUG_MSG_FROM("item is NULL", "doMouseEnter"); return; }
 
     switch (item->type)
     {
@@ -511,11 +513,14 @@ void doMouseLeave(const char *actorName)
     Window *window;
     WindowItem *item;
 
-    if (!actorExists2(actor = getclone(actorName))) return;
-    if (actor->myWindow < 0 || actor->myPanel < 0 || actor->myIndex < 0) return;
-    if (!(window = getWindowByIndex(actor->myWindow))) return;
-    if (!(item = getItemFromPanelByIndex(getPanelByIndex(&window->mainPanel, actor->myPanel), actor->myIndex))) return;
-    // if (!(item = getItemByIndex(window, actor->myIndex))) return;
+    if (!actorExists2(actor = getclone(actorName)))
+        { DEBUG_MSG_FROM("actor doesn't exist", "doMouseLeave"); return; }
+    if (actor->myWindow < 0 || actor->myPanel < 0 || actor->myIndex < 0)
+        { DEBUG_MSG_FROM("actor window, panel or index is invalid", "doMouseLeave"); return; }
+    if (!(window = getWindowByIndex(actor->myWindow)))
+        { DEBUG_MSG_FROM("window is NULL", "doMouseLeave"); return; }
+    if (!(item = getItemFromPanelByIndex(getPanelByIndex(&window->mainPanel, actor->myPanel), actor->myIndex)))
+        { DEBUG_MSG_FROM("item is NULL", "doMouseLeave"); return; }
 
     switch (item->type)
     {
@@ -541,9 +546,12 @@ void doMouseButtonDown(const char *actorName, enum mouseButtonsEnum mButtonNumbe
     Window *window;
     WindowItem *item;
 
-    if (!actorExists2(actor = getclone(actorName))) return;
-    if (actor->myWindow < 0) return;
-    if (!(window = getWindowByIndex(actor->myWindow))) return;
+    if (!actorExists2(actor = getclone(actorName)))
+        { DEBUG_MSG_FROM("actor doesn't exist", "doMouseButtonDown"); return; }
+    if (actor->myWindow < 0)
+        { DEBUG_MSG_FROM("actor window is invalid", "doMouseButtonDown"); return; }
+    if (!(window = getWindowByIndex(actor->myWindow)))
+        { DEBUG_MSG_FROM("window is NULL", "doMouseButtonDown"); return; }
 
     if (actor->myProperties & GEUI_TITLE_BAR)
     {
@@ -589,8 +597,10 @@ void doMouseButtonDown(const char *actorName, enum mouseButtonsEnum mButtonNumbe
 
     bringWindowToFront(window);
 
-    if (actor->myIndex < 0 || !(item = getItemFromPanelByIndex(getPanelByIndex(&window->mainPanel, actor->myPanel), actor->myIndex))) return;
-    // if (actor->myIndex < 0 || !(item = getItemByIndex(window, actor->myIndex))) return;
+    if (actor->myIndex < 0)
+        { DEBUG_MSG_FROM("actor index is invalid", "doMouseButtonDown"); return; }
+    if (!(item = getItemFromPanelByIndex(getPanelByIndex(&window->mainPanel, actor->myPanel), actor->myIndex)))
+        { DEBUG_MSG_FROM("item is NULL", "doMouseButtonDown"); return; }
 
     switch (item->type)
     {
@@ -610,9 +620,12 @@ void doMouseButtonUp(const char *actorName, enum mouseButtonsEnum mButtonNumber)
     Window *window;
     WindowItem *item;
 
-    if (!actorExists2(actor = getclone(actorName))) return;
-    if (actor->myWindow < 0) return;
-    if (!(window = getWindowByIndex(actor->myWindow))) return;
+    if (!actorExists2(actor = getclone(actorName)))
+        { DEBUG_MSG_FROM("actor doesn't exist", "doMouseButtonUp"); return; }
+    if (actor->myWindow < 0)
+        { DEBUG_MSG_FROM("actor window is invalid", "doMouseButtonUp"); return; }
+    if (!(window = getWindowByIndex(actor->myWindow)))
+        { DEBUG_MSG_FROM("window is NULL", "doMouseButtonUp"); return; }
 
     if (actor->myProperties & GEUI_TITLE_BAR && actor->myProperties & GEUI_CLICKED)
     {
@@ -650,8 +663,10 @@ void doMouseButtonUp(const char *actorName, enum mouseButtonsEnum mButtonNumber)
 
     //ChangeZDepth(window->parentCName, 0.5);
 
-    if (actor->myIndex < 0 || !(item = getItemFromPanelByIndex(getPanelByIndex(&window->mainPanel, actor->myPanel), actor->myIndex))) return;
-    // if (actor->myIndex < 0 || !(item = getItemByIndex(window, actor->myIndex))) return;
+    if (actor->myIndex < 0)
+        { DEBUG_MSG_FROM("actor index is invalid", "doMouseButtonUp"); return; }
+    if (!(item = getItemFromPanelByIndex(getPanelByIndex(&window->mainPanel, actor->myPanel), actor->myIndex)))
+        { DEBUG_MSG_FROM("item is NULL", "doMouseButtonUp"); return; }
 
     switch (item->type)
     {
@@ -723,7 +738,7 @@ int updateMouseButtonDown(enum mouseButtonsEnum mButtonNumber)
     // Get the actors currently in collision with the mouse actor, and their count
     actors = getAllActorsInCollision("a_geuiMouse.0", &count);
 
-    if (!actors) return 1;
+    if (!actors) { DEBUG_MSG_FROM("no actors at mouse position", "updateMouseButtonDown"); return 1; }
 
     // If there currently is an array of actors stored for the mouse button, it needs to be emptied
     if (GEUIController.mButtonActors[mButtonNumber])
@@ -747,7 +762,7 @@ int updateMouseButtonDown(enum mouseButtonsEnum mButtonNumber)
         memcpy(GEUIController.mButtonActors[mButtonNumber], actors, count * sizeof *actors);
     }
     else // If the memory allocation failed
-        return 2;
+        { DEBUG_MSG_FROM("memory allocation failed", "updateMouseButtonDown"); return 2; }
 
     GEUIController.activeButton = mButtonNumber;
 
@@ -807,7 +822,7 @@ void doKeyUp(WindowItem *item, short key)
 
 void eraseWindowItem(WindowItem *ptr)
 {
-    if (!ptr) return;
+    if (!ptr) { DEBUG_MSG_FROM("item is NULL", "eraseWindowItem"); return; }
 
     switch (ptr->type)
     {
@@ -834,7 +849,7 @@ void eraseWindowItem(WindowItem *ptr)
 
 void destroyWindowItem(WindowItem *ptr)
 {
-    if (!ptr) return;
+    if (!ptr) { DEBUG_MSG_FROM("item is NULL", "destroyWindowItem"); return; }
 
     switch (ptr->type)
     {
@@ -880,7 +895,7 @@ Window *createWindow(char tag[256], Style style)
 {
     Window *ptr = malloc(sizeof *ptr);
 
-    if (!ptr) return NULL;
+    if (!ptr) { DEBUG_MSG_FROM("memory allocation failed", "createWindow"); return NULL; }
 
     ptr->index = GEUIController.wIndex ++;
     ptr->pIndex = 0;
@@ -921,7 +936,6 @@ Window *getWindowByTag(char tag[256])
         ptr = ptr->next;
     }
 
-    DEBUG_MSG_FROM("window not found", "getWindowByTag");
     return NULL;
 }
 
@@ -937,7 +951,6 @@ Window *getWindowByIndex(int index)
         ptr = ptr->next;
     }
 
-    DEBUG_MSG_FROM("window not found", "getWindowByIndex");
     return NULL;
 }
 
@@ -966,7 +979,7 @@ void buildItem(WindowItem *ptr)
 
 void buildText(WindowItem *ptr)
 {
-    if (ptr->type != GEUI_Text) { DEBUG_MSG_FROM("Item was not a valid Text item", "buildText"); return; }
+    if (ptr->type != GEUI_Text) { DEBUG_MSG_FROM("item is not a valid Text item", "buildText"); return; }
 
     setTextZDepth(&ptr->data.text.text, 0.3);
     // TODO: layout / positioning
@@ -978,7 +991,7 @@ void buildText(WindowItem *ptr)
 
 void buildPanel(WindowItem *ptr)
 {
-    if (ptr->type != GEUI_Panel) { DEBUG_MSG_FROM("Item was not a valid Panel item", "buildPanel"); return; }
+    if (ptr->type != GEUI_Panel) { DEBUG_MSG_FROM("item is not a valid Panel item", "buildPanel"); return; }
 
     buildItems(ptr->data.panel.panel);
 }
@@ -1008,7 +1021,7 @@ void buildButton(WindowItem *ptr)
     short tileWidth = ptr->parent->style.tileWidth;
     short tileHeight = ptr->parent->style.tileHeight;
 
-    if (ptr->type != GEUI_Button) { DEBUG_MSG_FROM("Item was not a valid Button item", "buildButton"); return; }
+    if (ptr->type != GEUI_Button) { DEBUG_MSG_FROM("item is not a valid Button item", "buildButton"); return; }
 
     buttonWidth = ptr->layout.width; //ptr->data.button.text.width + ptr->parent->style.padding * 2;
     tilesHorizontal = ceil(buttonWidth / (float)tileWidth);
@@ -1079,8 +1092,8 @@ Window *openWindow(char tag[256])
 {
     Window *window = getWindowByTag(tag);
 
-    if (!window) { DEBUG_MSG_FROM("Window is NULL", "openWindow"); return NULL; }
-    if (window->isOpen) { DEBUG_MSG_FROM("Window is already open", "openWindow"); return window; }
+    if (!window) { DEBUG_MSG_FROM("window is NULL", "openWindow"); return NULL; }
+    if (window->isOpen) { DEBUG_MSG_FROM("window is already open", "openWindow"); return window; }
 
     updatePanelLayout(NULL, &window->mainPanel);
     buildWindow(window);
@@ -1108,8 +1121,8 @@ void setPanelBaseParent(Panel *panel, char *parentName)
 {
     WindowItem *ptr;
 
-    if (!panel) { DEBUG_MSG_FROM("Panel is NULL", "setPanelBaseParent"); return; }
-    if (!actorExists(parentName)) { DEBUG_MSG_FROM("Actor does not exist!", "setPanelBaseParent"); return; }
+    if (!panel) { DEBUG_MSG_FROM("panel is NULL", "setPanelBaseParent"); return; }
+    if (!actorExists(parentName)) { DEBUG_MSG_FROM("actor doesn't exist", "setPanelBaseParent"); return; }
 
     ptr = panel->iList;
 
@@ -1136,8 +1149,8 @@ void setWindowBaseParent(Window *window, char *parentName)
 {
     WindowItem *ptr = NULL;
 
-    if (!window) {DEBUG_MSG_FROM("window is NULL", "setWindowBaseParent"); return;}
-    if (!actorExists(parentName)) {DEBUG_MSG_FROM("actor does not exist!", "setWindowBaseParent"); return;}
+    if (!window) { DEBUG_MSG_FROM("window is NULL", "setWindowBaseParent"); return; }
+    if (!actorExists(parentName)) { DEBUG_MSG_FROM("actor doesn't exist", "setWindowBaseParent"); return; }
 
     strcpy(window->parentCName, parentName);
 
@@ -1151,7 +1164,7 @@ void bringWindowToFront(Window *window)
 {
     Window *ptr = NULL;
 
-    if (!window) return;
+    if (!window) { DEBUG_MSG_FROM("window is NULL", "bringWindowToFront"); return; }
 
     ptr = GEUIController.wList;
 
@@ -1177,7 +1190,7 @@ void closePanel(Panel *panel)
 {
     WindowItem *ptr;
 
-    if (!panel) { DEBUG_MSG_FROM("Panel is NULL", "closePanel"); return; }
+    if (!panel) { DEBUG_MSG_FROM("panel is NULL", "closePanel"); return; }
 
     ptr = panel->iList;
 
@@ -1192,7 +1205,7 @@ void closeWindow(Window *window)
 {
     WindowItem *ptr = NULL;
 
-    if (!window) {DEBUG_MSG_FROM("window is NULL", "closeWindow"); return;}
+    if (!window) { DEBUG_MSG_FROM("window is NULL", "closeWindow"); return; }
 
     window->isOpen = False;
 
@@ -1237,7 +1250,7 @@ void destroyPanel(Panel *panel)
     WindowItem *temp;
     WindowItem *ptr;
 
-    if (!panel) return;
+    if (!panel) { DEBUG_MSG_FROM("panel is NULL", "destroyPanel"); return; }
 
     ptr = panel->iList;
 
@@ -1257,7 +1270,7 @@ short getRowStart(WindowItem *panelItem, Panel *panel, short row)
 {
     WindowItem *ptr;
 
-    if (!panel || !panel->iList) return 0;
+    if (!panel || !panel->iList) { DEBUG_MSG_FROM("panel is NULL or has no items", "getRowStart"); return 0; }
 
     updatePanelLayout(panelItem, panel);
 
@@ -1279,7 +1292,7 @@ short getColStart(WindowItem *panelItem, Panel *panel, short col)
 {
     WindowItem *ptr;
 
-    if (!panel || !panel->iList) return 0;
+    if (!panel || !panel->iList) { DEBUG_MSG_FROM("panel is NULL or has no items", "getColStart"); return 0; }
 
     updatePanelLayout(panelItem, panel);
 
@@ -1301,7 +1314,7 @@ void calculateRowsAndCols(Panel *panel)
 {
     WindowItem *item;
 
-    if (!panel) return;
+    if (!panel) { DEBUG_MSG_FROM("panel is NULL", "calculateRowsAndCols"); return; }
 
     for (item = panel->iList; item != NULL; item = item->next)
     {
@@ -1323,7 +1336,7 @@ void updatePanelLayout(WindowItem *panelItem, Panel *panel)
     short *colValues;
     WindowItem *item;
 
-    if (!panel) return;
+    if (!panel) { DEBUG_MSG_FROM("panel is NULL", "updatePanelLayout"); return; }
 
     if (panelItem && panelItem->type == GEUI_Panel)
     {
@@ -1334,12 +1347,13 @@ void updatePanelLayout(WindowItem *panelItem, Panel *panel)
 
     calculateRowsAndCols(panel);
 
-    if (!panel->rows || !panel->cols) return;
+    if (!panel->rows || !panel->cols)
+        { DEBUG_MSG_FROM("panel has no rows or columns", "updatePanelLayout"); return; }
 
     rowValues = malloc((panel->rows + 1) * sizeof *rowValues);
-    if (!rowValues) return;
+    if (!rowValues) { DEBUG_MSG_FROM("memory allocation failed", "updatePanelLayout"); return; }
     colValues = malloc((panel->cols + 1) * sizeof *colValues);
-    if (!colValues) { free(rowValues); return; }
+    if (!colValues) { free(rowValues); DEBUG_MSG_FROM("memory allocation failed", "updatePanelLayout"); return; }
 
     rowValues[0] = origy;
     colValues[0] = origx;
@@ -1369,7 +1383,7 @@ void updatePanelLayout(WindowItem *panelItem, Panel *panel)
 
 void setPosition(WindowItem *this, short row, short col)
 {
-    if (!this) return;
+    if (!this) { DEBUG_MSG_FROM("item is NULL", "setPosition"); return; }
 
     this->layout.row = row;
     this->layout.col = col;
@@ -1380,8 +1394,10 @@ short getColWidth(Panel *panel, short col)
     short width = 0;
     WindowItem *item;
 
-    if (!panel || !panel->cols) return -1;
-    if (col < 0 || col >= panel->cols) return -2;
+    if (!panel || !panel->cols)
+        { DEBUG_MSG_FROM("panel is NULL or has no columns", "getColWidth"); return -1; }
+    if (col < 0 || col >= panel->cols)
+        { DEBUG_MSG_FROM("column number is invalid", "getColWidth"); return -2; }
 
     for (item = panel->iList; item != NULL; item = item->next)
     {
@@ -1398,8 +1414,10 @@ short getRowHeight(Panel *panel, short row)
     short height = 0;
     WindowItem *item;
 
-    if (!panel || !panel->rows) return -1;
-    if (row < 0 || row >= panel->rows) return -2;
+    if (!panel || !panel->rows)
+        { DEBUG_MSG_FROM("panel is NULL or has no rows", "getRowHeight"); return -1; }
+    if (row < 0 || row >= panel->rows)
+        { DEBUG_MSG_FROM("row number is invalid", "getRowHeight"); return -2; }
 
     for (item = panel->iList; item != NULL; item = item->next)
     {
@@ -1417,9 +1435,9 @@ short getPanelWidth(Panel *panel)
     short width = 0;
     short tempWidth;
 
-    if (!panel) return -1;
+    if (!panel) { DEBUG_MSG_FROM("panel is NULL", "getPanelWidth"); return -1; }
 
-    if (!panel->cols) return -2;
+    if (!panel->cols) { DEBUG_MSG_FROM("panel has no columns", "getPanelWidth"); return -2; }
 
     for (col = 0; col < panel->cols; col ++)
     {
@@ -1436,9 +1454,9 @@ short getPanelHeight(Panel *panel)
     short height = 0;
     short tempHeight;
 
-    if (!panel) return -1;
+    if (!panel) { DEBUG_MSG_FROM("panel is NULL", "getPanelHeight"); return -1; }
 
-    if (!panel->rows) return -2;
+    if (!panel->rows) { DEBUG_MSG_FROM("panel has no rows", "getPanelHeight"); return -2; }
 
     for (row = 0; row < panel->rows; row ++)
     {
