@@ -575,6 +575,7 @@ void doMouseButtonDown(const char *actorName, enum mouseButtonsEnum mButtonNumbe
         fake = CreateActor("a_gui", window->style.guiAnim, window->parentCName, "(none)", 0, 0, false);
         fake->myWindow = window->index;
         fake->myPanel = -1;
+        fake->myIndex = -1;
         fake->myProperties = GEUI_FAKE_ACTOR;
         actor->myFakeIndex = fake->cloneindex;
         ChangeZDepth(fake->clonename, 0.2);
@@ -597,8 +598,7 @@ void doMouseButtonDown(const char *actorName, enum mouseButtonsEnum mButtonNumbe
 
     bringWindowToFront(window);
 
-    if (actor->myIndex < 0)
-        { DEBUG_MSG_FROM("actor index is invalid", "doMouseButtonDown"); return; }
+    if (actor->myIndex < 0) return;
     if (!(item = getItemFromPanelByIndex(getPanelByIndex(&window->mainPanel, actor->myPanel), actor->myIndex)))
         { DEBUG_MSG_FROM("item is NULL", "doMouseButtonDown"); return; }
 
@@ -663,8 +663,7 @@ void doMouseButtonUp(const char *actorName, enum mouseButtonsEnum mButtonNumber)
 
     //ChangeZDepth(window->parentCName, 0.5);
 
-    if (actor->myIndex < 0)
-        { DEBUG_MSG_FROM("actor index is invalid", "doMouseButtonUp"); return; }
+    if (actor->myIndex < 0) return;
     if (!(item = getItemFromPanelByIndex(getPanelByIndex(&window->mainPanel, actor->myPanel), actor->myIndex)))
         { DEBUG_MSG_FROM("item is NULL", "doMouseButtonUp"); return; }
 
@@ -1080,6 +1079,8 @@ void buildWindow(Window *window)
             tile->animpos = calculateAnimpos(tilesHorizontal, tilesVertical, i, j);
             colorActor(tile, window->style.windowBgColor);
             ChangeZDepth(tile->clonename, 0.1);
+            EventDisable(tile->clonename, EVENTCOLLISION);
+            EventDisable(tile->clonename, EVENTCOLLISIONFINISH);
 
             if (j == 0) tile->myProperties = GEUI_TITLE_BAR; // part of the window title bar
 
@@ -1272,8 +1273,6 @@ short getRowStart(WindowItem *panelItem, Panel *panel, short row)
 
     if (!panel || !panel->iList) { DEBUG_MSG_FROM("panel is NULL or has no items", "getRowStart"); return 0; }
 
-    updatePanelLayout(panelItem, panel);
-
     if (row >= panel->rows)
         return panel->height + getRowStart(panelItem, panel, 0);
 
@@ -1293,8 +1292,6 @@ short getColStart(WindowItem *panelItem, Panel *panel, short col)
     WindowItem *ptr;
 
     if (!panel || !panel->iList) { DEBUG_MSG_FROM("panel is NULL or has no items", "getColStart"); return 0; }
-
-    updatePanelLayout(panelItem, panel);
 
     if (col >= panel->cols)
         return panel->width + getColStart(panelItem, panel, 0);
