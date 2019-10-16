@@ -174,6 +174,8 @@ struct GEUIControllerStruct
     enum mouseButtonsEnum activeButton;
 }GEUIController;
 
+// TODO: CTR -> Fix handling of texts with strlen 0
+
 void initGEUI(void)
 {
     //DEBUG_INIT(); // debug file initialization on startup disabled for now
@@ -315,7 +317,7 @@ WindowItem *addButton(Window *window, Panel *panel, char tag[256], char *string,
 
     ptr->layout.row = 0;
     ptr->layout.col = 0;
-    ptr->layout.width = ptr->data.button.text.width + ptr->parent->style.padding * 2;
+    ptr->layout.width = max(ptr->data.button.text.width + ptr->parent->style.padding * 2, ptr->parent->style.tileWidth * 2);
     ptr->layout.height = ptr->parent->style.tileHeight;
     ptr->layout.startx = 0;
     ptr->layout.starty = 0;
@@ -983,8 +985,8 @@ void buildText(WindowItem *ptr)
     setTextZDepth(&ptr->data.text.text, 0.3);
     // TODO: layout / positioning
     setTextPosition(&ptr->data.text.text,
-        ptr->layout.startx + ptr->parent->style.padding,
-        ptr->layout.starty + ptr->data.text.text.pFont->lineSpacing * 0.5 + ptr->parent->style.padding);
+        ptr->layout.startx,
+        ptr->layout.starty + ptr->data.text.text.pFont->lineSpacing * 0.5);
     refreshText(&ptr->data.text.text);
 }
 
@@ -1006,7 +1008,7 @@ void buildButtonText(WindowItem *ptr)
     setTextZDepth(buttonText, 0.4);
     setTextAlignment(buttonText, ALIGN_CENTER);
     setTextPosition(buttonText,
-        (getTile(end)->x - getTile(start)->x) * 0.5 + getTile(start)->x, getTile(start)->y);
+        ceil((getTile(end)->x - getTile(start)->x) * 0.5) + getTile(start)->x, getTile(start)->y);
     refreshText(buttonText);
 }
 
@@ -1030,13 +1032,13 @@ void buildButton(WindowItem *ptr)
         Actor *a;
         a = CreateActor("a_gui", ptr->parent->style.guiAnim, ptr->parent->parentCName, "(none)", 0, 0, true);
         // TODO: layout / positioning
-        a->x = ptr->layout.startx + tileWidth + i * tileWidth + (i >= 2 && i >= tilesHorizontal - 2) * (buttonWidth - tilesHorizontal * tileWidth)-tileWidth/2;
-        a->y = ptr->layout.starty + tileHeight-tileWidth/2;
+        a->x = ptr->layout.startx + tileWidth + i * tileWidth + (i >= 2 && i >= tilesHorizontal - 2) * (buttonWidth - tilesHorizontal * tileWidth)-tileWidth/2 + (ptr->layout.col > 0); // TODO: make nicer
+        a->y = ptr->layout.starty + tileHeight-tileWidth/2 + (ptr->layout.row > 0);
         a->myWindow = ptr->parent->index;
         a->myPanel  = ptr->myPanel->index;
         a->myIndex  = ptr->index;
         ChangeZDepth(a->clonename, 0.35); // TODO: change back to 0.3 after testing
-        a->animpos = 9 + ((i) ? (i / (tilesHorizontal - 1)) + 1 : 0);
+        a->animpos = 9 + (i > 0) + (i == tilesHorizontal - 1) + (i > 0 && i == tilesHorizontal - 2 && buttonWidth < tileWidth * 2.5);// TODO: make nicer
 
         updateIndexBounds(&ptr->data.button.bTileStartIndex, &ptr->data.button.bTileEndIndex, a->cloneindex);
     }
@@ -1058,8 +1060,8 @@ void buildWindow(Window *window)
     tileWidth = window->style.tileWidth;
     tileHeight = window->style.tileHeight;
 
-    windowWidth = window->mainPanel.width;
-    windowHeight = window->mainPanel.height;
+    windowWidth = window->mainPanel.width + window->style.tileWidth;
+    windowHeight = window->mainPanel.height + window->style.tileHeight;
 
     tilesHorizontal = ceil(windowWidth / (float)tileWidth);
     tilesVertical = ceil(windowHeight / (float)tileHeight);
@@ -1355,9 +1357,9 @@ void updatePanelLayout(WindowItem *panelItem, Panel *panel)
     rowValues[0] = origy;
     colValues[0] = origx;
     for (i = 0; i < panel->rows; i++)
-        starty = rowValues[i+1] = starty + getRowHeight(panel, i);
+        starty = rowValues[i+1] = starty + getRowHeight(panel, i) + (i > 0);
     for (i = 0; i < panel->cols; i++)
-        startx = colValues[i+1] = startx + getColWidth(panel, i);
+        startx = colValues[i+1] = startx + getColWidth(panel, i) + (i > 0);
 
     for (item = panel->iList; item != NULL; item = item->next)
     {
@@ -1442,7 +1444,7 @@ short getPanelWidth(Panel *panel)
             width += tempWidth;
     }
 
-    return width;
+    return width + panel->cols - 2;
 }
 
 short getPanelHeight(Panel *panel)
@@ -1461,5 +1463,5 @@ short getPanelHeight(Panel *panel)
             height += tempHeight;
     }
 
-    return height;
+    return height + panel->rows - 2;
 }
