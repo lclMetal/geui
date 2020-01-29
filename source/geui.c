@@ -679,7 +679,7 @@ void doMouseButtonUp(const char *actorName, enum mouseButtonsEnum mButtonNumber)
             if (isTopmostItemAtMouse(item))
             {
                 colorClones("a_gui", start, end, window->style.buttonHilitColor);
-                if (item->data.button.state)
+                if (item->data.button.state && item->data.button.actionFunction)
                     item->data.button.actionFunction(window, item);
             }
             else
