@@ -75,7 +75,7 @@ void fitTextInArea(Text *pText, int topLeftX, int topLeftY, int bottomRightX, in
 void scrollTextByAmount(Text *pText, int scroll);
 void setTextScrollByPercent(Text *pText, double scrollPercent);
 void readFontDataFile(char *fileName, Font *fontData);
-Text createText(char *string, Font *pFont, const char *parentCName, bool relative, int startX, int startY);
+Text createText(const char *string, Font *pFont, const char *parentCName, bool relative, int startX, int startY);
 void setTextAlignment(Text *pText, int alignment);
 void setTextColor(Text *pText, Color color);
 void setTextZDepth(Text *pText, double zDepth);
@@ -412,43 +412,45 @@ void readFontDataFile(char *fileName, Font *fontData)
     }
 }
 
-Text createText(char *string, Font *pFont, const char *parentCName, bool relative, int startX, int startY)
+Text createText(const char *string, Font *pFont, const char *parentCName, bool relative, int startX, int startY)
 {
     Text temp;
+    char const *strPtr = NULL;
+    char strError[100] = "Warning: invalid value for argument 'string' in createText.";
 
-    if (strlen(string) > 0)
-    {
-        temp.rendered = False;
-        temp.lastRenderFrame = -1;
-        temp.beginX = startX;
-        temp.beginY = startY;
-        temp.relative = relative;
-        temp.alignment = ALIGN_LEFT;
-        temp.firstCharIndex = -1;
-        temp.lastCharIndex = -1;
-        temp.zDepth = 0.5;
-        strcpy(temp.parentCName, parentCName);
-        temp.pFont = pFont;
-        temp.color = createRGB(255, 255, 255, 1.0);
-        temp.textAreaLeftX = 0;
-        temp.textAreaTopY = 0;
-        temp.textAreaRightX = 0;
-        temp.textAreaBottomY = 0;
-        temp.textAreaScrollPosition = 0;
-        temp.textAreaScrollUpLimit = 0;
-        temp.textAreaScrollDownLimit = 0;
-        temp.textAreaHeightPercent = 0.0;
-        temp.textAreaScrollPercent = 1.0;
-        temp.fitInArea = False;
+    temp.rendered = False;
+    temp.lastRenderFrame = -1;
+    temp.beginX = startX;
+    temp.beginY = startY;
+    temp.relative = relative;
+    temp.alignment = ALIGN_LEFT;
+    temp.firstCharIndex = -1;
+    temp.lastCharIndex = -1;
+    temp.zDepth = 0.5;
+    strcpy(temp.parentCName, parentCName);
+    temp.pFont = pFont;
+    temp.color = createRGB(255, 255, 255, 1.0);
+    temp.textAreaLeftX = 0;
+    temp.textAreaTopY = 0;
+    temp.textAreaRightX = 0;
+    temp.textAreaBottomY = 0;
+    temp.textAreaScrollPosition = 0;
+    temp.textAreaScrollUpLimit = 0;
+    temp.textAreaScrollDownLimit = 0;
+    temp.textAreaHeightPercent = 0.0;
+    temp.textAreaScrollPercent = 1.0;
+    temp.fitInArea = False;
 
-        temp.pString = calloc(strlen(string) + 1, sizeof(char));
+    strPtr = string;
+    if (strPtr == NULL)
+        strPtr = strError;
+    temp.pString = calloc(strlen(strPtr) + 1, sizeof(char));
 
-        if (temp.pString)
-            strcpy(temp.pString, string);
+    if (temp.pString)
+        strcpy(temp.pString, strPtr);
 
-        temp.width = calculateTextWidth(&temp);
-        temp.height = calculateTextHeight(&temp);
-    }
+    temp.width = calculateTextWidth(&temp);
+    temp.height = calculateTextHeight(&temp);
 
     return temp;
 }
