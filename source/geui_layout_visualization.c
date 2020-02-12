@@ -29,8 +29,8 @@ void visualize(Window *window, WindowItem *panelItem, Color color)
         {
             for (col = 0; col <= panel->cols; col++)
             {
-                y = getRowStart(panelItem, panel, row);
-                x = getColStart(panelItem, panel, col);
+                y = getRowStart(panelItem, panel, row)-(row > 0);
+                x = getColStart(panelItem, panel, col)-(col > 0);
                 geuiDebugIconAnimpos = calculateAnimpos(panel->cols + 1, panel->rows + 1, col, row);
                 SendActivationEvent(a_debugIcon.clonename);
                 SendActivationEvent(a_debugIcon.clonename); // coloring doesn't work properly
@@ -64,10 +64,10 @@ void printVisualizationData(Window *window, WindowItem *panelItem)
                 x = getColStart(panelItem, panel, col);
 
                 if (panelItem)
-                    sprintf(panelTag, "%s.%d w: %d h: %d cw: %d rh: %d", panelItem->tag, window->index, getPanelWidth(panelItem->data.panel.panel), getPanelHeight(panelItem->data.panel.panel), getColWidth(panelItem->data.panel.panel, 0), getRowHeight(panelItem->data.panel.panel, 0));
+                    sprintf(panelTag, "%s.%d w: %d h: %d cw: %d rh: %d", panelItem->tag, window->index, getPanelWidth(panelItem->data.panel.panel), getPanelHeight(panelItem->data.panel.panel), getColWidth(panelItem->data.panel.panel, col), getRowHeight(panelItem->data.panel.panel, row));
                 else
-                    sprintf(panelTag, "mainPanel.%d w: %d h: %d cw: %d rh: %d", window->index, getPanelWidth(&window->mainPanel), getPanelHeight(&window->mainPanel), getColWidth(&window->mainPanel, 0), getRowHeight(&window->mainPanel, 0));
-                sprintf(temp, "%s row: %d, col: %d, x: %d, y: %d", panelTag, row, col, x, y);
+                    sprintf(panelTag, "mainPanel.%d w: %d h: %d cw: %d rh: %d", window->index, getPanelWidth(&window->mainPanel), getPanelHeight(&window->mainPanel), getColWidth(&window->mainPanel, col), getRowHeight(&window->mainPanel, row));
+                sprintf(temp, "%s row: %d, col: %d, x: %d, y: %d, rows: %d", panelTag, row, col, x, y, window->mainPanel.rows);
                 DEBUG_MSG(temp);
             }
         }

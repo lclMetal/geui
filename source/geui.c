@@ -1400,7 +1400,7 @@ short getColWidth(Panel *panel, short col)
 
     for (item = panel->iList; item != NULL; item = item->next)
     {
-        if (item->type == GEUI_Panel) updatePanelLayout(item, item->data.panel.panel);
+        if (item->type == GEUI_Panel) {updatePanelLayout(item, item->data.panel.panel); DEBUG_MSG("wut");}
         if (item->layout.col == col && item->layout.width > width)
             width = item->layout.width;
     }
