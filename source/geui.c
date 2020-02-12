@@ -1032,8 +1032,8 @@ void buildButton(WindowItem *ptr)
         Actor *a;
         a = CreateActor("a_gui", ptr->parent->style.guiAnim, ptr->parent->parentCName, "(none)", 0, 0, true);
         // TODO: layout / positioning
-        a->x = ptr->layout.startx + tileWidth + i * tileWidth + (i >= 2 && i >= tilesHorizontal - 2) * (buttonWidth - tilesHorizontal * tileWidth)-tileWidth/2 + (ptr->layout.col > 0); // TODO: make nicer
-        a->y = ptr->layout.starty + tileHeight-tileWidth/2 + (ptr->layout.row > 0);
+        a->x = ptr->layout.startx + tileWidth + i * tileWidth + (i >= 2 && i >= tilesHorizontal - 2) * (buttonWidth - tilesHorizontal * tileWidth)-tileWidth/2;// + (ptr->layout.col > 0); // TODO: make nicer
+        a->y = ptr->layout.starty + tileHeight-tileWidth/2;// + (ptr->layout.row > 0);
         a->myWindow = ptr->parent->index;
         a->myPanel  = ptr->myPanel->index;
         a->myIndex  = ptr->index;
@@ -1276,7 +1276,7 @@ short getRowStart(WindowItem *panelItem, Panel *panel, short row)
     if (!panel || !panel->iList) { DEBUG_MSG_FROM("panel is NULL or has no items", "getRowStart"); return 0; }
 
     if (row >= panel->rows)
-        return panel->height + getRowStart(panelItem, panel, 0) - 1;
+        return panel->height + getRowStart(panelItem, panel, 0);// - 1; // -1 to fix panel visualizations ending up 1 pixel too tall. Think: 0 + 5 = 5, but when 0 is counted in that makes 6
 
     for (ptr = panel->iList; ptr != NULL; ptr = ptr->next)
     {
@@ -1296,7 +1296,7 @@ short getColStart(WindowItem *panelItem, Panel *panel, short col)
     if (!panel || !panel->iList) { DEBUG_MSG_FROM("panel is NULL or has no items", "getColStart"); return 0; }
 
     if (col >= panel->cols)
-        return panel->width + getColStart(panelItem, panel, 0) - 1;
+        return panel->width + getColStart(panelItem, panel, 0);// - 1; // see getRowStart for an explanation of the -1
 
     for (ptr = panel->iList; ptr != NULL; ptr = ptr->next)
     {
@@ -1357,9 +1357,9 @@ void updatePanelLayout(WindowItem *panelItem, Panel *panel)
     rowValues[0] = origy;
     colValues[0] = origx;
     for (i = 0; i < panel->rows; i++)
-        starty = rowValues[i+1] = starty + getRowHeight(panel, i) + (i > 1);
+        starty = rowValues[i+1] = starty + getRowHeight(panel, i) + 1;// + (i > 0);
     for (i = 0; i < panel->cols; i++)
-        startx = colValues[i+1] = startx + getColWidth(panel, i) + (i > 1);
+        startx = colValues[i+1] = startx + getColWidth(panel, i) + 1;// + (i > 0);
 
     for (item = panel->iList; item != NULL; item = item->next)
     {
@@ -1400,7 +1400,7 @@ short getColWidth(Panel *panel, short col)
 
     for (item = panel->iList; item != NULL; item = item->next)
     {
-        if (item->type == GEUI_Panel) {updatePanelLayout(item, item->data.panel.panel); DEBUG_MSG("wut");}
+        if (item->type == GEUI_Panel) updatePanelLayout(item, item->data.panel.panel);
         if (item->layout.col == col && item->layout.width > width)
             width = item->layout.width;
     }
@@ -1444,7 +1444,7 @@ short getPanelWidth(Panel *panel)
             width += tempWidth;
     }
 
-    return width + panel->cols - (panel->cols > 1) * 1;
+    return width + panel->cols - (panel->cols > 0);
 }
 
 short getPanelHeight(Panel *panel)
@@ -1463,5 +1463,5 @@ short getPanelHeight(Panel *panel)
             height += tempHeight;
     }
 
-    return height + panel->rows - (panel->rows > 1) * 1;
+    return height + panel->rows - (panel->rows > 0);
 }
