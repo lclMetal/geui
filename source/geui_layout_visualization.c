@@ -40,3 +40,36 @@ void visualize(Window *window, WindowItem *panelItem, Color color)
         }
     }
 }
+
+void printVisualizationData(Window *window, WindowItem *panelItem)
+{
+    if (window && window->isOpen)
+    {
+        long x, y;
+        short row, col;
+        char temp[256];
+        char panelTag[50];
+        Panel *panel;
+
+        if (panelItem)
+            panel = panelItem->data.panel.panel;
+        else
+            panel = &window->mainPanel;
+
+        for (row = 0; row <= panel->rows; row++)
+        {
+            for (col = 0; col <= panel->cols; col++)
+            {
+                y = getRowStart(panelItem, panel, row);
+                x = getColStart(panelItem, panel, col);
+
+                if (panelItem)
+                    sprintf(panelTag, "%s.%d w: %d h: %d cw: %d rh: %d", panelItem->tag, window->index, getPanelWidth(panelItem->data.panel.panel), getPanelHeight(panelItem->data.panel.panel), getColWidth(panelItem->data.panel.panel, 0), getRowHeight(panelItem->data.panel.panel, 0));
+                else
+                    sprintf(panelTag, "mainPanel.%d w: %d h: %d cw: %d rh: %d", window->index, getPanelWidth(&window->mainPanel), getPanelHeight(&window->mainPanel), getColWidth(&window->mainPanel, 0), getRowHeight(&window->mainPanel, 0));
+                sprintf(temp, "%s row: %d, col: %d, x: %d, y: %d", panelTag, row, col, x, y);
+                DEBUG_MSG(temp);
+            }
+        }
+    }
+}

@@ -1276,7 +1276,7 @@ short getRowStart(WindowItem *panelItem, Panel *panel, short row)
     if (!panel || !panel->iList) { DEBUG_MSG_FROM("panel is NULL or has no items", "getRowStart"); return 0; }
 
     if (row >= panel->rows)
-        return panel->height + getRowStart(panelItem, panel, 0);
+        return panel->height + getRowStart(panelItem, panel, 0) - 1;
 
     for (ptr = panel->iList; ptr != NULL; ptr = ptr->next)
     {
@@ -1296,7 +1296,7 @@ short getColStart(WindowItem *panelItem, Panel *panel, short col)
     if (!panel || !panel->iList) { DEBUG_MSG_FROM("panel is NULL or has no items", "getColStart"); return 0; }
 
     if (col >= panel->cols)
-        return panel->width + getColStart(panelItem, panel, 0);
+        return panel->width + getColStart(panelItem, panel, 0) - 1;
 
     for (ptr = panel->iList; ptr != NULL; ptr = ptr->next)
     {
@@ -1357,9 +1357,9 @@ void updatePanelLayout(WindowItem *panelItem, Panel *panel)
     rowValues[0] = origy;
     colValues[0] = origx;
     for (i = 0; i < panel->rows; i++)
-        starty = rowValues[i+1] = starty + getRowHeight(panel, i) + (i > 0);
+        starty = rowValues[i+1] = starty + getRowHeight(panel, i) + (i > 1);
     for (i = 0; i < panel->cols; i++)
-        startx = colValues[i+1] = startx + getColWidth(panel, i) + (i > 0);
+        startx = colValues[i+1] = startx + getColWidth(panel, i) + (i > 1);
 
     for (item = panel->iList; item != NULL; item = item->next)
     {
@@ -1444,7 +1444,7 @@ short getPanelWidth(Panel *panel)
             width += tempWidth;
     }
 
-    return width + panel->cols - 2;
+    return width + panel->cols - (panel->cols > 1) * 1;
 }
 
 short getPanelHeight(Panel *panel)
@@ -1463,5 +1463,5 @@ short getPanelHeight(Panel *panel)
             height += tempHeight;
     }
 
-    return height + panel->rows - 2;
+    return height + panel->rows - (panel->rows > 1) * 1;
 }
