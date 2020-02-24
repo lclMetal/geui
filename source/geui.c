@@ -186,7 +186,7 @@ void initGEUI(void)
     defStyle.titleFont          = &defTitleFont;
     defStyle.labelFont          = &defLabelFont;
     defStyle.textFont           = &defTextFont;
-    defStyle.padding            = 10;
+    defStyle.padding            = 5;
     defStyle.titleBgColor       = DEFAULT_COLOR;
     defStyle.windowBgColor      = DEFAULT_COLOR;
     defStyle.titleColor         = BLACK;
@@ -317,7 +317,7 @@ WindowItem *addButton(Window *window, Panel *panel, char tag[256], char *string,
 
     ptr->layout.row = 0;
     ptr->layout.col = 0;
-    ptr->layout.width = max(ptr->data.button.text.width + ptr->parent->style.padding * 2, ptr->parent->style.tileWidth * 2);
+    ptr->layout.width = ptr->data.button.text.width + ptr->parent->style.tileWidth * 2;
     ptr->layout.height = ptr->parent->style.tileHeight;
     ptr->layout.startx = 0;
     ptr->layout.starty = 0;
@@ -985,8 +985,8 @@ void buildText(WindowItem *ptr)
     setTextZDepth(&ptr->data.text.text, 0.3);
     // TODO: layout / positioning
     setTextPosition(&ptr->data.text.text,
-        ptr->layout.startx + ptr->parent->style.padding / 2,
-        ptr->layout.starty + ptr->data.text.text.pFont->lineSpacing * 0.5 + ptr->parent->style.padding / 2);
+        ptr->layout.startx + ptr->parent->style.padding,
+        ptr->layout.starty + ptr->data.text.text.pFont->lineSpacing * 0.5 + ptr->parent->style.padding);
     refreshText(&ptr->data.text.text);
 }
 
@@ -1033,9 +1033,9 @@ void buildButton(WindowItem *ptr)
         a = CreateActor("a_gui", ptr->parent->style.guiAnim, ptr->parent->parentCName, "(none)", 0, 0, true);
         // TODO: layout / positioning
         a->x = ptr->layout.startx + tileWidth + i * tileWidth + (i >= 2 && i >= tilesHorizontal - 2) * (buttonWidth - tilesHorizontal * tileWidth)-tileWidth/2;// + (ptr->layout.col > 0); // TODO: make nicer
-        a->x += ptr->parent->style.padding / 2;
+        a->x += ptr->parent->style.padding;
         a->y = ptr->layout.starty + tileHeight-tileWidth/2;// + (ptr->layout.row > 0);
-        a->y += ptr->parent->style.padding / 2;
+        a->y += ptr->parent->style.padding;
         a->myWindow = ptr->parent->index;
         a->myPanel  = ptr->myPanel->index;
         a->myIndex  = ptr->index;
@@ -1062,8 +1062,8 @@ void buildWindow(Window *window)
     tileWidth = window->style.tileWidth;
     tileHeight = window->style.tileHeight;
 
-    windowWidth = window->mainPanel.width + window->style.tileWidth + window->style.padding;
-    windowHeight = window->mainPanel.height + window->style.tileHeight + window->style.padding;
+    windowWidth = window->mainPanel.width + window->style.tileWidth + window->style.padding * 2;
+    windowHeight = window->mainPanel.height + window->style.tileHeight + window->style.padding * 2;
 
     tilesHorizontal = ceil(windowWidth / (float)tileWidth);
     tilesVertical = ceil(windowHeight / (float)tileHeight);
@@ -1278,13 +1278,13 @@ short getRowStart(WindowItem *panelItem, Panel *panel, short row)
     if (!panel || !panel->iList) { DEBUG_MSG_FROM("panel is NULL or has no items", "getRowStart"); return 0; }
 
     if (row >= panel->rows) // TODO: get padding value from window style
-        return panel->height + getRowStart(panelItem, panel, 0) + GEUIController.sDefault.padding / 2;// - 1; // -1 to fix panel visualizations ending up 1 pixel too tall. Think: 0 + 5 = 5, but when 0 is counted in that makes 6
+        return panel->height + getRowStart(panelItem, panel, 0) + GEUIController.sDefault.padding;// - 1; // -1 to fix panel visualizations ending up 1 pixel too tall. Think: 0 + 5 = 5, but when 0 is counted in that makes 6
 
     for (ptr = panel->iList; ptr != NULL; ptr = ptr->next)
     {
         if (ptr->layout.row == row)
         {
-            return ptr->layout.starty + ptr->parent->style.padding / 4;
+            return ptr->layout.starty + ptr->parent->style.padding / 2;
         }
     }
 
@@ -1298,13 +1298,13 @@ short getColStart(WindowItem *panelItem, Panel *panel, short col)
     if (!panel || !panel->iList) { DEBUG_MSG_FROM("panel is NULL or has no items", "getColStart"); return 0; }
 
     if (col >= panel->cols) // TODO: get padding value from window style
-        return panel->width + getColStart(panelItem, panel, 0) + GEUIController.sDefault.padding / 2;// - 1; // see getRowStart for an explanation of the -1
+        return panel->width + getColStart(panelItem, panel, 0) + GEUIController.sDefault.padding;// - 1; // see getRowStart for an explanation of the -1
 
     for (ptr = panel->iList; ptr != NULL; ptr = ptr->next)
     {
         if (ptr->layout.col == col)
         {
-            return ptr->layout.startx + ptr->parent->style.padding / 4;
+            return ptr->layout.startx + ptr->parent->style.padding / 2;
         }
     }
 
@@ -1407,7 +1407,7 @@ short getColWidth(Panel *panel, short col)
             width = item->layout.width;
     }
 
-    return width + (GEUIController.sDefault.padding / 2) * (col < panel->cols - 1); // TODO: get padding data from window style
+    return width + (GEUIController.sDefault.padding) * (col < panel->cols - 1); // TODO: get padding data from window style
 }
 
 short getRowHeight(Panel *panel, short row)
@@ -1427,7 +1427,7 @@ short getRowHeight(Panel *panel, short row)
             height = item->layout.height;
     }
 
-    return height + (GEUIController.sDefault.padding / 2) * (row < panel->rows - 1); // TODO: get padding data from window style
+    return height + (GEUIController.sDefault.padding) * (row < panel->rows - 1); // TODO: get padding data from window style
 }
 
 short getPanelWidth(Panel *panel)
