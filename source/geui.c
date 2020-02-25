@@ -78,6 +78,7 @@ typedef struct PanelStruct
     short cols;
     short width;
     short height;
+    struct WindowStruct *parent;
     struct WindowItemStruct *iList;
 }Panel;
 
@@ -173,8 +174,6 @@ struct GEUIControllerStruct
     int mButtonState[GEUI_MOUSE_BUTTONS];
     enum mouseButtonsEnum activeButton;
 }GEUIController;
-
-// TODO: CTR -> Fix handling of texts with strlen 0
 
 void initGEUI(void)
 {
@@ -344,6 +343,7 @@ WindowItem *addPanel(Window *window, Panel *panel, char tag[256])
     ptr->data.panel.panel->cols = 0;
     ptr->data.panel.panel->width = 0;
     ptr->data.panel.panel->height = 0;
+    ptr->data.panel.panel->parent = window;
 
     ptr->layout.row = 0;
     ptr->layout.col = 0;
@@ -913,6 +913,7 @@ Window *createWindow(char tag[256], Style style)
     ptr->mainPanel.cols = 0;
     ptr->mainPanel.width = -1;
     ptr->mainPanel.height = -1;
+    ptr->mainPanel.parent = ptr;
     ptr->mainPanel.iList = NULL;
     ptr->next = GEUIController.wList;
 
@@ -1229,7 +1230,9 @@ void closeWindow(Window *window)
 
 void destroyWindow(Window *window)
 {
-    // TODO: implement destroyWindow
+    closeWindow(window);
+    destroyPanel(&window->mainPanel);
+    free(window);
 }
 
 void destroyWindowList(void)
@@ -1240,9 +1243,7 @@ void destroyWindowList(void)
     while (ptr)
     {
         temp = ptr->next;
-        closeWindow(ptr);
-        destroyPanel(&ptr->mainPanel);
-        free(ptr);
+        destroyWindow(ptr);
         ptr = temp;
     }
 
@@ -1277,8 +1278,8 @@ short getRowStart(WindowItem *panelItem, Panel *panel, short row)
 
     if (!panel || !panel->iList) { DEBUG_MSG_FROM("panel is NULL or has no items", "getRowStart"); return 0; }
 
-    if (row >= panel->rows) // TODO: get padding value from window style
-        return panel->height + getRowStart(panelItem, panel, 0) + GEUIController.sDefault.padding;// - 1; // -1 to fix panel visualizations ending up 1 pixel too tall. Think: 0 + 5 = 5, but when 0 is counted in that makes 6
+    if (row >= panel->rows)
+        return panel->height + getRowStart(panelItem, panel, 0) + panel->parent->style.padding;
 
     for (ptr = panel->iList; ptr != NULL; ptr = ptr->next)
     {
@@ -1297,8 +1298,8 @@ short getColStart(WindowItem *panelItem, Panel *panel, short col)
 
     if (!panel || !panel->iList) { DEBUG_MSG_FROM("panel is NULL or has no items", "getColStart"); return 0; }
 
-    if (col >= panel->cols) // TODO: get padding value from window style
-        return panel->width + getColStart(panelItem, panel, 0) + GEUIController.sDefault.padding;// - 1; // see getRowStart for an explanation of the -1
+    if (col >= panel->cols)
+        return panel->width + getColStart(panelItem, panel, 0) + panel->parent->style.padding;
 
     for (ptr = panel->iList; ptr != NULL; ptr = ptr->next)
     {
@@ -1407,7 +1408,7 @@ short getColWidth(Panel *panel, short col)
             width = item->layout.width;
     }
 
-    return width + (GEUIController.sDefault.padding) * (col < panel->cols - 1); // TODO: get padding data from window style
+    return width + panel->parent->style.padding * (col < panel->cols - 1);
 }
 
 short getRowHeight(Panel *panel, short row)
@@ -1427,7 +1428,7 @@ short getRowHeight(Panel *panel, short row)
             height = item->layout.height;
     }
 
-    return height + (GEUIController.sDefault.padding) * (row < panel->rows - 1); // TODO: get padding data from window style
+    return height + panel->parent->style.padding * (row < panel->rows - 1);
 }
 
 short getPanelWidth(Panel *panel)
