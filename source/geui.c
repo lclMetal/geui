@@ -34,7 +34,8 @@ typedef enum ItemTypeEnum
 {
     GEUI_Text,
     GEUI_Button,
-    GEUI_Panel
+    GEUI_Panel,
+    GEUI_Embedder
 }ItemType;
 
 struct WindowStruct;
@@ -49,7 +50,7 @@ typedef struct WindowItemStruct
 
     union ItemDataUnion // item data union for different item types
     {
-        struct TextItem     { Text text; }text;
+        struct TextItem     { Text text; }text; // TODO: could this be replaced with a plain Text element?
         struct ButtonItem
         {
             Text text;
@@ -58,10 +59,14 @@ typedef struct WindowItemStruct
             long bTileEndIndex;
             void (*actionFunction)(struct WindowStruct *, struct WindowItemStruct *);
         }button;
-        struct PanelItem
+        struct PanelItem // TODO: could this be replaced with a plain Panel element?
         {
             struct PanelStruct *panel;
         }panel;
+        struct EmbedderItem
+        {
+            char actorCName[256];
+        }embedder;
     }data;
 
     Layout layout;
@@ -111,8 +116,10 @@ void updateIndexBounds(long *low, long *hi, long val);
 int isTopmostItemAtMouse(WindowItem *item);
 WindowItem *initNewItem(ItemType type, Window *window, Panel *panel, char tag[256]);
 WindowItem *addItemToWindow(WindowItem *ptr);
-WindowItem *addText(Window *window, Panel *panel, char tag[256], char *string);
+WindowItem *addText(Window *window, Panel *panel, char tag[256], char *string, short maxWidth);
 WindowItem *addButton(Window *window, Panel *panel, char tag[256], char *string, void (*actionFunction)(Window *, WindowItem *));
+WindowItem *addPanel(Window *window, Panel *panel, char tag[256]);
+WindowItem *addEmbedder(Window *window, Panel *panel, char tag[256], const char *actorName);
 WindowItem *getItemFromPanelByTag(Panel *panel, char tag[256]);
 WindowItem *getItemByTag(Window *window, char tag[256]);
 WindowItem *getItemFromPanelByIndex(Panel *panel, int index);
@@ -145,6 +152,7 @@ void buildText(WindowItem *ptr);
 void buildPanel(WindowItem *ptr);
 void buildButtonText(WindowItem *ptr);
 void buildButton(WindowItem *ptr);
+void buildEmbedder(WindowItem *ptr);
 void buildWindow(Window *window);
 Window *openWindow(char tag[256]);
 Actor *createWindowBaseParent(Window *window);
@@ -282,7 +290,7 @@ WindowItem *addItemToWindow(WindowItem *ptr)
     return ptr;
 }
 
-WindowItem *addText(Window *window, Panel *panel, char tag[256], char *string)
+WindowItem *addText(Window *window, Panel *panel, char tag[256], char *string, short maxWidth)
 {
     WindowItem *ptr = initNewItem(GEUI_Text, window, panel, tag);
     if (!ptr) { DEBUG_MSG_FROM("item is NULL", "addText"); return NULL; }
@@ -290,6 +298,9 @@ WindowItem *addText(Window *window, Panel *panel, char tag[256], char *string)
     ptr->data.text.text = createText(string, window->style.textFont, "(none)", ABSOLUTE, 0, 0);
     setTextColor(&ptr->data.text.text, window->style.textColor);
     setTextZDepth(&ptr->data.text.text, 0.6);
+
+    if (maxWidth > 0)
+        fitTextInWidth(&ptr->data.text.text, maxWidth);
 
     ptr->layout.row = 0;
     ptr->layout.col = 0;
@@ -349,6 +360,27 @@ WindowItem *addPanel(Window *window, Panel *panel, char tag[256])
     ptr->layout.col = 0;
     ptr->layout.width = 0;
     ptr->layout.height = 0;
+    ptr->layout.startx = 0;
+    ptr->layout.starty = 0;
+
+    return addItemToWindow(ptr);
+}
+
+WindowItem *addEmbedder(Window *window, Panel *panel, char tag[256], const char *actorName)
+{
+    Actor *actor;
+    WindowItem *ptr = initNewItem(GEUI_Embedder, window, panel, tag);
+    if (!ptr) { DEBUG_MSG_FROM("item is NULL", "addEmbedder"); return NULL; }
+
+    if (!actorExists2(actor = getclone(actorName))) { DEBUG_MSG_FROM("actor doesn't exist", "addEmbedder"); free(ptr); return NULL; }
+
+    strcpy(ptr->data.embedder.actorCName, actor->clonename);
+    VisibilityState(ptr->data.embedder.actorCName, DONT_DRAW_ONLY);
+
+    ptr->layout.row = 0;
+    ptr->layout.col = 0;
+    ptr->layout.width = actor->width;
+    ptr->layout.height = actor->height;
     ptr->layout.startx = 0;
     ptr->layout.starty = 0;
 
@@ -843,6 +875,9 @@ void eraseWindowItem(WindowItem *ptr)
         case GEUI_Panel:
             closePanel(ptr->data.panel.panel);
         break;
+        case GEUI_Embedder:
+            VisibilityState(ptr->data.embedder.actorCName, DONT_DRAW_ONLY);
+        break;
 
         default: break;
     }
@@ -867,6 +902,9 @@ void destroyWindowItem(WindowItem *ptr)
         case GEUI_Panel:
             destroyPanel(ptr->data.panel.panel);
             free(ptr->data.panel.panel);
+        break;
+        case GEUI_Embedder:
+            DestroyActor(ptr->data.embedder.actorCName);
         break;
 
         default: break;
@@ -976,6 +1014,7 @@ void buildItem(WindowItem *ptr)
         case GEUI_Text: buildText(ptr); break;
         case GEUI_Button: buildButton(ptr); break;
         case GEUI_Panel: buildPanel(ptr); break;
+        case GEUI_Embedder: buildEmbedder(ptr); break;
     }
 }
 
@@ -1047,6 +1086,32 @@ void buildButton(WindowItem *ptr)
     }
 
     buildButtonText(ptr);
+}
+
+void buildEmbedder(WindowItem *ptr)
+{
+    Actor *actor;
+    if (ptr->type != GEUI_Embedder) { DEBUG_MSG_FROM("item is not a valid Embedder item", "buildEmbedder"); return; }
+
+    if (!actorExists2(actor = getclone(ptr->data.embedder.actorCName))) { DEBUG_MSG_FROM("actor doesn't exist", "buildEmbedder"); return; }
+
+    ChangeZDepth(ptr->data.embedder.actorCName, 0.3);
+    ChangeParent(ptr->data.embedder.actorCName, "(none)");
+    actor->x = 0;
+    actor->y = 0;
+    ChangeParent(ptr->data.embedder.actorCName, ptr->parent->parentCName);
+    actor->x = ptr->layout.startx + ptr->parent->style.padding + actor->width / 2;
+    actor->y = ptr->layout.starty + ptr->parent->style.padding + actor->height / 2;
+    VisibilityState(ptr->data.embedder.actorCName, ENABLE);
+
+    {
+        char temp[256];
+        sprintf(temp, "%d, %d - %d, %d", ptr->layout.startx + ptr->parent->style.padding + actor->width / 2,
+                                ptr->layout.starty + ptr->parent->style.padding + actor->height / 2,
+                                (int)actor->x,
+                                (int)actor->y);
+        DEBUG_MSG_FROM(temp, "buildEmbedder");
+    }
 }
 
 void buildWindow(Window *window)
@@ -1143,6 +1208,7 @@ void setPanelBaseParent(Panel *panel, char *parentName)
                     changeParentOfClones("a_gui", ptr->data.button.bTileStartIndex, ptr->data.button.bTileEndIndex, parentName);
                 break;
              case GEUI_Panel: setPanelBaseParent(ptr->data.panel.panel,  parentName); break;
+             case GEUI_Embedder: ChangeParent(ptr->data.embedder.actorCName, parentName); break;
 
             default: break;
         }
