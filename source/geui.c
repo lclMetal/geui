@@ -18,8 +18,8 @@ enum mouseButtonsEnum // Used as array indices, don't touch!
 
 typedef struct LayoutStruct
 {
-    short row;
-    short col;
+    short row;      // row in a panel
+    short col;      // column in a panel
     short width;
     short height;
     short startx;
@@ -70,17 +70,17 @@ typedef struct WindowItemStruct
     }data;
 
     Layout layout;
-    struct PanelStruct *myPanel;
-    struct WindowStruct *parent;     // pointer to parent window
-    struct WindowItemStruct *next;   // pointer to next item in list
+    struct PanelStruct *myPanel;    // pointer to parent panel
+    struct WindowStruct *parent;    // pointer to parent window
+    struct WindowItemStruct *next;  // pointer to next item in list
 }WindowItem;
 
 typedef struct PanelStruct
 {
-    int index;
-    int iIndex;
-    short rows;
-    short cols;
+    int index;      // panel index
+    int iIndex;     // next available item index
+    short rows;     // number of rows in panel
+    short cols;     // number of columns in panel
     short width;
     short height;
     struct WindowStruct *parent;
@@ -216,7 +216,10 @@ void quitGEUI(void)
     for (mb = 0; mb < GEUI_MOUSE_BUTTONS; mb ++)
     {
         if (GEUIController.mButtonActors[mb])
+        {
             free(GEUIController.mButtonActors[mb]);
+            GEUIController.mButtonActors[mb] = NULL;
+        }
     }
 
     destroyWindowList();
