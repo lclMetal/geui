@@ -1,3 +1,6 @@
+// TODO: make functions return error codes instead of just exiting
+// without doing anything, which can be difficult to debug
+
 #define DEFAULT_ZDEPTH 0.5
 #define USE_DEFAULT_STYLE GEUIController.sDefault
 
@@ -375,10 +378,15 @@ WindowItem *addEmbedder(Window *window, Panel *panel, char tag[256], const char 
     WindowItem *ptr = initNewItem(GEUI_Embedder, window, panel, tag);
     if (!ptr) { DEBUG_MSG_FROM("item is NULL", "addEmbedder"); return NULL; }
 
-    if (!actorExists2(actor = getclone(actorName))) { DEBUG_MSG_FROM("actor doesn't exist", "addEmbedder"); free(ptr); return NULL; }
+    if (!actorExists2(actor = getclone(actorName)))
+    {
+        DEBUG_MSG_FROM("actor doesn't exist", "addEmbedder");
+        free(ptr);
+        return NULL;
+    }
 
     strcpy(ptr->data.embedder.actorCName, actor->clonename);
-    VisibilityState(ptr->data.embedder.actorCName, DONT_DRAW_ONLY);
+    VisibilityState(ptr->data.embedder.actorCName, DISABLE);
 
     ptr->layout.row = 0;
     ptr->layout.col = 0;
@@ -879,7 +887,7 @@ void eraseWindowItem(WindowItem *ptr)
             closePanel(ptr->data.panel.panel);
         break;
         case GEUI_Embedder:
-            VisibilityState(ptr->data.embedder.actorCName, DONT_DRAW_ONLY);
+            VisibilityState(ptr->data.embedder.actorCName, DISABLE);
         break;
 
         default: break;
