@@ -286,6 +286,12 @@ WindowItem *initNewItem(ItemType type, Window *window, Panel *panel, char tag[25
     strcpy(ptr->tag, tag);
     ptr->myPanel = panel;
     ptr->parent = window;
+    ptr->layout.row = 0;
+    ptr->layout.col = 0;
+    ptr->layout.width = 0;
+    ptr->layout.height = 0;
+    ptr->layout.startx = 0;
+    ptr->layout.starty = 0;
 
     return ptr;
 }
@@ -312,12 +318,8 @@ WindowItem *addText(Window *window, Panel *panel, char tag[256], char *string, s
     if (maxWidth > 0)
         fitTextInWidth(&ptr->data.text.text, maxWidth);
 
-    ptr->layout.row = 0;
-    ptr->layout.col = 0;
     ptr->layout.width = ptr->data.text.text.width;
     ptr->layout.height = ptr->data.text.text.height;
-    ptr->layout.startx = 0;
-    ptr->layout.starty = 0;
 
     return addItemToWindow(ptr);
 }
@@ -335,12 +337,8 @@ WindowItem *addButton(Window *window, Panel *panel, char tag[256], char *string,
     ptr->data.button.bTileEndIndex = -1;
     ptr->data.button.actionFunction = actionFunction;
 
-    ptr->layout.row = 0;
-    ptr->layout.col = 0;
     ptr->layout.width = ptr->data.button.text.width + ptr->parent->style.tileWidth * 2;
     ptr->layout.height = ptr->parent->style.tileHeight;
-    ptr->layout.startx = 0;
-    ptr->layout.starty = 0;
 
     return addItemToWindow(ptr);
 }
@@ -366,13 +364,6 @@ WindowItem *addPanel(Window *window, Panel *panel, char tag[256])
     ptr->data.panel.panel->height = 0;
     ptr->data.panel.panel->parent = window;
 
-    ptr->layout.row = 0;
-    ptr->layout.col = 0;
-    ptr->layout.width = 0;
-    ptr->layout.height = 0;
-    ptr->layout.startx = 0;
-    ptr->layout.starty = 0;
-
     return addItemToWindow(ptr);
 }
 
@@ -392,12 +383,8 @@ WindowItem *addEmbedder(Window *window, Panel *panel, char tag[256], const char 
     strcpy(ptr->data.embedder.actorCName, actor->clonename);
     VisibilityState(ptr->data.embedder.actorCName, DISABLE);
 
-    ptr->layout.row = 0;
-    ptr->layout.col = 0;
     ptr->layout.width = actor->width;
     ptr->layout.height = actor->height;
-    ptr->layout.startx = 0;
-    ptr->layout.starty = 0;
 
     return addItemToWindow(ptr);
 }
