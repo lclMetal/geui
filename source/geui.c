@@ -1,7 +1,11 @@
 // TODO: make functions return error codes instead of just exiting
 // without doing anything, which can be difficult to debug
 
-#define DEFAULT_ZDEPTH 0.5
+#define DEFAULT_WINDOW_ZDEPTH 0.5
+#define ACTIVE_WINDOW_ZDEPTH 0.6
+#define DEFAULT_ITEM_ZDEPTH 0.3
+#define WINDOW_TILE_ZDEPTH 0.1
+#define FAKE_ACTOR_ZDEPTH 0.2
 #define USE_DEFAULT_STYLE GEUIController.sDefault
 
 #define GEUI_MOUSE_UP 0
@@ -303,7 +307,7 @@ WindowItem *addText(Window *window, Panel *panel, char tag[256], char *string, s
 
     ptr->data.text.text = createText(string, window->style.textFont, "(none)", ABSOLUTE, 0, 0);
     setTextColor(&ptr->data.text.text, window->style.textColor);
-    setTextZDepth(&ptr->data.text.text, 0.6);
+    setTextZDepth(&ptr->data.text.text, DEFAULT_ITEM_ZDEPTH);
 
     if (maxWidth > 0)
         fitTextInWidth(&ptr->data.text.text, maxWidth);
@@ -325,7 +329,7 @@ WindowItem *addButton(Window *window, Panel *panel, char tag[256], char *string,
 
     ptr->data.button.text = createText(string, window->style.textFont, "(none)", ABSOLUTE, 0, 0);
     setTextColor(&ptr->data.button.text, window->style.textColor);
-    setTextZDepth(&ptr->data.button.text, 0.5);
+    setTextZDepth(&ptr->data.button.text, DEFAULT_ITEM_ZDEPTH);
     ptr->data.button.state = 0;
     ptr->data.button.bTileStartIndex = -1;
     ptr->data.button.bTileEndIndex = -1;
@@ -605,7 +609,7 @@ void doMouseButtonDown(const char *actorName, enum mouseButtonsEnum mButtonNumbe
         int xDist, yDist;
 
         ChangeParent(actor->clonename, "(none)");
-        ChangeZDepth(actor->clonename, 0.6);
+        ChangeZDepth(actor->clonename, ACTIVE_WINDOW_ZDEPTH);
 
         // store the current color of the event actor
         actor->myColorR = actor->r;
@@ -623,7 +627,7 @@ void doMouseButtonDown(const char *actorName, enum mouseButtonsEnum mButtonNumbe
         fake->myIndex = -1;
         fake->myProperties = GEUI_FAKE_ACTOR;
         actor->myFakeIndex = fake->cloneindex;
-        ChangeZDepth(fake->clonename, 0.2);
+        ChangeZDepth(fake->clonename, FAKE_ACTOR_ZDEPTH);
         SendActivationEvent(getTile(actor->myFakeIndex)->clonename);
 
         wParent = getclone(window->parentCName);
@@ -682,7 +686,7 @@ void doMouseButtonUp(const char *actorName, enum mouseButtonsEnum mButtonNumber)
 
         // reset window base parent's parent to none
         ChangeParent(wParent->clonename, "(none)");
-        ChangeZDepth(actor->clonename, 0.1);
+        ChangeZDepth(actor->clonename, WINDOW_TILE_ZDEPTH);
 
         // calculate the event actor's coordinates relative to window the base parent
         xDist = ceil(actor->x - wParent->x);
@@ -952,7 +956,7 @@ Window *createWindow(char tag[256], Style style)
     strcpy(ptr->tag, tag);
     ptr->isOpen = False;
     ptr->style = style;
-    ptr->zDepth = DEFAULT_ZDEPTH;
+    ptr->zDepth = DEFAULT_WINDOW_ZDEPTH;
     strcpy(ptr->parentCName, "");
     ptr->wTileStartIndex = -1;
     ptr->wTileEndIndex = -1;
@@ -1033,7 +1037,7 @@ void buildText(WindowItem *ptr)
 {
     if (ptr->type != GEUI_Text) { DEBUG_MSG_FROM("item is not a valid Text item", "buildText"); return; }
 
-    setTextZDepth(&ptr->data.text.text, 0.3);
+    setTextZDepth(&ptr->data.text.text, DEFAULT_ITEM_ZDEPTH);
     // TODO: layout / positioning
     setTextPosition(&ptr->data.text.text,
         ptr->layout.startx + ptr->parent->style.padding,
@@ -1056,7 +1060,7 @@ void buildButtonText(WindowItem *ptr)
     Text *buttonText = &ptr->data.button.text;
 
     colorClones("a_gui", start, end, ptr->parent->style.buttonColor);
-    setTextZDepth(buttonText, 0.4);
+    setTextZDepth(buttonText, DEFAULT_ITEM_ZDEPTH);
     setTextAlignment(buttonText, ALIGN_CENTER);
     setTextPosition(buttonText,
         ceil((getTile(end)->x - getTile(start)->x) * 0.5) + getTile(start)->x, getTile(start)->y);
@@ -1090,7 +1094,7 @@ void buildButton(WindowItem *ptr)
         a->myWindow = ptr->parent->index;
         a->myPanel  = ptr->myPanel->index;
         a->myIndex  = ptr->index;
-        ChangeZDepth(a->clonename, 0.35); // TODO: change back to 0.3 after testing
+        ChangeZDepth(a->clonename, DEFAULT_ITEM_ZDEPTH);
         a->animpos = 9 + (i > 0) + (i == tilesHorizontal - 1) + (i > 0 && i == tilesHorizontal - 2 && buttonWidth < tileWidth * 2.5);// TODO: make nicer
 
         updateIndexBounds(&ptr->data.button.bTileStartIndex, &ptr->data.button.bTileEndIndex, a->cloneindex);
@@ -1106,7 +1110,7 @@ void buildEmbedder(WindowItem *ptr)
 
     if (!actorExists2(actor = getclone(ptr->data.embedder.actorCName))) { DEBUG_MSG_FROM("actor doesn't exist", "buildEmbedder"); return; }
 
-    ChangeZDepth(ptr->data.embedder.actorCName, 0.3);
+    ChangeZDepth(ptr->data.embedder.actorCName, DEFAULT_ITEM_ZDEPTH);
     ChangeParent(ptr->data.embedder.actorCName, "(none)");
     actor->x = 0;
     actor->y = 0;
@@ -1159,7 +1163,7 @@ void buildWindow(Window *window)
             tile->myIndex = -1;
             tile->animpos = calculateAnimpos(tilesHorizontal, tilesVertical, i, j);
             colorActor(tile, window->style.windowBgColor);
-            ChangeZDepth(tile->clonename, 0.1);
+            ChangeZDepth(tile->clonename, WINDOW_TILE_ZDEPTH);
             EventDisable(tile->clonename, EVENTCOLLISION);
             EventDisable(tile->clonename, EVENTCOLLISIONFINISH);
 
@@ -1255,14 +1259,14 @@ void bringWindowToFront(Window *window)
     {
         if (ptr->index == window->index)
         {
-            ptr->zDepth = 0.6;
-            ChangeZDepth(ptr->parentCName, 0.6);
+            ptr->zDepth = ACTIVE_WINDOW_ZDEPTH;
+            ChangeZDepth(ptr->parentCName, ptr->zDepth);
             GEUIController.topIndex = window->index;
         }
         else
         {
-            ptr->zDepth = 0.5;
-            ChangeZDepth(ptr->parentCName, 0.5);
+            ptr->zDepth = DEFAULT_WINDOW_ZDEPTH;
+            ChangeZDepth(ptr->parentCName, ptr->zDepth);
         }
 
         ptr = ptr->next;
