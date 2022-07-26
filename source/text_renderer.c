@@ -1,3 +1,5 @@
+#define CAPACITY_STEP 256
+
 #define ALIGN_LEFT 0
 #define ALIGN_CENTER 1
 #define ALIGN_RIGHT 2
@@ -31,6 +33,12 @@ typedef struct
     int fontCharWidths[CHARS];
 }Font;
 
+typedef struct LetterCloneindexStruct
+{
+    int index;
+    struct LetterCloneindexStruct *next;
+}LetterCloneindex;
+
 typedef struct
 {
     bool rendered;
@@ -52,10 +60,11 @@ typedef struct
     double textAreaScrollPercent;
     bool fitInArea;
 
+    size_t capacity;
     char *pString;
 
-    int firstCharIndex;
-    int lastCharIndex;
+    LetterCloneindex *letterIndexHead;
+    LetterCloneindex *letterIndexTail;
 
     int width;
     int height;
@@ -75,12 +84,14 @@ void fitTextInArea(Text *pText, int topLeftX, int topLeftY, int bottomRightX, in
 void scrollTextByAmount(Text *pText, int scroll);
 void setTextScrollByPercent(Text *pText, double scrollPercent);
 void readFontDataFile(char *fileName, Font *fontData);
+size_t calculateRequiredCapacity(size_t len);
 Text createText(const char *string, Font *pFont, const char *parentCName, bool relative, int startX, int startY);
 void setTextAlignment(Text *pText, int alignment);
 void setTextColor(Text *pText, Color color);
 void setTextZDepth(Text *pText, double zDepth);
 void setTextParent(Text *pText, char *parentCName, bool keepCurrentPosition);
 void setTextPosition(Text *pText, int posX, int posY);
+void concatenateText(Text *pText, char *string);
 void setTextText(Text *pText, char *string);
 void refreshText(Text *pText);
 void eraseText(Text *pText);
@@ -91,13 +102,30 @@ int fromASCII(int num);
 Color extractHexColor(char *pString);
 int calculateTextHeight(Text *pText);
 int calculateTextWidth(Text *pText);
-int calculateLineWidth(Text *pText, char *pString, int line);
+int getSpecialCharWidth(Text *pText, int pos);
+int getCharWidth(Text *pText, int pos);
+int isIndentationAllowed(Text *pText);
+int getPrevTabStop(Text *pText, int lineWidth);
+int getNextTabStopOffset(Text *pText, int lineWidth);
+int strCharsLeft(const char *str, int pos);
+int isPrintable(const char *str, int pos);
+int getLetterSpacing(Text *pText, int lineWidth, int charWidth, int pos);
+int calculateLineSubRangeWidth(Text *pText, int start, int end);
+int calculateLineTailWidth(Text *pText, int start);
 int parseToNextLineStart(Text *pText, int startPosition, Color *pTempColor, bool *pCustomColorPrint);
-void replaceChar(char *pString, char replace, char new);
+void replaceAllInstancesOfChar(char *pString, char replace, char new);
 void handleEscapeSequences(Text *pText, int *iterator, int *pPrevX, int *pPrevY, Color *pTempColor, bool *pCustomColorPrint, bool *firstOnLine);
 void skipEscapeSequences(char *pString, int *iterator, Color *pTempColor, bool *pCustomColorPrint);
 void renderText(Text *pText);
 int renderCharacter(Text *pText, char printChar, Color color, bool relative, int xPos, int yPos, bool firstOnLine);
+LetterCloneindex *newLetterCloneindex(int index);
+void storeLetterCloneindex(Text *pText, int index);
+void freeLetterCloneindexList(Text *pText);
+void execOnLCList(Text *pText, LetterCloneindex *list, LetterCloneindex *(*pFunc)(Text *, LetterCloneindex *));
+LetterCloneindex *freeLC(Text *pText, LetterCloneindex *this);
+LetterCloneindex *setLCZDepth(Text *pText, LetterCloneindex *this);
+LetterCloneindex *setLCParent(Text *pText, LetterCloneindex *this);
+LetterCloneindex *eraseLC(Text *pText, LetterCloneindex *this);
 
 int fromASCII(int num)
 {
@@ -142,18 +170,16 @@ int calculateTextWidth(Text *pText)
     int len;
     int lineWidth;
     int maximumLineWidth;
-    int lineCount = 0;
     char *pString = pText->pString;
 
-    maximumLineWidth = calculateLineWidth(pText, pString, 0);
+    maximumLineWidth = calculateLineTailWidth(pText, 0);
     len = strlen(pString);
 
     for (i = 0; i < len; i ++)
     {
         if (pString[i] == '\n' || pString[i] == '\v')
         {
-            lineCount ++;
-            lineWidth = calculateLineWidth(pText, pString, lineCount);
+            lineWidth = calculateLineTailWidth(pText, i + 1);
 
             if (lineWidth > maximumLineWidth) maximumLineWidth = lineWidth;
         }
@@ -162,73 +188,122 @@ int calculateTextWidth(Text *pText)
     return maximumLineWidth;
 }
 
-int calculateLineWidth(Text *pText, char *pString, int line)
+int getSpecialCharWidth(Text *pText, int pos)
 {
-    int i;
-    int letterNum;
-    int len = strlen(pString);
-    int currentLine = 0;
-    int lineStart = 0;
-    int lineWidth = 0;
-    int maximumLineWidth = 0;
-    Font *pFont = pText->pFont;
+    int letterNum = 0;
+    int len = strlen(pText->pString);
 
-    if (line > 0)
+    if (pos < len - 1)
     {
-        for (i = 0; i < len; i ++)
+        letterNum = fromASCII(pText->pString[pos]);
+
+        switch (pText->pString[pos])
         {
-            if (pString[i] == '\n' || pString[i] == '\v')
-            {
-                currentLine ++;
-                if (currentLine == line)
-                {
-                    lineStart = i + 1;
-                    break;
-                }
-            }
+            case '$':   return pText->pFont->fontCharWidths[letterNum];
+            case '_':   return pText->pFont->wordSpacing;
+            default:    return 0;
         }
     }
 
-    for (i = lineStart; i < len; i ++)
+    return 0;
+}
+
+int getCharWidth(Text *pText, int pos)
+{
+    int letterNum = fromASCII(pText->pString[pos]);
+
+    switch (pText->pString[pos])
     {
-        letterNum = fromASCII(pString[i]);
+        case '\n':
+        case '\v':
+        case '\t':  return 0;
+        case ' ':   return pText->pFont->wordSpacing;
+        case '$':   return getSpecialCharWidth(pText, pos + 1);
+        default:    return pText->pFont->fontCharWidths[letterNum];
+    }
+}
 
-        if (pString[i] == '\n' || pString[i] == '\v') return lineWidth;
+int isIndentationAllowed(Text *pText)
+{
+    return (pText->pFont->indentation && pText->alignment == ALIGN_LEFT);
+}
 
-        switch (pString[i])
+int getPrevTabStop(Text *pText, int lineWidth)
+{
+    int tab = pText->pFont->indentation;
+    return ceil(lineWidth / tab) * tab;
+}
+
+int getNextTabStopOffset(Text *pText, int lineWidth)
+{
+    int tab = pText->pFont->indentation;
+
+    if (isIndentationAllowed(pText))
+        return getPrevTabStop(pText, lineWidth) + tab - lineWidth;
+
+    return 0;
+}
+
+int strCharsLeft(const char *str, int pos)
+{
+    return strlen(str) - pos - 1;
+}
+
+int isPrintable(const char *str, int pos)
+{
+    char c = str[pos];
+    int len = strlen(str);
+
+    switch (c)
+    {
+        case ' ':
+        case '\t':
+        case '\n':
+        case '\v': return 0;
+
+        case '$':
+            return (strCharsLeft(str, pos) > 0 && str[pos + 1] == '$');
+
+        default: return 1;
+    }
+
+}
+
+int getLetterSpacing(Text *pText, int lineWidth, int charWidth, int pos)
+{
+    if (isPrintable(pText->pString, pos))
+        return pText->pFont->letterSpacing * (lineWidth > charWidth);
+    else
+        return 0;
+}
+
+int calculateLineSubRangeWidth(Text *pText, int start, int end)
+{
+    int i           = 0;
+    int lineWidth   = 0;
+    int curCharW    = 0;
+
+    for (i = start; i < end; i++)
+    {
+        lineWidth += curCharW = getCharWidth(pText, i);
+        lineWidth += getLetterSpacing(pText, lineWidth, curCharW, i);
+
+        switch (pText->pString[i])
         {
-            case ' ': lineWidth += pFont->wordSpacing; break;
-            case '\t':
-                if (pFont->indentation != 0 && pText->alignment == ALIGN_LEFT)
-                {
-                    int tempIndentation = ceil(lineWidth / pFont->indentation) * pFont->indentation + pFont->indentation;
-                    lineWidth = tempIndentation;
-                }
-            break;
-            case '$':
-                if (i < len - 1)
-                {
-                    if (pString[i + 1] == '$')
-                    {
-                        lineWidth += pFont->fontCharWidths[letterNum] + pFont->letterSpacing * (lineWidth != 0);
-                        i ++;
-                    }
-                    else if (pString[i + 1] == '_')
-                    {
-                        lineWidth += pFont->wordSpacing;
-                        i ++;
-                    }
-                    else
-                        skipEscapeSequences(pString, &i, NULL, NULL);
-                }
-            break;
-            default:
-                lineWidth += pFont->fontCharWidths[letterNum] + pFont->letterSpacing * (lineWidth != 0);
-            break;
+            case '$':   skipEscapeSequences(pText->pString, &i, NULL, NULL); break;
+            case '\t':  lineWidth += getNextTabStopOffset(pText, lineWidth); break;
+            case '\n':
+            case '\v':  return lineWidth;
+            default:    break;
         }
     }
 
     return lineWidth;
+}
+
+int calculateLineTailWidth(Text *pText, int start)
+{
+    return calculateLineSubRangeWidth(pText, start, strlen(pText->pString));
 }
 
 int parseToNextLineStart(Text *pText, int startPosition, Color *pTempColor, bool *pCustomColorPrint)
@@ -255,7 +330,7 @@ int parseToNextLineStart(Text *pText, int startPosition, Color *pTempColor, bool
     return -1;
 }
 
-void replaceChar(char *pString, char replace, char new)
+void replaceAllInstancesOfChar(char *pString, char replace, char new)
 {
     int i;
     int len = strlen(pString);
@@ -279,7 +354,7 @@ void fitTextInWidth(Text *pText, int widthLimit)
     int len;
     char *pString = pText->pString;
 
-    replaceChar(pString, '\n', ' ');
+    replaceAllInstancesOfChar(pString, '\n', ' ');
 
     len = strlen(pString);
 
@@ -292,7 +367,7 @@ void fitTextInWidth(Text *pText, int widthLimit)
             tempLine = calloc(charCount + 1, sizeof(char));
             strncpy(tempLine, &pString[currentLineStart], charCount);
 
-            lineWidth = calculateLineWidth(pText, tempLine, 0);
+            lineWidth = calculateLineSubRangeWidth(pText, currentLineStart, currentLineStart + charCount);
             lineCharCount = strlen(tempLine);
 
             if (maximumLineWidth == 0 && i < len - 1)
@@ -399,17 +474,21 @@ void setTextScrollByPercent(Text *pText, double scrollPercent)
     refreshText(pText);
 }
 
+// TODO: convert to function that returns error codes for how the reading went
 void readFontDataFile(char *fileName, Font *fontData)
 {
     FILE *f = fopen(addFileExtension(fileName, "fdf"), "r+b");
 
     if (f)
     {
-        if (fontData)
-            fread(fontData, 1, sizeof *fontData, f);
-
+        fread(fontData, sizeof *fontData, 1, f);
         fclose(f);
     }
+}
+
+size_t calculateRequiredCapacity(size_t len)
+{
+    return ((len / CAPACITY_STEP) + 1) * (size_t)CAPACITY_STEP;
 }
 
 Text createText(const char *string, Font *pFont, const char *parentCName, bool relative, int startX, int startY)
@@ -424,8 +503,6 @@ Text createText(const char *string, Font *pFont, const char *parentCName, bool r
     temp.beginY = startY;
     temp.relative = relative;
     temp.alignment = ALIGN_LEFT;
-    temp.firstCharIndex = -1;
-    temp.lastCharIndex = -1;
     temp.zDepth = 0.5;
     strcpy(temp.parentCName, parentCName);
     temp.pFont = pFont;
@@ -440,19 +517,77 @@ Text createText(const char *string, Font *pFont, const char *parentCName, bool r
     temp.textAreaHeightPercent = 0.0;
     temp.textAreaScrollPercent = 1.0;
     temp.fitInArea = False;
+    temp.letterIndexHead = NULL;
+    temp.letterIndexTail = NULL;
 
     strPtr = string;
     if (strPtr == NULL)
         strPtr = strError;
-    temp.pString = calloc(strlen(strPtr) + 1, sizeof(char));
+
+    temp.capacity = calculateRequiredCapacity(strlen(strPtr));
+    temp.pString = calloc(temp.capacity + 1, sizeof(char));
 
     if (temp.pString)
         strcpy(temp.pString, strPtr);
+    else
+        temp.capacity = 0;
 
     temp.width = calculateTextWidth(&temp);
     temp.height = calculateTextHeight(&temp);
 
     return temp;
+}
+
+void execOnLCList(Text *pText, LetterCloneindex *list, LetterCloneindex *(*pFunc)(Text *, LetterCloneindex *))
+{
+    LetterCloneindex *iterator = list, *next;
+
+    while (iterator)
+    {
+        next = (*pFunc)(pText, iterator);
+        iterator = next;
+    }
+}
+
+LetterCloneindex *newLetterCloneindex(int index)
+{
+    LetterCloneindex *new = malloc(sizeof *new);
+
+    if (!new) return NULL;
+
+    new->index = index;
+    new->next = NULL;
+
+    return new;
+}
+
+void storeLetterCloneindex(Text *pText, int index)
+{
+    LetterCloneindex *new = newLetterCloneindex(index);
+
+    if (!pText->letterIndexHead && !pText->letterIndexTail)
+    {
+        pText->letterIndexHead = pText->letterIndexTail = new;
+    }
+    else
+    {
+        pText->letterIndexTail->next = new;
+        pText->letterIndexTail = new;
+    }
+}
+
+LetterCloneindex *freeLC(Text *pText, LetterCloneindex *this)
+{
+    LetterCloneindex *next = this->next;
+    free(this);
+    return next;
+}
+
+void freeLetterCloneindexList(Text *pText)
+{
+    execOnLCList(pText, pText->letterIndexHead, &freeLC);
+    pText->letterIndexHead = NULL;
+    pText->letterIndexTail = NULL;
 }
 
 void setTextAlignment(Text *pText, int alignment)
@@ -470,32 +605,33 @@ void setTextColor(Text *pText, Color color)
     pText->color = color;
 }
 
+LetterCloneindex *setLCZDepth(Text *pText, LetterCloneindex *this)
+{
+    char actorName[256];
+    sprintf(actorName, "%s.%i", typeActorName[pText->lastRenderFrame], this->index);
+    ChangeZDepth(actorName, pText->zDepth);
+    return this->next;
+}
+
 void setTextZDepth(Text *pText, double zDepth)
 {
-    if (!pText) return;
-
     pText->zDepth = zDepth;
+    execOnLCList(pText, pText->letterIndexHead, &setLCZDepth);
+}
 
-    if (pText->firstCharIndex > -1 && pText->lastCharIndex > -1)
-    {
-        int i;
-        char temp[256];
-
-        for (i = pText->firstCharIndex; i <= pText->lastCharIndex; i ++)
-        {
-            sprintf(temp, "%s.%i", typeActorName[pText->lastRenderFrame], i);
-            ChangeZDepth(temp, pText->zDepth);
-        }
-    }
+LetterCloneindex *setLCParent(Text *pText, LetterCloneindex *this)
+{
+    char actorName[256];
+    sprintf(actorName, "%s.%i", typeActorName[pText->lastRenderFrame], this->index);
+    ChangeParent(actorName, pText->parentCName);
+    return this->next;
 }
 
 void setTextParent(Text *pText, char *parentCName, bool keepCurrentPosition)
 {
-    int i;
     int parentExists;
     Actor *pParent;
     Actor *pPrevParent;
-    char temp[256];
 
     pParent = getclone(parentCName);
     pPrevParent = getclone(pText->parentCName);
@@ -505,15 +641,7 @@ void setTextParent(Text *pText, char *parentCName, bool keepCurrentPosition)
     else
         strcpy(pText->parentCName, parentCName);
 
-    if (pText->firstCharIndex > -1 && pText->lastCharIndex > -1)
-    {
-        for (i = pText->firstCharIndex; i <= pText->lastCharIndex; i ++)
-        {
-            sprintf(temp, "%s.%i", typeActorName[pText->lastRenderFrame], i);
-            ChangeParent(temp, pText->parentCName);
-        }
-    }
-
+    execOnLCList(pText, pText->letterIndexHead, &setLCParent);
     pText->relative = (parentExists) ? True : False;
 
     if (keepCurrentPosition)
@@ -530,23 +658,50 @@ void setTextParent(Text *pText, char *parentCName, bool keepCurrentPosition)
 
 void setTextPosition(Text *pText, int posX, int posY)
 {
-    if (!pText) return;
-
     pText->beginX = posX;
     pText->beginY = posY;
 }
 
-void setTextText(Text *pText, char *string)
+void concatenateText(Text *pText, char *string)
 {
-    eraseText(pText);
+    size_t len = strlen(pText->pString) + strlen(string);
+
+    if (len <= pText->capacity)
+    {
+        strcat(pText->pString, string);
+        return;
+    }
+    else
+    {
+        size_t reqCapacity = calculateRequiredCapacity(len);
+        pText->capacity = reqCapacity;
+        pText->pString = realloc(pText->pString, pText->capacity + 1 * sizeof(char));
+    }
 
     if (pText->pString)
-        free(pText->pString);
+        strcat(pText->pString, string);
+    else
+        pText->capacity = 0;
+}
 
-    pText->pString = calloc(strlen(string) + 1, sizeof(char));
+void setTextText(Text *pText, char *string)
+{
+    size_t reqCapacity;
+    eraseText(pText);
+
+    if (pText->capacity != (reqCapacity = calculateRequiredCapacity(strlen(string))))
+    {
+        if (pText->pString)
+            free(pText->pString);
+
+        pText->capacity = reqCapacity;
+        pText->pString = calloc(pText->capacity + 1, sizeof(char));
+    }
 
     if (pText->pString)
         strcpy(pText->pString, string);
+    else
+        pText->capacity = 0;
 }
 
 void refreshText(Text *pText)
@@ -554,51 +709,32 @@ void refreshText(Text *pText)
     renderText(pText);
 }
 
+LetterCloneindex *eraseLC(Text *pText, LetterCloneindex *this)
+{
+    char actorName[256];
+    sprintf(actorName, "%s.%i", typeActorName[pText->lastRenderFrame], this->index);
+    DestroyActor(actorName);
+    this->index = -1;
+    return this->next;
+}
+
 void eraseText(Text *pText)
 {
-    int i;
-    char actorName[256];
-    Actor *a;
-
-    if (pText->pString && pText->rendered && pText->lastRenderFrame > -1)
+    if (pText && pText->pString && pText->rendered && pText->lastRenderFrame > -1)
     {
-        if (pText->firstCharIndex > -1 && pText->lastCharIndex > -1)
-        {
-            for (i = pText->firstCharIndex; i <= pText->lastCharIndex; i ++)
-            {
-                sprintf(actorName, "%s.%i", (pText->lastRenderFrame)?"a_typeActor2":"a_typeActor", i);
-                DestroyActor(actorName);
-            }
-        }
-
-        pText->firstCharIndex = -1;
-        pText->lastCharIndex = -1;
+        execOnLCList(pText, pText->letterIndexHead, &eraseLC);
         pText->rendered = False;
         pText->lastRenderFrame = -1;
+        freeLetterCloneindexList(pText);
     }
 }
 
 void destroyText(Text *pText)
 {
-    int i;
-    char actorName[256];
+    eraseText(pText);
 
     if (pText->pString)
     {
-        if (pText->firstCharIndex > -1 && pText->lastCharIndex > -1)
-        {
-            for (i = pText->firstCharIndex; i <= pText->lastCharIndex; i ++)
-            {
-                sprintf(actorName, "%s.%i", (pText->lastRenderFrame)?"a_typeActor2":"a_typeActor", i);
-                DestroyActor(actorName);
-            }
-        }
-
-        pText->firstCharIndex = -1;
-        pText->lastCharIndex = -1;
-        pText->rendered = False;
-        pText->lastRenderFrame = -1;
-
         free(pText->pString);
         pText->pString = NULL;
     }
@@ -708,8 +844,14 @@ void skipEscapeSequences(char *pString, int *iterator, Color *pTempColor, bool *
                 else
                     *iterator += len - *iterator; // Skip to the end of the string
             break;
+            default: break;
         }
     }
+}
+
+int getLineStartX(Text *pText, int pos)
+{
+
 }
 
 void renderText(Text *pText)
@@ -728,11 +870,12 @@ void renderText(Text *pText)
     if (pText->rendered)
         eraseText(pText);
 
+    prevX = getLineStartX(pText, 0);
     switch (pText->alignment)
     {
         case ALIGN_LEFT: prevX = pText->beginX; break;
-        case ALIGN_CENTER: prevX = pText->beginX - calculateLineWidth(pText, pText->pString, currentLine) * 0.5; break;
-        case ALIGN_RIGHT: prevX = pText->beginX - calculateLineWidth(pText, pText->pString, currentLine); break;
+        case ALIGN_CENTER: prevX = pText->beginX - calculateLineTailWidth(pText, 0) * 0.5; break;
+        case ALIGN_RIGHT: prevX = pText->beginX - calculateLineTailWidth(pText, 0); break;
     }
 
     prevY = (pText->fitInArea) ? pText->textAreaScrollPosition : pText->beginY;
@@ -756,8 +899,8 @@ void renderText(Text *pText)
                     switch (pText->alignment)
                     {
                         case ALIGN_LEFT: prevX = pText->beginX; break;
-                        case ALIGN_CENTER: prevX = pText->beginX - calculateLineWidth(pText, pText->pString, currentLine) * 0.5; break;
-                        case ALIGN_RIGHT: prevX = pText->beginX - calculateLineWidth(pText, pText->pString, currentLine); break;
+                        case ALIGN_CENTER: prevX = pText->beginX - calculateLineTailWidth(pText, skipTo) * 0.5; break;
+                        case ALIGN_RIGHT: prevX = pText->beginX - calculateLineTailWidth(pText, skipTo); break;
                     }
 
                     prevY += pFont->lineSpacing;
@@ -779,8 +922,8 @@ void renderText(Text *pText)
                 switch (pText->alignment)
                 {
                     case ALIGN_LEFT: prevX = pText->beginX; break;
-                    case ALIGN_CENTER: prevX = pText->beginX - calculateLineWidth(pText, pText->pString, currentLine) * 0.5; break;
-                    case ALIGN_RIGHT: prevX = pText->beginX - calculateLineWidth(pText, pText->pString, currentLine); break;
+                    case ALIGN_CENTER: prevX = pText->beginX - calculateLineTailWidth(pText, i + 1) * 0.5; break;
+                    case ALIGN_RIGHT: prevX = pText->beginX - calculateLineTailWidth(pText, i + 1); break;
                 }
 
                 prevY += pFont->lineSpacing;
@@ -827,17 +970,13 @@ int renderCharacter(Text *pText, char printChar, Color color, bool relative, int
         else
             a = CreateActor(typeActorName[frame % 2], pFont->fontName, "(none)", "(none)", prevX, yPos, true);
 
+        storeLetterCloneindex(pText, a->cloneindex);
+
         if (actorExists2(pParent))
             ChangeParent(a->clonename, pText->parentCName);
 
         colorActor(a, color);
         ChangeZDepth(a->clonename, pText->zDepth);
-
-        if (pText->firstCharIndex == -1)
-            pText->firstCharIndex = a->cloneindex;
-
-        if (a->cloneindex > pText->lastCharIndex);
-            pText->lastCharIndex = a->cloneindex;
 
         a->animpos = letterNum;
     }
