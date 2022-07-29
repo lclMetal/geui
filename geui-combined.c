@@ -1752,10 +1752,7 @@ typedef struct WindowItemStruct
             long bTileEndIndex;
             void (*actionFunction)(struct WindowStruct *, struct WindowItemStruct *);
         }button;
-        struct PanelItem // TODO: could this be replaced with a plain Panel element?
-        {
-            struct PanelStruct *panel;
-        }panel;
+        struct PanelStruct *panel;
         struct EmbedderItem
         {
             char actorCName[256];
@@ -1943,21 +1940,21 @@ WindowItem *addPanel(Window *window, Panel *panel, char tag[256])
     WindowItem *ptr = initNewItem(GEUI_Panel, window, panel, tag);
     if (!ptr) { DEBUG_MSG_FROM("item is NULL", "addPanel"); return NULL; }
 
-    ptr->data.panel.panel = malloc(sizeof *ptr->data.panel.panel);
-    if (!ptr->data.panel.panel)
+    ptr->data.panel = malloc(sizeof *ptr->data.panel);
+    if (!ptr->data.panel)
     {
         free(ptr);
         DEBUG_MSG_FROM("memory allocation failed", "addPanel");
         return NULL;
     }
 
-    ptr->data.panel.panel->index = window->pIndex++;
-    ptr->data.panel.panel->iIndex = 0;
-    ptr->data.panel.panel->rows = 0;
-    ptr->data.panel.panel->cols = 0;
-    ptr->data.panel.panel->width = 0;
-    ptr->data.panel.panel->height = 0;
-    ptr->data.panel.panel->parent = window;
+    ptr->data.panel->index = window->pIndex++;
+    ptr->data.panel->iIndex = 0;
+    ptr->data.panel->rows = 0;
+    ptr->data.panel->cols = 0;
+    ptr->data.panel->width = 0;
+    ptr->data.panel->height = 0;
+    ptr->data.panel->parent = window;
 
     return addItemToWindow(ptr);
 }
@@ -2008,7 +2005,7 @@ WindowItem *getItemFromPanelByTag(Panel *panel, char tag[256])
 
         if (ptr->type == GEUI_Panel)
         {
-            result = getItemFromPanelByTag(ptr->data.panel.panel, tag);
+            result = getItemFromPanelByTag(ptr->data.panel, tag);
 
             if (result)
                 return result;
@@ -2108,7 +2105,7 @@ void buildPanel(WindowItem *ptr)
 {
     if (ptr->type != GEUI_Panel) { DEBUG_MSG_FROM("item is not a valid Panel item", "buildPanel"); return; }
 
-    buildItems(ptr->data.panel.panel);
+    buildItems(ptr->data.panel);
 }
 
 void buildButtonText(WindowItem *ptr)
@@ -2208,7 +2205,7 @@ void eraseWindowItem(WindowItem *ptr)
             }
         break;
         case GEUI_Panel:
-            closePanel(ptr->data.panel.panel);
+            closePanel(ptr->data.panel);
         break;
         case GEUI_Embedder:
             VisibilityState(ptr->data.embedder.actorCName, DISABLE);
@@ -2235,8 +2232,8 @@ void destroyWindowItem(WindowItem *ptr)
             }
         break;
         case GEUI_Panel:
-            destroyPanel(ptr->data.panel.panel);
-            free(ptr->data.panel.panel);
+            destroyPanel(ptr->data.panel);
+            free(ptr->data.panel);
         break;
         case GEUI_Embedder:
             DestroyActor(ptr->data.embedder.actorCName);
@@ -2274,10 +2271,10 @@ Panel *getPanelByTag(Panel *panel, char tag[256])
     for (ptr = panel->iList; ptr != NULL; ptr = ptr->next)
     {
         if (!strcmp(ptr->tag, tag))
-            return ptr->data.panel.panel;
+            return ptr->data.panel;
         if (ptr->type == GEUI_Panel)
         {
-            Panel *p = getPanelByTag(ptr->data.panel.panel, tag);
+            Panel *p = getPanelByTag(ptr->data.panel, tag);
             if (p) return p;
         }
     }
@@ -2299,10 +2296,10 @@ Panel *getPanelByIndex(Panel *panel, int index)
         {
             Panel *p;
 
-            if (ptr->data.panel.panel->index == index)
-                return ptr->data.panel.panel;
+            if (ptr->data.panel->index == index)
+                return ptr->data.panel;
 
-            p = getPanelByIndex(ptr->data.panel.panel, index);
+            p = getPanelByIndex(ptr->data.panel, index);
             if (p) return p;
         }
     }
@@ -2337,7 +2334,7 @@ short getColWidth(Panel *panel, short col)
 
     for (item = panel->iList; item != NULL; item = item->next)
     {
-        if (item->type == GEUI_Panel) updatePanelLayout(item, item->data.panel.panel);
+        if (item->type == GEUI_Panel) updatePanelLayout(item, item->data.panel);
         if (item->layout.col == col && item->layout.width > width)
             width = item->layout.width;
     }
@@ -2357,7 +2354,7 @@ short getRowHeight(Panel *panel, short row)
 
     for (item = panel->iList; item != NULL; item = item->next)
     {
-        if (item->type == GEUI_Panel) updatePanelLayout(item, item->data.panel.panel);
+        if (item->type == GEUI_Panel) updatePanelLayout(item, item->data.panel);
         if (item->layout.row == row && item->layout.height > height)
             height = item->layout.height;
     }
@@ -2462,7 +2459,7 @@ void setPanelBaseParent(Panel *panel, char *parentName)
                 if (ptr->data.button.bTileStartIndex > -1)
                     changeParentOfClones("a_gui", ptr->data.button.bTileStartIndex, ptr->data.button.bTileEndIndex, parentName);
                 break;
-             case GEUI_Panel: setPanelBaseParent(ptr->data.panel.panel,  parentName); break;
+             case GEUI_Panel: setPanelBaseParent(ptr->data.panel,  parentName); break;
              case GEUI_Embedder: ChangeParent(ptr->data.embedder.actorCName, parentName); break;
 
             default: break;
@@ -3259,7 +3256,7 @@ void visualize(Window *window, WindowItem *panelItem, Color color)
         Panel *panel;
 
         if (panelItem)
-            panel = panelItem->data.panel.panel;
+            panel = panelItem->data.panel;
         else
             panel = &window->mainPanel;
 
@@ -3300,7 +3297,7 @@ void printVisualizationData(Window *window, WindowItem *panelItem)
         Panel *panel;
 
         if (panelItem)
-            panel = panelItem->data.panel.panel;
+            panel = panelItem->data.panel;
         else
             panel = &window->mainPanel;
 
@@ -3312,7 +3309,7 @@ void printVisualizationData(Window *window, WindowItem *panelItem)
                 x = getColStart(panelItem, panel, col);
 
                 if (panelItem)
-                    sprintf(panelTag, "%s.%d w: %d h: %d cw: %d rh: %d", panelItem->tag, window->index, getPanelWidth(panelItem->data.panel.panel), getPanelHeight(panelItem->data.panel.panel), getColWidth(panelItem->data.panel.panel, col), getRowHeight(panelItem->data.panel.panel, row));
+                    sprintf(panelTag, "%s.%d w: %d h: %d cw: %d rh: %d", panelItem->tag, window->index, getPanelWidth(panelItem->data.panel), getPanelHeight(panelItem->data.panel), getColWidth(panelItem->data.panel, col), getRowHeight(panelItem->data.panel, row));
                 else
                     sprintf(panelTag, "mainPanel.%d w: %d h: %d cw: %d rh: %d", window->index, getPanelWidth(&window->mainPanel), getPanelHeight(&window->mainPanel), getColWidth(&window->mainPanel, col), getRowHeight(&window->mainPanel, row));
                 sprintf(temp, "%s row: %d, col: %d, x: %d, y: %d, rows: %d", panelTag, row, col, x, y, window->mainPanel.rows);

@@ -11,7 +11,7 @@ void visualize(Window *window, WindowItem *panelItem, Color color)
         Panel *panel;
 
         if (panelItem)
-            panel = panelItem->data.panel.panel;
+            panel = panelItem->data.panel;
         else
             panel = &window->mainPanel;
 
@@ -52,7 +52,7 @@ void printVisualizationData(Window *window, WindowItem *panelItem)
         Panel *panel;
 
         if (panelItem)
-            panel = panelItem->data.panel.panel;
+            panel = panelItem->data.panel;
         else
             panel = &window->mainPanel;
 
@@ -64,7 +64,7 @@ void printVisualizationData(Window *window, WindowItem *panelItem)
                 x = getColStart(panelItem, panel, col);
 
                 if (panelItem)
-                    sprintf(panelTag, "%s.%d w: %d h: %d cw: %d rh: %d", panelItem->tag, window->index, getPanelWidth(panelItem->data.panel.panel), getPanelHeight(panelItem->data.panel.panel), getColWidth(panelItem->data.panel.panel, col), getRowHeight(panelItem->data.panel.panel, row));
+                    sprintf(panelTag, "%s.%d w: %d h: %d cw: %d rh: %d", panelItem->tag, window->index, getPanelWidth(panelItem->data.panel), getPanelHeight(panelItem->data.panel), getColWidth(panelItem->data.panel, col), getRowHeight(panelItem->data.panel, row));
                 else
                     sprintf(panelTag, "mainPanel.%d w: %d h: %d cw: %d rh: %d", window->index, getPanelWidth(&window->mainPanel), getPanelHeight(&window->mainPanel), getColWidth(&window->mainPanel, col), getRowHeight(&window->mainPanel, row));
                 sprintf(temp, "%s row: %d, col: %d, x: %d, y: %d, rows: %d", panelTag, row, col, x, y, window->mainPanel.rows);

@@ -37,10 +37,7 @@ typedef struct WindowItemStruct
             long bTileEndIndex;
             void (*actionFunction)(struct WindowStruct *, struct WindowItemStruct *);
         }button;
-        struct PanelItem // TODO: could this be replaced with a plain Panel element?
-        {
-            struct PanelStruct *panel;
-        }panel;
+        struct PanelStruct *panel;
         struct EmbedderItem
         {
             char actorCName[256];

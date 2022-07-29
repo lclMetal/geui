@@ -103,21 +103,21 @@ WindowItem *addPanel(Window *window, Panel *panel, char tag[256])
     WindowItem *ptr = initNewItem(GEUI_Panel, window, panel, tag);
     if (!ptr) { DEBUG_MSG_FROM("item is NULL", "addPanel"); return NULL; }
 
-    ptr->data.panel.panel = malloc(sizeof *ptr->data.panel.panel);
-    if (!ptr->data.panel.panel)
+    ptr->data.panel = malloc(sizeof *ptr->data.panel);
+    if (!ptr->data.panel)
     {
         free(ptr);
         DEBUG_MSG_FROM("memory allocation failed", "addPanel");
         return NULL;
     }
 
-    ptr->data.panel.panel->index = window->pIndex++;
-    ptr->data.panel.panel->iIndex = 0;
-    ptr->data.panel.panel->rows = 0;
-    ptr->data.panel.panel->cols = 0;
-    ptr->data.panel.panel->width = 0;
-    ptr->data.panel.panel->height = 0;
-    ptr->data.panel.panel->parent = window;
+    ptr->data.panel->index = window->pIndex++;
+    ptr->data.panel->iIndex = 0;
+    ptr->data.panel->rows = 0;
+    ptr->data.panel->cols = 0;
+    ptr->data.panel->width = 0;
+    ptr->data.panel->height = 0;
+    ptr->data.panel->parent = window;
 
     return addItemToWindow(ptr);
 }
@@ -168,7 +168,7 @@ WindowItem *getItemFromPanelByTag(Panel *panel, char tag[256])
 
         if (ptr->type == GEUI_Panel)
         {
-            result = getItemFromPanelByTag(ptr->data.panel.panel, tag);
+            result = getItemFromPanelByTag(ptr->data.panel, tag);
 
             if (result)
                 return result;
@@ -268,7 +268,7 @@ void buildPanel(WindowItem *ptr)
 {
     if (ptr->type != GEUI_Panel) { DEBUG_MSG_FROM("item is not a valid Panel item", "buildPanel"); return; }
 
-    buildItems(ptr->data.panel.panel);
+    buildItems(ptr->data.panel);
 }
 
 void buildButtonText(WindowItem *ptr)
@@ -368,7 +368,7 @@ void eraseWindowItem(WindowItem *ptr)
             }
         break;
         case GEUI_Panel:
-            closePanel(ptr->data.panel.panel);
+            closePanel(ptr->data.panel);
         break;
         case GEUI_Embedder:
             VisibilityState(ptr->data.embedder.actorCName, DISABLE);
@@ -395,8 +395,8 @@ void destroyWindowItem(WindowItem *ptr)
             }
         break;
         case GEUI_Panel:
-            destroyPanel(ptr->data.panel.panel);
-            free(ptr->data.panel.panel);
+            destroyPanel(ptr->data.panel);
+            free(ptr->data.panel);
         break;
         case GEUI_Embedder:
             DestroyActor(ptr->data.embedder.actorCName);

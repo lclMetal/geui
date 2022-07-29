@@ -24,10 +24,10 @@ Panel *getPanelByTag(Panel *panel, char tag[256])
     for (ptr = panel->iList; ptr != NULL; ptr = ptr->next)
     {
         if (!strcmp(ptr->tag, tag))
-            return ptr->data.panel.panel;
+            return ptr->data.panel;
         if (ptr->type == GEUI_Panel)
         {
-            Panel *p = getPanelByTag(ptr->data.panel.panel, tag);
+            Panel *p = getPanelByTag(ptr->data.panel, tag);
             if (p) return p;
         }
     }
@@ -49,10 +49,10 @@ Panel *getPanelByIndex(Panel *panel, int index)
         {
             Panel *p;
 
-            if (ptr->data.panel.panel->index == index)
-                return ptr->data.panel.panel;
+            if (ptr->data.panel->index == index)
+                return ptr->data.panel;
 
-            p = getPanelByIndex(ptr->data.panel.panel, index);
+            p = getPanelByIndex(ptr->data.panel, index);
             if (p) return p;
         }
     }
@@ -87,7 +87,7 @@ short getColWidth(Panel *panel, short col)
 
     for (item = panel->iList; item != NULL; item = item->next)
     {
-        if (item->type == GEUI_Panel) updatePanelLayout(item, item->data.panel.panel);
+        if (item->type == GEUI_Panel) updatePanelLayout(item, item->data.panel);
         if (item->layout.col == col && item->layout.width > width)
             width = item->layout.width;
     }
@@ -107,7 +107,7 @@ short getRowHeight(Panel *panel, short row)
 
     for (item = panel->iList; item != NULL; item = item->next)
     {
-        if (item->type == GEUI_Panel) updatePanelLayout(item, item->data.panel.panel);
+        if (item->type == GEUI_Panel) updatePanelLayout(item, item->data.panel);
         if (item->layout.row == row && item->layout.height > height)
             height = item->layout.height;
     }
@@ -212,7 +212,7 @@ void setPanelBaseParent(Panel *panel, char *parentName)
                 if (ptr->data.button.bTileStartIndex > -1)
                     changeParentOfClones("a_gui", ptr->data.button.bTileStartIndex, ptr->data.button.bTileEndIndex, parentName);
                 break;
-             case GEUI_Panel: setPanelBaseParent(ptr->data.panel.panel,  parentName); break;
+             case GEUI_Panel: setPanelBaseParent(ptr->data.panel,  parentName); break;
              case GEUI_Embedder: ChangeParent(ptr->data.embedder.actorCName, parentName); break;
 
             default: break;
