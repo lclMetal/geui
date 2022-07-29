@@ -28,7 +28,7 @@ typedef struct WindowItemStruct
 
     union ItemDataUnion // item data union for different item types
     {
-        struct TextItem     { Text text; }text; // TODO: could this be replaced with a plain Text element?
+        Text text;
         struct ButtonItem
         {
             Text text;

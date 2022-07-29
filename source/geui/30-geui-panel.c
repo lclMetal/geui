@@ -206,7 +206,7 @@ void setPanelBaseParent(Panel *panel, char *parentName)
     {
         switch (ptr->type)
         {
-            case GEUI_Text: setTextParent(&ptr->data.text.text, parentName, True); break;
+            case GEUI_Text: setTextParent(&ptr->data.text, parentName, True); break;
             case GEUI_Button:
                 setTextParent(&ptr->data.button.text, parentName, True);
                 if (ptr->data.button.bTileStartIndex > -1)

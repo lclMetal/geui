@@ -66,15 +66,15 @@ WindowItem *addText(Window *window, Panel *panel, char tag[256], char *string, s
     WindowItem *ptr = initNewItem(GEUI_Text, window, panel, tag);
     if (!ptr) { DEBUG_MSG_FROM("item is NULL", "addText"); return NULL; }
 
-    ptr->data.text.text = createText(string, window->style.textFont, "(none)", ABSOLUTE, 0, 0);
-    setTextColor(&ptr->data.text.text, window->style.textColor);
-    setTextZDepth(&ptr->data.text.text, DEFAULT_ITEM_ZDEPTH);
+    ptr->data.text = createText(string, window->style.textFont, "(none)", ABSOLUTE, 0, 0);
+    setTextColor(&ptr->data.text, window->style.textColor);
+    setTextZDepth(&ptr->data.text, DEFAULT_ITEM_ZDEPTH);
 
     if (maxWidth > 0)
-        fitTextInWidth(&ptr->data.text.text, maxWidth);
+        fitTextInWidth(&ptr->data.text, maxWidth);
 
-    ptr->layout.width = ptr->data.text.text.width;
-    ptr->layout.height = ptr->data.text.text.height;
+    ptr->layout.width = ptr->data.text.width;
+    ptr->layout.height = ptr->data.text.height;
 
     return addItemToWindow(ptr);
 }
@@ -256,12 +256,12 @@ void buildText(WindowItem *ptr)
 {
     if (ptr->type != GEUI_Text) { DEBUG_MSG_FROM("item is not a valid Text item", "buildText"); return; }
 
-    setTextZDepth(&ptr->data.text.text, DEFAULT_ITEM_ZDEPTH);
+    setTextZDepth(&ptr->data.text, DEFAULT_ITEM_ZDEPTH);
     // TODO: layout / positioning
-    setTextPosition(&ptr->data.text.text,
+    setTextPosition(&ptr->data.text,
         ptr->layout.startx + ptr->parent->style.padding,
-        ptr->layout.starty + ptr->data.text.text.pFont->lineSpacing * 0.5 + ptr->parent->style.padding);
-    refreshText(&ptr->data.text.text);
+        ptr->layout.starty + ptr->data.text.pFont->lineSpacing * 0.5 + ptr->parent->style.padding);
+    refreshText(&ptr->data.text);
 }
 
 void buildPanel(WindowItem *ptr)
@@ -355,8 +355,8 @@ void eraseWindowItem(WindowItem *ptr)
     switch (ptr->type)
     {
         case GEUI_Text:
-            eraseText(&ptr->data.text.text);
-            setTextParent(&ptr->data.text.text, "(none)", False);
+            eraseText(&ptr->data.text);
+            setTextParent(&ptr->data.text, "(none)", False);
         break;
         case GEUI_Button:
             eraseText(&ptr->data.button.text);
@@ -384,7 +384,7 @@ void destroyWindowItem(WindowItem *ptr)
 
     switch (ptr->type)
     {
-        case GEUI_Text: destroyText(&ptr->data.text.text); break;
+        case GEUI_Text: destroyText(&ptr->data.text); break;
         case GEUI_Button:
             destroyText(&ptr->data.button.text);
             if (ptr->data.button.bTileStartIndex > -1)
