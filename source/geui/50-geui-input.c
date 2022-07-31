@@ -46,16 +46,29 @@ int isTopmostItemAtMouse(WindowItem *item)
 
 void focusNextItemInWindow()
 {
+    Window *window = getWindowByIndex(GEUIController.topIndex);
     WindowItem *nextFocus = NULL;
 
-    if (GEUIController.focus)
+    if (GEUIController.focus && GEUIController.focus->parent->index == GEUIController.topIndex)
     {
         nextFocus = getNextFocusableItem(GEUIController.focus);
-
-        if (nextFocus)
+    }
+    else
+    {
+        window = getWindowByIndex(GEUIController.topIndex);
+        if (window && window->isOpen)
         {
-            focusItem(nextFocus);
+            nextFocus = getItemFromPanelByIndex(&window->mainPanel, 0);
+            if (nextFocus && nextFocus->focusable == False)
+            {
+                nextFocus = getNextFocusableItem(nextFocus);
+            }
         }
+    }
+
+    if (nextFocus)
+    {
+        focusItem(nextFocus);
     }
 }
 
@@ -82,7 +95,7 @@ void doMouseEnter(const char *actorName)
                 long start = item->data.button.bTileStartIndex;
                 long end   = item->data.button.bTileEndIndex;
 
-                focusItem(item);
+                // focusItem(item);
 
                 if (item->data.button.state)
                     colorClones("a_gui", start, end, item->parent->style.buttonPressedColor);

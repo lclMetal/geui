@@ -4,6 +4,7 @@
 Window *createWindow(char tag[256], Style style);
 Window *getWindowByTag(char tag[256]);
 Window *getWindowByIndex(int index);
+Window *getFirstOpenWindow();
 Window *openWindow(char tag[256]);
 void buildWindow(Window *window);
 Actor *createWindowBaseParent(Window *window);
@@ -70,6 +71,23 @@ Window *getWindowByIndex(int index)
     {
         if (ptr->index == index)
             return ptr;
+
+        ptr = ptr->next;
+    }
+
+    return NULL;
+}
+
+Window *getFirstOpenWindow()
+{
+    Window *ptr = GEUIController.wList;
+
+    while (ptr)
+    {
+        if (ptr->isOpen)
+        {
+            return ptr;
+        }
 
         ptr = ptr->next;
     }
@@ -169,10 +187,12 @@ void setWindowBaseParent(Window *window, char *parentName)
 void bringWindowToFront(Window *window)
 {
     Window *ptr = NULL;
+    Window *prev = NULL;
 
     if (!window) { DEBUG_MSG_FROM("window is NULL", "bringWindowToFront"); return; }
 
     ptr = GEUIController.wList;
+    blurItem(GEUIController.focus);
 
     while (ptr)
     {
@@ -181,6 +201,14 @@ void bringWindowToFront(Window *window)
             ptr->zDepth = ACTIVE_WINDOW_ZDEPTH;
             ChangeZDepth(ptr->parentCName, ptr->zDepth);
             GEUIController.topIndex = window->index;
+
+            if (prev)
+            {
+                prev->next = ptr->next;
+                ptr->next = GEUIController.wList;
+                GEUIController.wList = ptr;
+                ptr = prev;
+            }
         }
         else
         {
@@ -188,6 +216,7 @@ void bringWindowToFront(Window *window)
             ChangeZDepth(ptr->parentCName, ptr->zDepth);
         }
 
+        prev = ptr;
         ptr = ptr->next;
     }
 }
@@ -208,6 +237,20 @@ void closeWindow(Window *window)
         destroyClones("a_gui", window->wTileStartIndex, window->wTileEndIndex);
         window->wTileStartIndex = -1;
         window->wTileEndIndex = -1;
+    }
+
+    if (window->index == GEUIController.topIndex)
+    {
+        Window *nextTopWindow = getFirstOpenWindow();
+
+        if (nextTopWindow)
+        {
+            GEUIController.topIndex = nextTopWindow->index;
+        }
+        else
+        {
+            GEUIController.topIndex = -1;
+        }
     }
 
     closePanel(&window->mainPanel);

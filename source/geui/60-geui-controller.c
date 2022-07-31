@@ -26,7 +26,7 @@ void initGEUI(void)
     defStyle.focusColor         = createRGB(255, 0, 128, 1.0);
 
     GEUIController.wIndex = 0;
-    GEUIController.topIndex = 0;
+    GEUIController.topIndex = -1;
     GEUIController.sDefault = defStyle;
     GEUIController.wList = NULL;
     GEUIController.focus = NULL;

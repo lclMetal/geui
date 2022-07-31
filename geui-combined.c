@@ -2136,7 +2136,7 @@ WindowItem *initNewItem(ItemType type, Window *window, Panel *panel, char tag[25
     if (!ptr) { DEBUG_MSG_FROM("memory allocation failed", "initNewItem"); return NULL; }
 
     ptr->type = type;
-    ptr->focusable = True;
+    ptr->focusable = False;
     ptr->index = panel->iIndex ++;
     strcpy(ptr->tag, tag);
     ptr->myPanel = panel;
@@ -2184,6 +2184,7 @@ WindowItem *addButton(Window *window, Panel *panel, char tag[256], char *string,
     WindowItem *ptr = initNewItem(GEUI_Button, window, panel, tag);
     if (!ptr) { DEBUG_MSG_FROM("item is NULL", "addButton"); return NULL; }
 
+    ptr->focusable = True;
     ptr->data.button.text = createText(string, window->style.textFont, "(none)", ABSOLUTE, 0, 0);
     setTextColor(&ptr->data.button.text, window->style.textColor);
     setTextZDepth(&ptr->data.button.text, DEFAULT_ITEM_ZDEPTH);
@@ -2204,6 +2205,7 @@ WindowItem *addInputInt(Window *window, Panel *panel, char tag[256], int default
     WindowItem *ptr = initNewItem(GEUI_InputInt, window, panel, tag);
     if (!ptr) { DEBUG_MSG_FROM("item is NULL", "addInputInt"); return NULL; }
 
+    ptr->focusable = True;
     ptr->data.inputInt.value = defaultVal;
     sprintf(temp, "%d", defaultVal);
     ptr->data.inputInt.text = createText(temp, window->style.textFont, "(none)", ABSOLUTE, 0, 0);
@@ -2214,7 +2216,7 @@ WindowItem *addInputInt(Window *window, Panel *panel, char tag[256], int default
     ptr->data.inputInt.tileStartIndex = -1;
     ptr->data.inputInt.tileEndIndex = -1;
     ptr->layout.width = calculateRequiredWidthInPixels(&ptr->data.inputInt) + ptr->parent->style.tileWidth * 2;
-    ptr->layout.height = ptr->data.inputInt.text.height;
+    ptr->layout.height = ptr->parent->style.tileHeight;
 
     return addItemToWindow(ptr);
 }
@@ -2355,29 +2357,32 @@ WindowItem *getNextFocusableItem(WindowItem *ptr)
     Window *window = ptr->parent;
     WindowItem *next = getItemFromPanelByIndex(panel, ptr->index + 1);
 
+    // If there was a next item in the same panel
     if (next)
     {
-        DEBUG_MSG_FROM("next was available", "getNextFocusableItem");
         if (next->focusable)
             return next;
         return getNextFocusableItem(next);
     }
 
+    // Otherwise get the next panel in this window
     panel = getPanelByIndex(&window->mainPanel, panel->index + 1);
 
+    // If there was a next panel in the same window
     if (panel)
     {
         next = getItemFromPanelByIndex(panel, 0);
 
+        // Panel had an item inside with index 0
         if (next)
         {
-        DEBUG_MSG_FROM("next was available", "getNextFocusableItem");
             if (next->focusable)
                 return next;
             return getNextFocusableItem(next);
         }
     }
 
+    // Otherwise use the main panel (always has index 0) of the window
     panel = getPanelByIndex(&window->mainPanel, 0);
 
     if (panel)
@@ -2386,14 +2391,12 @@ WindowItem *getNextFocusableItem(WindowItem *ptr)
 
         if (next)
         {
-        DEBUG_MSG_FROM("next was available", "getNextFocusableItem");
             if (next->focusable)
                 return next;
             return getNextFocusableItem(next);
         }
     }
 
-        DEBUG_MSG_FROM("sadface", "getNextFocusableItem");
     return NULL;
 }
 
@@ -2415,7 +2418,7 @@ WindowItem *focusItem(WindowItem *ptr)
 
 void blurItem(WindowItem *ptr)
 {
-    if (GEUIController.focus == ptr)
+    if (GEUIController.focus != NULL && GEUIController.focus == ptr)
     {
         eraseFocus(ptr);
         GEUIController.focus = NULL;
@@ -2453,7 +2456,6 @@ void buildFocus(WindowItem *ptr)
             tile->y = ptr->layout.starty + tileHeight -tileHeight/2;
             tile->y += ptr->parent->style.padding - focusLineWidth;
             tile->animpos = 15 + (i > 0) + (i == tilesHorizontal - 1);
-
             tile->myWindow = -1;
             tile->myPanel = -1;
             tile->myIndex = -1;
@@ -2467,10 +2469,8 @@ void buildFocus(WindowItem *ptr)
                            ptr->parent->parentCName, "(none)", 0, 0, true);
             tile->x = ptr->layout.startx + tileWidth + i * tileWidth  + (i >= 2 && i >= tilesHorizontal - 2) * (focusWidth  - tilesHorizontal * tileWidth)-tileWidth/2;
             tile->x += ptr->parent->style.padding - focusLineWidth;
-            tile->y = ptr->layout.starty + tileHeight -tileHeight/2;
-            tile->y += ptr->parent->style.padding + focusLineWidth;
+            tile->y = ptr->layout.starty + tileHeight -tileHeight/2 + ptr->parent->style.padding - focusLineWidth + focusHeight - tileHeight;
             tile->animpos = 21 + (i > 0) + (i == tilesHorizontal - 1);
-
             tile->myWindow = -1;
             tile->myPanel = -1;
             tile->myIndex = -1;
@@ -2489,8 +2489,8 @@ void buildFocus(WindowItem *ptr)
             {
                 tempAnimpos = calculateAnimpos(tilesHorizontal, tilesVertical, i, j) + 15;
 
-                // if (tempAnimpos == 19)
-                    // continue;
+                if (tempAnimpos == 19)
+                    continue;
 
                 tile = CreateActor("a_gui", ptr->parent->style.guiAnim,
                                    ptr->parent->parentCName, "(none)", 0, 0, true);
@@ -3100,6 +3100,7 @@ void destroyPanel(Panel *panel)
 Window *createWindow(char tag[256], Style style);
 Window *getWindowByTag(char tag[256]);
 Window *getWindowByIndex(int index);
+Window *getFirstOpenWindow();
 Window *openWindow(char tag[256]);
 void buildWindow(Window *window);
 Actor *createWindowBaseParent(Window *window);
@@ -3166,6 +3167,23 @@ Window *getWindowByIndex(int index)
     {
         if (ptr->index == index)
             return ptr;
+
+        ptr = ptr->next;
+    }
+
+    return NULL;
+}
+
+Window *getFirstOpenWindow()
+{
+    Window *ptr = GEUIController.wList;
+
+    while (ptr)
+    {
+        if (ptr->isOpen)
+        {
+            return ptr;
+        }
 
         ptr = ptr->next;
     }
@@ -3265,10 +3283,12 @@ void setWindowBaseParent(Window *window, char *parentName)
 void bringWindowToFront(Window *window)
 {
     Window *ptr = NULL;
+    Window *prev = NULL;
 
     if (!window) { DEBUG_MSG_FROM("window is NULL", "bringWindowToFront"); return; }
 
     ptr = GEUIController.wList;
+    blurItem(GEUIController.focus);
 
     while (ptr)
     {
@@ -3277,6 +3297,14 @@ void bringWindowToFront(Window *window)
             ptr->zDepth = ACTIVE_WINDOW_ZDEPTH;
             ChangeZDepth(ptr->parentCName, ptr->zDepth);
             GEUIController.topIndex = window->index;
+
+            if (prev)
+            {
+                prev->next = ptr->next;
+                ptr->next = GEUIController.wList;
+                GEUIController.wList = ptr;
+                ptr = prev;
+            }
         }
         else
         {
@@ -3284,6 +3312,7 @@ void bringWindowToFront(Window *window)
             ChangeZDepth(ptr->parentCName, ptr->zDepth);
         }
 
+        prev = ptr;
         ptr = ptr->next;
     }
 }
@@ -3304,6 +3333,20 @@ void closeWindow(Window *window)
         destroyClones("a_gui", window->wTileStartIndex, window->wTileEndIndex);
         window->wTileStartIndex = -1;
         window->wTileEndIndex = -1;
+    }
+
+    if (window->index == GEUIController.topIndex)
+    {
+        Window *nextTopWindow = getFirstOpenWindow();
+
+        if (nextTopWindow)
+        {
+            GEUIController.topIndex = nextTopWindow->index;
+        }
+        else
+        {
+            GEUIController.topIndex = -1;
+        }
     }
 
     closePanel(&window->mainPanel);
@@ -3366,16 +3409,29 @@ int isTopmostItemAtMouse(WindowItem *item)
 
 void focusNextItemInWindow()
 {
+    Window *window = getWindowByIndex(GEUIController.topIndex);
     WindowItem *nextFocus = NULL;
 
-    if (GEUIController.focus)
+    if (GEUIController.focus && GEUIController.focus->parent->index == GEUIController.topIndex)
     {
         nextFocus = getNextFocusableItem(GEUIController.focus);
-
-        if (nextFocus)
+    }
+    else
+    {
+        window = getWindowByIndex(GEUIController.topIndex);
+        if (window && window->isOpen)
         {
-            focusItem(nextFocus);
+            nextFocus = getItemFromPanelByIndex(&window->mainPanel, 0);
+            if (nextFocus && nextFocus->focusable == False)
+            {
+                nextFocus = getNextFocusableItem(nextFocus);
+            }
         }
+    }
+
+    if (nextFocus)
+    {
+        focusItem(nextFocus);
     }
 }
 
@@ -3402,7 +3458,7 @@ void doMouseEnter(const char *actorName)
                 long start = item->data.button.bTileStartIndex;
                 long end   = item->data.button.bTileEndIndex;
 
-                focusItem(item);
+                // focusItem(item);
 
                 if (item->data.button.state)
                     colorClones("a_gui", start, end, item->parent->style.buttonPressedColor);
@@ -3756,7 +3812,7 @@ void initGEUI(void)
     defStyle.focusColor         = createRGB(255, 0, 128, 1.0);
 
     GEUIController.wIndex = 0;
-    GEUIController.topIndex = 0;
+    GEUIController.topIndex = -1;
     GEUIController.sDefault = defStyle;
     GEUIController.wList = NULL;
     GEUIController.focus = NULL;
