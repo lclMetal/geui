@@ -68,7 +68,6 @@ void focusNextItemInWindow()
 
     if (nextFocus)
     {
-        blurItem(GEUIController.focus);
         focusItem(nextFocus);
     }
 }
@@ -414,7 +413,6 @@ void updateMouseButtonUp(enum mouseButtonsEnum mButtonNumber)
 
 void doKeyDown(WindowItem *item, int key)
 {
-    // TODO: implement doKeyDown
     if (item)
     {
         switch (item->type)
@@ -430,6 +428,12 @@ void doKeyDown(WindowItem *item, int key)
             break;
             case GEUI_InputInt:
                 handleIntInput(&item->data.inputInt, key);
+
+                if (key == KEY_RETURN)
+                {
+                    enforceIntLimits(&item->data.inputInt);
+                }
+
                 refreshText(&item->data.inputInt.text);
             break;
         }
@@ -445,7 +449,6 @@ void doKeyDown(WindowItem *item, int key)
 
 void doKeyUp(WindowItem *item, int key)
 {
-    // TODO: implement doKeyUp
     if (item)
     {
         switch (item->type)

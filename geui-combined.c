@@ -1836,6 +1836,7 @@ typedef struct WindowStruct
 const unsigned long GEUI_TITLE_BAR  = (1 << 0);
 const unsigned long GEUI_FAKE_ACTOR = (1 << 1);
 const unsigned long GEUI_CLICKED    = (1 << 2);
+const unsigned long GEUI_INPUT_BG   = (1 << 3);
 
 enum mouseButtonsEnum // Used as array indices, don't touch!
 {
@@ -2406,6 +2407,7 @@ WindowItem *focusItem(WindowItem *ptr)
     {
         if (GEUIController.focus != ptr)
         {
+            blurItem(GEUIController.focus);
             GEUIController.focus = ptr;
             buildFocus(ptr);
         }
@@ -2430,6 +2432,11 @@ void blurItem(WindowItem *ptr)
                         ptr->data.button.bTileStartIndex,
                         ptr->data.button.bTileEndIndex, ptr->parent->style.buttonColor);
         }
+        else if (ptr->type == GEUI_InputInt)
+        {
+            enforceIntLimits(&ptr->data.inputInt);
+            refreshText(&ptr->data.inputInt.text);
+        }
     }
 }
 
@@ -2445,8 +2452,6 @@ void buildFocus(WindowItem *ptr)
     short tilesVertical;
     short tileWidth = ptr->parent->style.tileWidth;
     short tileHeight = ptr->parent->style.tileHeight;
-
-    eraseFocus();
 
     focusWidth = ptr->layout.width + focusLineWidth * 2;
     tilesHorizontal = ceil(focusWidth / (float)tileWidth);
@@ -2648,8 +2653,10 @@ void buildInputField(WindowItem *ptr, long *tileStartIndex, long *tileEndIndex)
         a->myWindow = ptr->parent->index;
         a->myPanel  = ptr->myPanel->index;
         a->myIndex  = ptr->index;
-        ChangeZDepth(a->clonename, DEFAULT_ITEM_ZDEPTH);
+        a->myProperties = GEUI_INPUT_BG;
         a->animpos = 12 + (i > 0) + (i == tilesHorizontal - 1) + (i > 0 && i == tilesHorizontal - 2 && fieldWidth < tileWidth * 2.5);
+        SendActivationEvent(a->clonename);
+        ChangeZDepth(a->clonename, DEFAULT_ITEM_ZDEPTH);
 
         updateIndexBounds(tileStartIndex, tileEndIndex, a->cloneindex);
     }
@@ -3439,7 +3446,6 @@ void focusNextItemInWindow()
 
     if (nextFocus)
     {
-        blurItem(GEUIController.focus);
         focusItem(nextFocus);
     }
 }
@@ -3785,7 +3791,6 @@ void updateMouseButtonUp(enum mouseButtonsEnum mButtonNumber)
 
 void doKeyDown(WindowItem *item, int key)
 {
-    // TODO: implement doKeyDown
     if (item)
     {
         switch (item->type)
@@ -3801,6 +3806,12 @@ void doKeyDown(WindowItem *item, int key)
             break;
             case GEUI_InputInt:
                 handleIntInput(&item->data.inputInt, key);
+
+                if (key == KEY_RETURN)
+                {
+                    enforceIntLimits(&item->data.inputInt);
+                }
+
                 refreshText(&item->data.inputInt.text);
             break;
         }
@@ -3816,7 +3827,6 @@ void doKeyDown(WindowItem *item, int key)
 
 void doKeyUp(WindowItem *item, int key)
 {
-    // TODO: implement doKeyUp
     if (item)
     {
         switch (item->type)

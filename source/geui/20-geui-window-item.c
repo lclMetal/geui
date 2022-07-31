@@ -316,6 +316,7 @@ WindowItem *focusItem(WindowItem *ptr)
     {
         if (GEUIController.focus != ptr)
         {
+            blurItem(GEUIController.focus);
             GEUIController.focus = ptr;
             buildFocus(ptr);
         }
@@ -340,6 +341,11 @@ void blurItem(WindowItem *ptr)
                         ptr->data.button.bTileStartIndex,
                         ptr->data.button.bTileEndIndex, ptr->parent->style.buttonColor);
         }
+        else if (ptr->type == GEUI_InputInt)
+        {
+            enforceIntLimits(&ptr->data.inputInt);
+            refreshText(&ptr->data.inputInt.text);
+        }
     }
 }
 
@@ -355,8 +361,6 @@ void buildFocus(WindowItem *ptr)
     short tilesVertical;
     short tileWidth = ptr->parent->style.tileWidth;
     short tileHeight = ptr->parent->style.tileHeight;
-
-    eraseFocus();
 
     focusWidth = ptr->layout.width + focusLineWidth * 2;
     tilesHorizontal = ceil(focusWidth / (float)tileWidth);
@@ -558,8 +562,10 @@ void buildInputField(WindowItem *ptr, long *tileStartIndex, long *tileEndIndex)
         a->myWindow = ptr->parent->index;
         a->myPanel  = ptr->myPanel->index;
         a->myIndex  = ptr->index;
-        ChangeZDepth(a->clonename, DEFAULT_ITEM_ZDEPTH);
+        a->myProperties = GEUI_INPUT_BG;
         a->animpos = 12 + (i > 0) + (i == tilesHorizontal - 1) + (i > 0 && i == tilesHorizontal - 2 && fieldWidth < tileWidth * 2.5);
+        SendActivationEvent(a->clonename);
+        ChangeZDepth(a->clonename, DEFAULT_ITEM_ZDEPTH);
 
         updateIndexBounds(tileStartIndex, tileEndIndex, a->cloneindex);
     }
