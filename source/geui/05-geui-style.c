@@ -13,6 +13,7 @@ typedef struct StyleStruct
 
     Color titleBgColor;
     Color windowBgColor;
+    Color inputBgColor;
 
     Color titleColor;
     Color labelColor;
@@ -27,9 +28,9 @@ Style defStyle;
 Style *setDimensions;
 
 Style createStyle(const char guiAnim[100], Font *titleFont, Font *labelFont, Font *textFont,
-                  short padding, Color titleBgColor, Color windowBgColor, Color titleColor,
-                  Color labelColor, Color textColor, Color buttonColor, Color buttonHilitColor,
-                  Color buttonPressedColor);
+                  short padding, Color titleBgColor, Color windowBgColor, Color inputBgColor,
+                  Color titleColor, Color labelColor, Color textColor, Color buttonColor,
+                  Color buttonHilitColor, Color buttonPressedColor);
 
 void getTileDimensions(Style *style)
 {
@@ -47,9 +48,9 @@ void setTileDimensions()
 }
 
 Style createStyle(const char guiAnim[100], Font *titleFont, Font *labelFont, Font *textFont,
-                  short padding, Color titleBgColor, Color windowBgColor, Color titleColor,
-                  Color labelColor, Color textColor, Color buttonColor, Color buttonHilitColor,
-                  Color buttonPressedColor)
+                  short padding, Color titleBgColor, Color windowBgColor, Color inputBgColor,
+                  Color titleColor, Color labelColor, Color textColor, Color buttonColor,
+                  Color buttonHilitColor, Color buttonPressedColor)
 {
     Style new;
 
@@ -60,6 +61,7 @@ Style createStyle(const char guiAnim[100], Font *titleFont, Font *labelFont, Fon
     new.padding = padding;
     new.titleBgColor = titleBgColor;
     new.windowBgColor = windowBgColor;
+    new.inputBgColor = inputBgColor;
     new.titleColor = titleColor;
     new.labelColor = labelColor;
     new.textColor = textColor;

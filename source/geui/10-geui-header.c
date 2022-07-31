@@ -12,12 +12,25 @@ typedef enum ItemTypeEnum
 {
     GEUI_Text,
     GEUI_Button,
+    GEUI_InputInt,
     GEUI_Panel,
     GEUI_Embedder
 }ItemType;
 
 struct WindowStruct;
 struct PanelStruct;
+
+typedef struct IntInputFieldStruct
+{
+    int    value;
+    int    minValue;
+    int    maxValue;
+
+    short  intSign;
+    short  typedZero;
+
+    Text   text;
+}IntInputField;
 
 typedef struct WindowItemStruct
 {
@@ -37,6 +50,7 @@ typedef struct WindowItemStruct
             long bTileEndIndex;
             void (*actionFunction)(struct WindowStruct *, struct WindowItemStruct *);
         }button;
+        IntInputField inputInt;
         struct PanelStruct *panel;
         struct EmbedderItem
         {

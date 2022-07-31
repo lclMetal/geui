@@ -7,7 +7,7 @@
 // -----DEBUG MACROS-----
 //
 // Can be used if DEBUG above == 1, otherwise the macros will expand to empty
-// space. That way you it's not necessary to remove them for shipping the game.
+// space. That way it's not necessary to remove them for shipping the game.
 //
 // Usage:
 //     use DEBUG_INIT(); to initialize the timestamp base time and the output file
@@ -59,16 +59,16 @@ void debugPrintFps(int mode)
     {
         default:
         case FPS_AVERAGE:
-            sprintf(text, "Avg. fps: %.02f", debugController.fpsAverage);
+            sprintf(text, "FPS %.02f", debugController.fpsAverage);
         break;
 
         case FPS_RANGE:
-            sprintf(text, "Min fps: %i\nMax fps: %i",
+            sprintf(text, "Min FPS: %i\nMax FPS: %i",
                 debugController.fpsLowest, debugController.fpsHighest);
         break;
 
         case FPS_BOTH:
-            sprintf(text, "Avg. fps: %.02f\nMin fps: %i\nMax fps: %i",
+            sprintf(text, "FPS: %.02f\n+ min: %i\n+ max: %i",
                 debugController.fpsAverage, debugController.fpsLowest, debugController.fpsHighest);
         break;
     }
@@ -154,7 +154,7 @@ void debugMsgFrom(const char *msg, const char *label, int line)
     if (!debugController.fileInitialized)
         debugCreateFile();
 
-    sprintf(temp, "[%s, line: %4i, time: %3i, frame: %5i]: \"%s\"",
+    sprintf(temp, "[%-25s, line: %4i, time: %3i, frame: %5i]: \"%s\"",
             label, line, t.sec_utc - debugController.startTime, frame, msg);
     debugMsg(temp);
 }

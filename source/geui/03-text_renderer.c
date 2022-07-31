@@ -102,6 +102,7 @@ int fromASCII(int num);
 Color extractHexColor(char *pString);
 int calculateTextHeight(Text *pText);
 int calculateTextWidth(Text *pText);
+int calculateStringWidth(Font *pFont, const char *string);
 int getSpecialCharWidth(Text *pText, int pos);
 int getCharWidth(Text *pText, int pos);
 int isIndentationAllowed(Text *pText);
@@ -186,6 +187,16 @@ int calculateTextWidth(Text *pText)
     }
 
     return maximumLineWidth;
+}
+
+int calculateStringWidth(Font *pFont, const char *string)
+{
+    Text tempText = createText(string, pFont, "(none)", False, 0, 0);
+    int result = tempText.width;
+
+    destroyText(&tempText);
+
+    return result;
 }
 
 int getSpecialCharWidth(Text *pText, int pos)

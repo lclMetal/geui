@@ -15,6 +15,7 @@ void initGEUI(void)
     defStyle.padding            = 5;
     defStyle.titleBgColor       = DEFAULT_COLOR;
     defStyle.windowBgColor      = DEFAULT_COLOR;
+    defStyle.inputBgColor       = DEFAULT_COLOR;
     defStyle.titleColor         = BLACK;
     defStyle.labelColor         = BLACK;
     defStyle.textColor          = BLACK;
@@ -26,6 +27,8 @@ void initGEUI(void)
     GEUIController.topIndex = 0;
     GEUIController.sDefault = defStyle;
     GEUIController.wList = NULL;
+
+    initLimValues();
 }
 
 void quitGEUI(void)

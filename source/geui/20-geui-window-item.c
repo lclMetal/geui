@@ -9,6 +9,7 @@ WindowItem *initNewItem(ItemType type, Window *window, Panel *panel, char tag[25
 WindowItem *addItemToWindow(WindowItem *ptr);
 WindowItem *addText(Window *window, Panel *panel, char tag[256], char *string, short maxWidth);
 WindowItem *addButton(Window *window, Panel *panel, char tag[256], char *string, void (*actionFunction)(Window *, WindowItem *));
+WindowItem *addInputInt(Window *window, Panel *panel, char tag[256], int defaultVal, int minVal, int maxVal);
 WindowItem *addPanel(Window *window, Panel *panel, char tag[256]);
 WindowItem *addEmbedder(Window *window, Panel *panel, char tag[256], const char *actorName);
 void setPosition(WindowItem *this, short row, short col);
@@ -22,6 +23,7 @@ void buildText(WindowItem *ptr);
 void buildPanel(WindowItem *ptr);
 void buildButtonText(WindowItem *ptr);
 void buildButton(WindowItem *ptr);
+void buildInputInt(WindowItem *ptr);
 void buildEmbedder(WindowItem *ptr);
 void eraseWindowItem(WindowItem *ptr);
 void destroyWindowItem(WindowItem *ptr);
@@ -94,6 +96,25 @@ WindowItem *addButton(Window *window, Panel *panel, char tag[256], char *string,
 
     ptr->layout.width = ptr->data.button.text.width + ptr->parent->style.tileWidth * 2;
     ptr->layout.height = ptr->parent->style.tileHeight;
+
+    return addItemToWindow(ptr);
+}
+
+WindowItem *addInputInt(Window *window, Panel *panel, char tag[256], int defaultVal, int minVal, int maxVal)
+{
+    char temp[GEUI_INT_STRING_LENGTH];
+    WindowItem *ptr = initNewItem(GEUI_InputInt, window, panel, tag);
+    if (!ptr) { DEBUG_MSG_FROM("item is NULL", "addInputInt"); return NULL; }
+
+    ptr->data.inputInt.value = defaultVal;
+    sprintf(temp, "%d", defaultVal);
+    ptr->data.inputInt.text = createText(temp, window->style.textFont, "(none)", ABSOLUTE, 0, 0);
+    setTextColor(&ptr->data.inputInt.text, window->style.textColor);
+    setTextZDepth(&ptr->data.inputInt.text, DEFAULT_ITEM_ZDEPTH);
+
+    setIntLimits(&ptr->data.inputInt, minVal, maxVal);
+    ptr->layout.width = calculateRequiredWidthInPixels(&ptr->data.inputInt);
+    ptr->layout.height = ptr->data.inputInt.text.height;
 
     return addItemToWindow(ptr);
 }
@@ -247,6 +268,7 @@ void buildItem(WindowItem *ptr)
     {
         case GEUI_Text: buildText(ptr); break;
         case GEUI_Button: buildButton(ptr); break;
+        case GEUI_InputInt: buildInputInt(ptr); break;
         case GEUI_Panel: buildPanel(ptr); break;
         case GEUI_Embedder: buildEmbedder(ptr); break;
     }
@@ -322,6 +344,17 @@ void buildButton(WindowItem *ptr)
     buildButtonText(ptr);
 }
 
+void buildInputInt(WindowItem *ptr)
+{
+    if (ptr->type != GEUI_InputInt) { DEBUG_MSG_FROM("item is not a valid InputInt item", "buildInputInt"); return; }
+
+    setTextZDepth(&ptr->data.inputInt.text, DEFAULT_ITEM_ZDEPTH);
+    setTextPosition(&ptr->data.inputInt.text,
+        ptr->layout.startx + ptr->parent->style.padding,
+        ptr->layout.starty + ptr->data.inputInt.text.pFont->lineSpacing * 0.5 + ptr->parent->style.padding);
+    refreshText(&ptr->data.inputInt.text);
+}
+
 void buildEmbedder(WindowItem *ptr)
 {
     Actor *actor;
@@ -367,6 +400,10 @@ void eraseWindowItem(WindowItem *ptr)
                 ptr->data.button.bTileEndIndex = -1;
             }
         break;
+        case GEUI_InputInt:
+            eraseText(&ptr->data.inputInt.text);
+            setTextParent(&ptr->data.inputInt.text, "(none)", False);
+        break;
         case GEUI_Panel:
             closePanel(ptr->data.panel);
         break;
@@ -394,6 +431,7 @@ void destroyWindowItem(WindowItem *ptr)
                 ptr->data.button.bTileEndIndex = -1;
             }
         break;
+        case GEUI_InputInt: destroyText(&ptr->data.inputInt.text); break;
         case GEUI_Panel:
             destroyPanel(ptr->data.panel);
             free(ptr->data.panel);

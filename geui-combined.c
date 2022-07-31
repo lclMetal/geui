@@ -607,6 +607,7 @@ int fromASCII(int num);
 Color extractHexColor(char *pString);
 int calculateTextHeight(Text *pText);
 int calculateTextWidth(Text *pText);
+int calculateStringWidth(Font *pFont, const char *string);
 int getSpecialCharWidth(Text *pText, int pos);
 int getCharWidth(Text *pText, int pos);
 int isIndentationAllowed(Text *pText);
@@ -691,6 +692,16 @@ int calculateTextWidth(Text *pText)
     }
 
     return maximumLineWidth;
+}
+
+int calculateStringWidth(Font *pFont, const char *string)
+{
+    Text tempText = createText(string, pFont, "(none)", False, 0, 0);
+    int result = tempText.width;
+
+    destroyText(&tempText);
+
+    return result;
 }
 
 int getSpecialCharWidth(Text *pText, int pos)
@@ -1573,6 +1584,7 @@ typedef struct StyleStruct
 
     Color titleBgColor;
     Color windowBgColor;
+    Color inputBgColor;
 
     Color titleColor;
     Color labelColor;
@@ -1587,9 +1599,9 @@ Style defStyle;
 Style *setDimensions;
 
 Style createStyle(const char guiAnim[100], Font *titleFont, Font *labelFont, Font *textFont,
-                  short padding, Color titleBgColor, Color windowBgColor, Color titleColor,
-                  Color labelColor, Color textColor, Color buttonColor, Color buttonHilitColor,
-                  Color buttonPressedColor);
+                  short padding, Color titleBgColor, Color windowBgColor, Color inputBgColor,
+                  Color titleColor, Color labelColor, Color textColor, Color buttonColor,
+                  Color buttonHilitColor, Color buttonPressedColor);
 
 void getTileDimensions(Style *style)
 {
@@ -1607,9 +1619,9 @@ void setTileDimensions()
 }
 
 Style createStyle(const char guiAnim[100], Font *titleFont, Font *labelFont, Font *textFont,
-                  short padding, Color titleBgColor, Color windowBgColor, Color titleColor,
-                  Color labelColor, Color textColor, Color buttonColor, Color buttonHilitColor,
-                  Color buttonPressedColor)
+                  short padding, Color titleBgColor, Color windowBgColor, Color inputBgColor,
+                  Color titleColor, Color labelColor, Color textColor, Color buttonColor,
+                  Color buttonHilitColor, Color buttonPressedColor)
 {
     Style new;
 
@@ -1620,6 +1632,7 @@ Style createStyle(const char guiAnim[100], Font *titleFont, Font *labelFont, Fon
     new.padding = padding;
     new.titleBgColor = titleBgColor;
     new.windowBgColor = windowBgColor;
+    new.inputBgColor = inputBgColor;
     new.titleColor = titleColor;
     new.labelColor = labelColor;
     new.textColor = textColor;
@@ -1727,12 +1740,25 @@ typedef enum ItemTypeEnum
 {
     GEUI_Text,
     GEUI_Button,
+    GEUI_InputInt,
     GEUI_Panel,
     GEUI_Embedder
 }ItemType;
 
 struct WindowStruct;
 struct PanelStruct;
+
+typedef struct IntInputFieldStruct
+{
+    int    value;
+    int    minValue;
+    int    maxValue;
+
+    short  intSign;
+    short  typedZero;
+
+    Text   text;
+}IntInputField;
 
 typedef struct WindowItemStruct
 {
@@ -1752,6 +1778,7 @@ typedef struct WindowItemStruct
             long bTileEndIndex;
             void (*actionFunction)(struct WindowStruct *, struct WindowItemStruct *);
         }button;
+        IntInputField inputInt;
         struct PanelStruct *panel;
         struct EmbedderItem
         {
@@ -1834,6 +1861,217 @@ struct GEUIControllerStruct
 }GEUIController;
 
 
+// ..\source\geui\15-geui-input-int.c
+#define GEUI_INT_STRING_LENGTH 30
+
+int GEUI_INT_MIN_VALUE = 0;
+int GEUI_INT_MAX_VALUE = 0;
+
+IntInputField test;
+
+void updateIntText(IntInputField *field);
+
+void initLimValues()
+{
+    // algorithm from: https://www.geeksforgeeks.org/computing-int_max-int_min-bitwise-operations/
+    unsigned int notZero = ~0; // there's a tilde before the 0, it's just not visible in GE - don't remove
+    GEUI_INT_MAX_VALUE = notZero = notZero >> 1;
+    GEUI_INT_MIN_VALUE = ~notZero; // there's a tilde before notZero, it's just not visible in GE - don't remove
+}
+
+short countDigits(int num)
+{
+    if (num == 0) return 1;
+    return (short)log10(abs(num)) + 1;
+}
+
+int calculateRequiredWidthInPixels(IntInputField *field)
+{
+    int i;
+    char temp[GEUI_INT_STRING_LENGTH] = "";
+    int minValDigits = countDigits(field->minValue) + (field->minValue < 0);
+    int maxValDigits = countDigits(field->maxValue) + (field->maxValue < 0);
+    int result = (int)min(GEUI_INT_STRING_LENGTH - 1, max(minValDigits, maxValDigits));
+
+    for (i = 0; i < (int)min(GEUI_INT_STRING_LENGTH - 1, max(minValDigits, maxValDigits)); i++)
+    {
+        temp[i] = '0';
+    }
+
+    temp[i] = '\0';
+
+    return calculateStringWidth(field->text.pFont, temp);
+}
+
+void setIntLimits(IntInputField *field, int minLim, int maxLim)
+{
+    if (!field) return;
+
+    field->minValue = (int)min(minLim, maxLim);
+    field->maxValue = (int)max(minLim, maxLim);
+    field->intSign = 1;
+
+    if (minLim > maxLim)
+    {
+        DEBUG_MSG_FROM("Limit min value can't be greater than limit max value! "
+                       "Auto-swapped values to fix the issue.", "setIntLimits");
+    }
+
+    if (field->minValue <= 0 && field->maxValue >= 0)
+    {
+        field->value  = 0; // set value to 0
+        field->typedZero = 1; // make 0 value shown
+    }
+    else
+    {
+        field->value = field->minValue;
+        if (field->minValue < 0)
+            field->intSign = -1;
+    }
+
+    updateIntText(field);
+}
+
+void enforceIntLimits(IntInputField *field)
+{
+    if (field->value > field->maxValue)
+        field->value = field->maxValue;
+
+    if (field->value < field->minValue)
+        field->value = field->minValue;
+
+    updateIntText(field);
+}
+
+int validateIntInput(IntInputField *field, int input)
+{
+    int val = input;
+    int maxval = field->maxValue;
+    int minval = field->minValue;
+    short valdigits = countDigits(val);
+    short maxPositiveDigits;
+    short maxNegativeDigits;
+    short maxdigits = max(countDigits(maxval), countDigits(minval));
+
+    if (minval >= 0 && maxval >= 0) maxPositiveDigits = maxdigits;
+    else if (minval < 0 && maxval < 0) maxNegativeDigits = maxdigits;
+    else if (minval < 0 && maxval >= 0)
+    {
+        maxPositiveDigits = countDigits(maxval);
+        maxNegativeDigits = countDigits(minval);
+    }
+                                                                // e.g.:    val lim
+    if (val >= 0 && val > maxval && valdigits >= maxPositiveDigits)     //  15  +13
+        val = maxval;
+    else if (val < 0 && val > maxval && valdigits >= maxNegativeDigits) //  -2  -5
+        val = maxval;
+    else if (val >= 0 && val < minval && valdigits >= maxPositiveDigits)//  13  +15
+        val = minval;
+    else if (val < 0 && val < minval && valdigits >= maxNegativeDigits) //  -5  -2
+        val = minval;
+
+    return val;
+}
+
+void handleIntInput(IntInputField *field, int key)
+{
+    char temp[256];
+    short numConvert;
+    double tempValue = abs(field->value); // remove the sign to simplify calculations
+
+    if (!field) return;
+
+    // basic number input
+    if (key >= KEY_0 && key <= KEY_9 || key >= KEY_PAD_0 && key <= KEY_PAD_9)
+    {
+        if (key >= KEY_0 && key <= KEY_9)
+            numConvert = key - KEY_0;
+        else
+            numConvert = key - KEY_PAD_0;
+
+        if (field->intSign != -1 && tempValue * 10.0 + (double)numConvert <= (double)GEUI_INT_MAX_VALUE ||
+            field->intSign == -1 && (tempValue * 10.0 + (double)numConvert) * (double)field->intSign >= (double)GEUI_INT_MIN_VALUE)
+        {
+            tempValue *= 10; // multiply current value by 10 to move all digits one place to the left
+            tempValue += numConvert; // add the number that was typed
+            tempValue *= field->intSign; // add back the sign
+
+            // if value is 0, negative sign is not set and number typed was 0, set 0 to be visible
+            field->typedZero = tempValue == 0 && field->intSign != -1 && numConvert == 0;
+            // validate input (enforceIntLimits is still needed later on, as all limits can't be
+            // enforced here) and set the value
+            field->value = validateIntInput(field, tempValue);
+        }
+    }
+    else if (key == KEY_BACKSPACE)
+    {
+        // if at value zero but a negative sign remains and this field can also
+        // take positive values
+        if (field->value == 0 && field->maxValue >= 0)
+        {
+            if (field->intSign == -1)
+                field->intSign = 1; // remove the negative sign
+            else if (field->typedZero)
+                field->typedZero = 0; // stop showing 0 value
+        }
+
+        tempValue /= 10; // divide by ten to remove the smallest digit
+        tempValue *= field->intSign; // add back the sign
+        field->value = tempValue; // set the value
+    }
+    else if (key == KEY_MINUS || key == KEY_PAD_MINUS)
+    {
+        // if at value zero and no negative sign present, and this field can take
+        // values below zero
+        if (field->value == 0 && field->intSign == 1 && field->minValue < 0)
+        {
+            field->intSign = -1; // add the negative sign
+            field->typedZero = 0; // hide 0 value
+        }
+    }
+
+    updateIntText(field);
+}
+
+void updateIntText(IntInputField *field)
+{
+    char temp[GEUI_INT_STRING_LENGTH];
+
+    if (!field) return;
+
+    if (field->value != 0)
+        sprintf(temp, "%d", field->value); // print number
+    else if (field->value == 0 && field->intSign == -1)
+        sprintf(temp, "-"); // print only negative sign
+    else if (field->value == 0 && field->typedZero)
+        sprintf(temp, "0"); // print 0 only if explicitly typed
+    else
+        strcpy(temp, "\0"); // print nothing
+
+    setTextText(&field->text, temp);
+}
+
+/*
+typedef struct inputFieldStruct
+{
+    short  fieldType;
+    short  textMaxLength;
+    int    intMinValue;
+    int    intMaxValue;
+    double realMinValue;
+    double realMaxValue;
+
+    short  intSign;
+    short  typedZero;
+
+    char  *textValue;
+    int    intValue;
+    char   intText[30];
+    double realValue;
+}InputField;
+*/
+
+
 // ..\source\geui\20-geui-window-item.c
 // TODO: make functions return error codes instead of just exiting
 // without doing anything, which can be difficult to debug
@@ -1846,6 +2084,7 @@ WindowItem *initNewItem(ItemType type, Window *window, Panel *panel, char tag[25
 WindowItem *addItemToWindow(WindowItem *ptr);
 WindowItem *addText(Window *window, Panel *panel, char tag[256], char *string, short maxWidth);
 WindowItem *addButton(Window *window, Panel *panel, char tag[256], char *string, void (*actionFunction)(Window *, WindowItem *));
+WindowItem *addInputInt(Window *window, Panel *panel, char tag[256], int defaultVal, int minVal, int maxVal);
 WindowItem *addPanel(Window *window, Panel *panel, char tag[256]);
 WindowItem *addEmbedder(Window *window, Panel *panel, char tag[256], const char *actorName);
 void setPosition(WindowItem *this, short row, short col);
@@ -1859,6 +2098,7 @@ void buildText(WindowItem *ptr);
 void buildPanel(WindowItem *ptr);
 void buildButtonText(WindowItem *ptr);
 void buildButton(WindowItem *ptr);
+void buildInputInt(WindowItem *ptr);
 void buildEmbedder(WindowItem *ptr);
 void eraseWindowItem(WindowItem *ptr);
 void destroyWindowItem(WindowItem *ptr);
@@ -1931,6 +2171,25 @@ WindowItem *addButton(Window *window, Panel *panel, char tag[256], char *string,
 
     ptr->layout.width = ptr->data.button.text.width + ptr->parent->style.tileWidth * 2;
     ptr->layout.height = ptr->parent->style.tileHeight;
+
+    return addItemToWindow(ptr);
+}
+
+WindowItem *addInputInt(Window *window, Panel *panel, char tag[256], int defaultVal, int minVal, int maxVal)
+{
+    char temp[GEUI_INT_STRING_LENGTH];
+    WindowItem *ptr = initNewItem(GEUI_InputInt, window, panel, tag);
+    if (!ptr) { DEBUG_MSG_FROM("item is NULL", "addInputInt"); return NULL; }
+
+    ptr->data.inputInt.value = defaultVal;
+    sprintf(temp, "%d", defaultVal);
+    ptr->data.inputInt.text = createText(temp, window->style.textFont, "(none)", ABSOLUTE, 0, 0);
+    setTextColor(&ptr->data.inputInt.text, window->style.textColor);
+    setTextZDepth(&ptr->data.inputInt.text, DEFAULT_ITEM_ZDEPTH);
+
+    setIntLimits(&ptr->data.inputInt, minVal, maxVal);
+    ptr->layout.width = calculateRequiredWidthInPixels(&ptr->data.inputInt);
+    ptr->layout.height = ptr->data.inputInt.text.height;
 
     return addItemToWindow(ptr);
 }
@@ -2084,6 +2343,7 @@ void buildItem(WindowItem *ptr)
     {
         case GEUI_Text: buildText(ptr); break;
         case GEUI_Button: buildButton(ptr); break;
+        case GEUI_InputInt: buildInputInt(ptr); break;
         case GEUI_Panel: buildPanel(ptr); break;
         case GEUI_Embedder: buildEmbedder(ptr); break;
     }
@@ -2159,6 +2419,17 @@ void buildButton(WindowItem *ptr)
     buildButtonText(ptr);
 }
 
+void buildInputInt(WindowItem *ptr)
+{
+    if (ptr->type != GEUI_InputInt) { DEBUG_MSG_FROM("item is not a valid InputInt item", "buildInputInt"); return; }
+
+    setTextZDepth(&ptr->data.inputInt.text, DEFAULT_ITEM_ZDEPTH);
+    setTextPosition(&ptr->data.inputInt.text,
+        ptr->layout.startx + ptr->parent->style.padding,
+        ptr->layout.starty + ptr->data.inputInt.text.pFont->lineSpacing * 0.5 + ptr->parent->style.padding);
+    refreshText(&ptr->data.inputInt.text);
+}
+
 void buildEmbedder(WindowItem *ptr)
 {
     Actor *actor;
@@ -2204,6 +2475,10 @@ void eraseWindowItem(WindowItem *ptr)
                 ptr->data.button.bTileEndIndex = -1;
             }
         break;
+        case GEUI_InputInt:
+            eraseText(&ptr->data.inputInt.text);
+            setTextParent(&ptr->data.inputInt.text, "(none)", False);
+        break;
         case GEUI_Panel:
             closePanel(ptr->data.panel);
         break;
@@ -2231,6 +2506,7 @@ void destroyWindowItem(WindowItem *ptr)
                 ptr->data.button.bTileEndIndex = -1;
             }
         break;
+        case GEUI_InputInt: destroyText(&ptr->data.inputInt.text); break;
         case GEUI_Panel:
             destroyPanel(ptr->data.panel);
             free(ptr->data.panel);
@@ -2459,8 +2735,9 @@ void setPanelBaseParent(Panel *panel, char *parentName)
                 if (ptr->data.button.bTileStartIndex > -1)
                     changeParentOfClones("a_gui", ptr->data.button.bTileStartIndex, ptr->data.button.bTileEndIndex, parentName);
                 break;
-             case GEUI_Panel: setPanelBaseParent(ptr->data.panel,  parentName); break;
-             case GEUI_Embedder: ChangeParent(ptr->data.embedder.actorCName, parentName); break;
+            case GEUI_InputInt: setTextParent(&ptr->data.inputInt.text, parentName, True); break;
+            case GEUI_Panel: setPanelBaseParent(ptr->data.panel,  parentName); break;
+            case GEUI_Embedder: ChangeParent(ptr->data.embedder.actorCName, parentName); break;
 
             default: break;
         }
@@ -3196,6 +3473,7 @@ void initGEUI(void)
     defStyle.padding            = 5;
     defStyle.titleBgColor       = DEFAULT_COLOR;
     defStyle.windowBgColor      = DEFAULT_COLOR;
+    defStyle.inputBgColor       = DEFAULT_COLOR;
     defStyle.titleColor         = BLACK;
     defStyle.labelColor         = BLACK;
     defStyle.textColor          = BLACK;
@@ -3207,6 +3485,8 @@ void initGEUI(void)
     GEUIController.topIndex = 0;
     GEUIController.sDefault = defStyle;
     GEUIController.wList = NULL;
+
+    initLimValues();
 }
 
 void quitGEUI(void)
