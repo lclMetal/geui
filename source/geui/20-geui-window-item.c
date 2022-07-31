@@ -17,7 +17,7 @@ WindowItem *getItemFromPanelByTag(Panel *panel, char tag[256]);
 WindowItem *getItemByTag(Window *window, char tag[256]);
 WindowItem *getItemFromPanelByIndex(Panel *panel, int index);
 WindowItem *getItemByIndex(Window *window, int index);
-void focusItem(WindowItem *ptr);
+WindowItem *focusItem(WindowItem *ptr);
 void blurItem(WindowItem *ptr);
 void buildFocus(WindowItem *ptr);
 void eraseFocus(WindowItem *ptr);
@@ -257,9 +257,16 @@ WindowItem *getItemByIndex(Window *window, int index)
     return NULL;
 }
 
-void focusItem(WindowItem *ptr)
+WindowItem *focusItem(WindowItem *ptr)
 {
+    if (ptr->focusable)
+    {
+        GEUIController.focus = ptr;
+        buildFocus(ptr);
+        return ptr;
+    }
 
+    return NULL;
 }
 
 void blurItem(WindowItem *ptr)
