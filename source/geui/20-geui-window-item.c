@@ -23,6 +23,7 @@ void buildText(WindowItem *ptr);
 void buildPanel(WindowItem *ptr);
 void buildButtonText(WindowItem *ptr);
 void buildButton(WindowItem *ptr);
+void buildInputField(WindowItem *ptr, long *tileStartIndex, long *tileEndIndex);
 void buildInputInt(WindowItem *ptr);
 void buildEmbedder(WindowItem *ptr);
 void eraseWindowItem(WindowItem *ptr);
@@ -113,7 +114,9 @@ WindowItem *addInputInt(Window *window, Panel *panel, char tag[256], int default
     setTextZDepth(&ptr->data.inputInt.text, DEFAULT_ITEM_ZDEPTH);
 
     setIntLimits(&ptr->data.inputInt, minVal, maxVal);
-    ptr->layout.width = calculateRequiredWidthInPixels(&ptr->data.inputInt);
+    ptr->data.inputInt.tileStartIndex = -1;
+    ptr->data.inputInt.tileEndIndex = -1;
+    ptr->layout.width = calculateRequiredWidthInPixels(&ptr->data.inputInt) + ptr->parent->style.tileWidth * 2;
     ptr->layout.height = ptr->data.inputInt.text.height;
 
     return addItemToWindow(ptr);
@@ -344,14 +347,46 @@ void buildButton(WindowItem *ptr)
     buildButtonText(ptr);
 }
 
+void buildInputField(WindowItem *ptr, long *tileStartIndex, long *tileEndIndex)
+{
+    short i;
+    short fieldWidth;
+    short tilesHorizontal;
+    short tileWidth = ptr->parent->style.tileWidth;
+    short tileHeight = ptr->parent->style.tileHeight;
+
+    fieldWidth = ptr->layout.width;
+    tilesHorizontal = ceil(fieldWidth / (float)tileWidth);
+
+    for (i = 0; i < tilesHorizontal; i++)
+    {
+        Actor *a;
+        a = CreateActor("a_gui", ptr->parent->style.guiAnim, ptr->parent->parentCName, "(none)", 0, 0, true);
+        a->x = ptr->layout.startx + tileWidth + i * tileWidth + (i >= 2 && i >= tilesHorizontal - 2) * (fieldWidth - tilesHorizontal * tileWidth)-tileWidth/2;
+        a->x += ptr->parent->style.padding;
+        a->y = ptr->layout.starty + tileHeight-tileWidth/2;
+        a->y += ptr->parent->style.padding;
+        a->myWindow = ptr->parent->index;
+        a->myPanel  = ptr->myPanel->index;
+        a->myIndex  = ptr->index;
+        ChangeZDepth(a->clonename, DEFAULT_ITEM_ZDEPTH);
+        a->animpos = 12 + (i > 0) + (i == tilesHorizontal - 1) + (i > 0 && i == tilesHorizontal - 2 && fieldWidth < tileWidth * 2.5);
+
+        updateIndexBounds(tileStartIndex, tileEndIndex, a->cloneindex);
+    }
+}
+
 void buildInputInt(WindowItem *ptr)
 {
     if (ptr->type != GEUI_InputInt) { DEBUG_MSG_FROM("item is not a valid InputInt item", "buildInputInt"); return; }
 
+    buildInputField(ptr, &ptr->data.inputInt.tileStartIndex, &ptr->data.inputInt.tileEndIndex);
+    colorClones("a_gui", ptr->data.inputInt.tileStartIndex, ptr->data.inputInt.tileEndIndex, ptr->parent->style.inputBgColor);
+
     setTextZDepth(&ptr->data.inputInt.text, DEFAULT_ITEM_ZDEPTH);
     setTextPosition(&ptr->data.inputInt.text,
-        ptr->layout.startx + ptr->parent->style.padding,
-        ptr->layout.starty + ptr->data.inputInt.text.pFont->lineSpacing * 0.5 + ptr->parent->style.padding);
+        getTile(ptr->data.inputInt.tileStartIndex)->x,
+        getTile(ptr->data.inputInt.tileEndIndex)->y);
     refreshText(&ptr->data.inputInt.text);
 }
 
@@ -403,6 +438,12 @@ void eraseWindowItem(WindowItem *ptr)
         case GEUI_InputInt:
             eraseText(&ptr->data.inputInt.text);
             setTextParent(&ptr->data.inputInt.text, "(none)", False);
+            if (ptr->data.inputInt.tileStartIndex > -1)
+            {
+                destroyClones("a_gui", ptr->data.inputInt.tileStartIndex, ptr->data.inputInt.tileEndIndex);
+                ptr->data.inputInt.tileStartIndex = -1;
+                ptr->data.inputInt.tileEndIndex = -1;
+            }
         break;
         case GEUI_Panel:
             closePanel(ptr->data.panel);
@@ -431,7 +472,15 @@ void destroyWindowItem(WindowItem *ptr)
                 ptr->data.button.bTileEndIndex = -1;
             }
         break;
-        case GEUI_InputInt: destroyText(&ptr->data.inputInt.text); break;
+        case GEUI_InputInt:
+            destroyText(&ptr->data.inputInt.text);
+            if (ptr->data.inputInt.tileStartIndex > -1)
+            {
+                destroyClones("a_gui", ptr->data.inputInt.tileStartIndex, ptr->data.inputInt.tileEndIndex);
+                ptr->data.inputInt.tileStartIndex = -1;
+                ptr->data.inputInt.tileEndIndex = -1;
+            }
+        break;
         case GEUI_Panel:
             destroyPanel(ptr->data.panel);
             free(ptr->data.panel);

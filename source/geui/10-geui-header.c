@@ -30,6 +30,9 @@ typedef struct IntInputFieldStruct
     short  typedZero;
 
     Text   text;
+
+    long tileStartIndex;
+    long tileEndIndex;
 }IntInputField;
 
 typedef struct WindowItemStruct
