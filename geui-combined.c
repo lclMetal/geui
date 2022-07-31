@@ -2103,7 +2103,7 @@ WindowItem *getItemByIndex(Window *window, int index);
 WindowItem *focusItem(WindowItem *ptr);
 void blurItem(WindowItem *ptr);
 void buildFocus(WindowItem *ptr);
-void eraseFocus(WindowItem *ptr);
+void eraseFocus();
 void buildItems(Panel *panel);
 void buildItem(WindowItem *ptr);
 void buildText(WindowItem *ptr);
@@ -2344,8 +2344,12 @@ WindowItem *focusItem(WindowItem *ptr)
 {
     if (ptr->focusable)
     {
-        GEUIController.focus = ptr;
-        buildFocus(ptr);
+        if (GEUIController.focus != ptr)
+        {
+            GEUIController.focus = ptr;
+            buildFocus(ptr);
+        }
+
         return ptr;
     }
 
@@ -2363,12 +2367,78 @@ void blurItem(WindowItem *ptr)
 
 void buildFocus(WindowItem *ptr)
 {
+    short i, j;
+    Actor *tile;
+    short tempAnimpos;
+    short focusWidth;
+    short focusHeight;
+    short tilesHorizontal;
+    short tilesVertical;
+    short tileWidth = ptr->parent->style.tileWidth;
+    short tileHeight = ptr->parent->style.tileHeight;
 
+    eraseFocus();
+
+    focusWidth = ptr->layout.width;
+    tilesHorizontal = ceil(focusWidth / (float)tileWidth);
+    focusHeight = ptr->layout.height;
+    tilesVertical = ceil(focusHeight / (float)tileHeight);
+
+    if (tilesVertical < 3)
+    {
+        for (i = 0; i < tilesHorizontal; i++)
+        {
+            tile = CreateActor("a_gui", ptr->parent->style.guiAnim,
+                               ptr->parent->parentCName, "(none)", 0, 0, true);
+            tile->x = ptr->layout.startx + tileWidth + i * tileWidth  + (i >= 2 && i >= tilesHorizontal - 2) * (focusWidth  - tilesHorizontal * tileWidth)-tileWidth/2;
+            tile->x += ptr->parent->style.padding;
+            tile->y = ptr->layout.starty + tileHeight -tileHeight/2;
+            tile->y += ptr->parent->style.padding;
+            tile->animpos = 15 + (i > 0) + (i == tilesHorizontal - 1);
+            updateIndexBounds(&GEUIController.focusTileStartIndex, &GEUIController.focusTileEndIndex, tile->cloneindex);
+
+            tile = CreateActor("a_gui", ptr->parent->style.guiAnim,
+                           ptr->parent->parentCName, "(none)", 0, 0, true);
+            tile->x = ptr->layout.startx + tileWidth + i * tileWidth  + (i >= 2 && i >= tilesHorizontal - 2) * (focusWidth  - tilesHorizontal * tileWidth)-tileWidth/2;
+            tile->x += ptr->parent->style.padding;
+            tile->y = ptr->layout.starty + tileHeight -tileHeight/2;
+            tile->y += ptr->parent->style.padding;
+            tile->animpos = 21 + (i > 0) + (i == tilesHorizontal - 1);
+            updateIndexBounds(&GEUIController.focusTileStartIndex, &GEUIController.focusTileEndIndex, tile->cloneindex);
+        }
+    }
+    else
+    {
+        for (j = 0; j < tilesVertical; j++)
+        {
+            for (i = 0; i < tilesHorizontal; i++)
+            {
+                tempAnimpos = calculateAnimpos(tilesHorizontal, tilesVertical, i, j) + 15;
+
+                // if (tempAnimpos == 19)
+                    // continue;
+
+                tile = CreateActor("a_gui", ptr->parent->style.guiAnim,
+                                   ptr->parent->parentCName, "(none)", 0, 0, true);
+                tile->x = ptr->layout.startx + tileWidth + i * tileWidth  + (i >= 2 && i >= tilesHorizontal - 2) * (focusWidth  - tilesHorizontal * tileWidth)-tileWidth/2;
+                tile->x += ptr->parent->style.padding;
+                tile->y = ptr->layout.starty + tileHeight + j * tileHeight + (j >= 2 && j >= tilesVertical - 2) * (focusHeight - tilesVertical * tileHeight)-tileHeight/2;
+                tile->y += ptr->parent->style.padding;
+                tile->animpos = tempAnimpos;
+                updateIndexBounds(&GEUIController.focusTileStartIndex, &GEUIController.focusTileEndIndex, tile->cloneindex);
+            }
+        }
+    }
 }
 
-void eraseFocus(WindowItem *ptr)
+void eraseFocus()
 {
-
+    if (GEUIController.focusTileStartIndex > -1)
+    {
+        destroyClones("a_gui", GEUIController.focusTileStartIndex, GEUIController.focusTileEndIndex);
+        GEUIController.focusTileStartIndex = -1;
+        GEUIController.focusTileEndIndex = -1;
+    }
 }
 
 void buildItems(Panel *panel)
@@ -2433,6 +2503,7 @@ void buildButtonText(WindowItem *ptr)
 void buildButton(WindowItem *ptr)
 {
     short i;
+    Actor *a;
     Text *buttonText;
     long start, end;
     short buttonWidth;
@@ -2447,7 +2518,6 @@ void buildButton(WindowItem *ptr)
 
     for (i = 0; i < tilesHorizontal; i ++)
     {
-        Actor *a;
         a = CreateActor("a_gui", ptr->parent->style.guiAnim, ptr->parent->parentCName, "(none)", 0, 0, true);
         // TODO: layout / positioning
         a->x = ptr->layout.startx + tileWidth + i * tileWidth + (i >= 2 && i >= tilesHorizontal - 2) * (buttonWidth - tilesHorizontal * tileWidth)-tileWidth/2;// + (ptr->layout.col > 0); // TODO: make nicer
@@ -2469,6 +2539,7 @@ void buildButton(WindowItem *ptr)
 void buildInputField(WindowItem *ptr, long *tileStartIndex, long *tileEndIndex)
 {
     short i;
+    Actor *a;
     short fieldWidth;
     short tilesHorizontal;
     short tileWidth = ptr->parent->style.tileWidth;
@@ -2479,7 +2550,6 @@ void buildInputField(WindowItem *ptr, long *tileStartIndex, long *tileEndIndex)
 
     for (i = 0; i < tilesHorizontal; i++)
     {
-        Actor *a;
         a = CreateActor("a_gui", ptr->parent->style.guiAnim, ptr->parent->parentCName, "(none)", 0, 0, true);
         a->x = ptr->layout.startx + tileWidth + i * tileWidth + (i >= 2 && i >= tilesHorizontal - 2) * (fieldWidth - tilesHorizontal * tileWidth)-tileWidth/2;
         a->x += ptr->parent->style.padding;
@@ -2539,6 +2609,9 @@ void eraseWindowItem(WindowItem *ptr)
 {
     if (!ptr) { DEBUG_MSG_FROM("item is NULL", "eraseWindowItem"); return; }
 
+    if (GEUIController.focus == ptr)
+        eraseFocus();
+
     switch (ptr->type)
     {
         case GEUI_Text:
@@ -2578,6 +2651,9 @@ void eraseWindowItem(WindowItem *ptr)
 void destroyWindowItem(WindowItem *ptr)
 {
     if (!ptr) { DEBUG_MSG_FROM("item is NULL", "destroyWindowItem"); return; }
+
+    if (GEUIController.focus == ptr)
+        eraseFocus();
 
     switch (ptr->type)
     {
@@ -3225,6 +3301,8 @@ void doMouseEnter(const char *actorName)
                 long start = item->data.button.bTileStartIndex;
                 long end   = item->data.button.bTileEndIndex;
 
+                focusItem(item);
+
                 if (item->data.button.state)
                     colorClones("a_gui", start, end, item->parent->style.buttonPressedColor);
                 else
@@ -3242,7 +3320,7 @@ void doMouseLeave(const char *actorName)
     WindowItem *item;
 
     if (!actorExists2(actor = getclone(actorName)))
-        { DEBUG_MSG_FROM("actor doesn't exist", "doMouseLeave"); return; }
+        { DEBUG_MSG_FROM(actorName, "doMouseLeave"); DEBUG_MSG_FROM("actor doesn't exist", "doMouseLeave"); return; }
     if (actor->myWindow < 0 || actor->myPanel < 0 || actor->myIndex < 0)
         { DEBUG_MSG_FROM("actor window, panel or index is invalid", "doMouseLeave"); return; }
     if (!(window = getWindowByIndex(actor->myWindow)))

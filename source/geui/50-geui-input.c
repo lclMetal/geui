@@ -66,6 +66,8 @@ void doMouseEnter(const char *actorName)
                 long start = item->data.button.bTileStartIndex;
                 long end   = item->data.button.bTileEndIndex;
 
+                focusItem(item);
+
                 if (item->data.button.state)
                     colorClones("a_gui", start, end, item->parent->style.buttonPressedColor);
                 else
@@ -83,7 +85,7 @@ void doMouseLeave(const char *actorName)
     WindowItem *item;
 
     if (!actorExists2(actor = getclone(actorName)))
-        { DEBUG_MSG_FROM("actor doesn't exist", "doMouseLeave"); return; }
+        { DEBUG_MSG_FROM(actorName, "doMouseLeave"); DEBUG_MSG_FROM("actor doesn't exist", "doMouseLeave"); return; }
     if (actor->myWindow < 0 || actor->myPanel < 0 || actor->myIndex < 0)
         { DEBUG_MSG_FROM("actor window, panel or index is invalid", "doMouseLeave"); return; }
     if (!(window = getWindowByIndex(actor->myWindow)))
