@@ -10,6 +10,7 @@ typedef struct StyleStruct
     Font *textFont;
 
     short padding;
+    short focusWidth;
 
     Color titleBgColor;
     Color windowBgColor;
@@ -22,15 +23,18 @@ typedef struct StyleStruct
     Color buttonColor;
     Color buttonHilitColor;
     Color buttonPressedColor;
+
+    Color focusColor;
 }Style;
 
 Style defStyle;
 Style *setDimensions;
 
 Style createStyle(const char guiAnim[100], Font *titleFont, Font *labelFont, Font *textFont,
-                  short padding, Color titleBgColor, Color windowBgColor, Color inputBgColor,
-                  Color titleColor, Color labelColor, Color textColor, Color buttonColor,
-                  Color buttonHilitColor, Color buttonPressedColor);
+                  short padding, short focusWidth, Color titleBgColor, Color windowBgColor,
+                  Color inputBgColor, Color titleColor, Color labelColor, Color textColor,
+                  Color buttonColor, Color buttonHilitColor, Color buttonPressedColor,
+                  Color focusColor);
 
 void getTileDimensions(Style *style)
 {
@@ -48,9 +52,10 @@ void setTileDimensions()
 }
 
 Style createStyle(const char guiAnim[100], Font *titleFont, Font *labelFont, Font *textFont,
-                  short padding, Color titleBgColor, Color windowBgColor, Color inputBgColor,
-                  Color titleColor, Color labelColor, Color textColor, Color buttonColor,
-                  Color buttonHilitColor, Color buttonPressedColor)
+                  short padding, short focusWidth, Color titleBgColor, Color windowBgColor,
+                  Color inputBgColor, Color titleColor, Color labelColor, Color textColor,
+                  Color buttonColor, Color buttonHilitColor, Color buttonPressedColor,
+                  Color focusColor)
 {
     Style new;
 
@@ -59,6 +64,7 @@ Style createStyle(const char guiAnim[100], Font *titleFont, Font *labelFont, Fon
     new.labelFont = labelFont;
     new.textFont = textFont;
     new.padding = padding;
+    new.focusWidth = focusWidth;
     new.titleBgColor = titleBgColor;
     new.windowBgColor = windowBgColor;
     new.inputBgColor = inputBgColor;
@@ -68,6 +74,7 @@ Style createStyle(const char guiAnim[100], Font *titleFont, Font *labelFont, Fon
     new.buttonColor = buttonColor;
     new.buttonHilitColor = buttonHilitColor;
     new.buttonPressedColor = buttonPressedColor;
+    new.focusColor = focusColor;
 
     return new;
 }

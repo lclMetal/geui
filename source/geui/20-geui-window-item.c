@@ -289,6 +289,7 @@ void buildFocus(WindowItem *ptr)
     short tempAnimpos;
     short focusWidth;
     short focusHeight;
+    short focusLineWidth = ptr->parent->style.focusWidth;
     short tilesHorizontal;
     short tilesVertical;
     short tileWidth = ptr->parent->style.tileWidth;
@@ -296,9 +297,9 @@ void buildFocus(WindowItem *ptr)
 
     eraseFocus();
 
-    focusWidth = ptr->layout.width;
+    focusWidth = ptr->layout.width + focusLineWidth * 2;
     tilesHorizontal = ceil(focusWidth / (float)tileWidth);
-    focusHeight = ptr->layout.height;
+    focusHeight = ptr->layout.height + focusLineWidth * 2;
     tilesVertical = ceil(focusHeight / (float)tileHeight);
 
     if (tilesVertical < 3)
@@ -308,19 +309,35 @@ void buildFocus(WindowItem *ptr)
             tile = CreateActor("a_gui", ptr->parent->style.guiAnim,
                                ptr->parent->parentCName, "(none)", 0, 0, true);
             tile->x = ptr->layout.startx + tileWidth + i * tileWidth  + (i >= 2 && i >= tilesHorizontal - 2) * (focusWidth  - tilesHorizontal * tileWidth)-tileWidth/2;
-            tile->x += ptr->parent->style.padding;
+            tile->x += ptr->parent->style.padding - focusLineWidth;
             tile->y = ptr->layout.starty + tileHeight -tileHeight/2;
-            tile->y += ptr->parent->style.padding;
+            tile->y += ptr->parent->style.padding - focusLineWidth;
             tile->animpos = 15 + (i > 0) + (i == tilesHorizontal - 1);
+
+            tile->myWindow = -1;
+            tile->myPanel = -1;
+            tile->myIndex = -1;
+            colorActor(tile, ptr->parent->style.focusColor);
+            ChangeZDepth(tile->clonename, DEFAULT_ITEM_ZDEPTH);
+            EventDisable(tile->clonename, EVENTCOLLISION);
+            EventDisable(tile->clonename, EVENTCOLLISIONFINISH);
             updateIndexBounds(&GEUIController.focusTileStartIndex, &GEUIController.focusTileEndIndex, tile->cloneindex);
 
             tile = CreateActor("a_gui", ptr->parent->style.guiAnim,
                            ptr->parent->parentCName, "(none)", 0, 0, true);
             tile->x = ptr->layout.startx + tileWidth + i * tileWidth  + (i >= 2 && i >= tilesHorizontal - 2) * (focusWidth  - tilesHorizontal * tileWidth)-tileWidth/2;
-            tile->x += ptr->parent->style.padding;
+            tile->x += ptr->parent->style.padding - focusLineWidth;
             tile->y = ptr->layout.starty + tileHeight -tileHeight/2;
-            tile->y += ptr->parent->style.padding;
+            tile->y += ptr->parent->style.padding + focusLineWidth;
             tile->animpos = 21 + (i > 0) + (i == tilesHorizontal - 1);
+
+            tile->myWindow = -1;
+            tile->myPanel = -1;
+            tile->myIndex = -1;
+            colorActor(tile, ptr->parent->style.focusColor);
+            ChangeZDepth(tile->clonename, DEFAULT_ITEM_ZDEPTH);
+            EventDisable(tile->clonename, EVENTCOLLISION);
+            EventDisable(tile->clonename, EVENTCOLLISIONFINISH);
             updateIndexBounds(&GEUIController.focusTileStartIndex, &GEUIController.focusTileEndIndex, tile->cloneindex);
         }
     }
@@ -338,10 +355,18 @@ void buildFocus(WindowItem *ptr)
                 tile = CreateActor("a_gui", ptr->parent->style.guiAnim,
                                    ptr->parent->parentCName, "(none)", 0, 0, true);
                 tile->x = ptr->layout.startx + tileWidth + i * tileWidth  + (i >= 2 && i >= tilesHorizontal - 2) * (focusWidth  - tilesHorizontal * tileWidth)-tileWidth/2;
-                tile->x += ptr->parent->style.padding;
+                tile->x += ptr->parent->style.padding - focusLineWidth;
                 tile->y = ptr->layout.starty + tileHeight + j * tileHeight + (j >= 2 && j >= tilesVertical - 2) * (focusHeight - tilesVertical * tileHeight)-tileHeight/2;
-                tile->y += ptr->parent->style.padding;
+                tile->y += ptr->parent->style.padding - focusLineWidth;
                 tile->animpos = tempAnimpos;
+
+                tile->myWindow = -1;
+                tile->myPanel = -1;
+                tile->myIndex = -1;
+                colorActor(tile, ptr->parent->style.focusColor);
+                ChangeZDepth(tile->clonename, DEFAULT_ITEM_ZDEPTH);
+                EventDisable(tile->clonename, EVENTCOLLISION);
+                EventDisable(tile->clonename, EVENTCOLLISIONFINISH);
                 updateIndexBounds(&GEUIController.focusTileStartIndex, &GEUIController.focusTileEndIndex, tile->cloneindex);
             }
         }

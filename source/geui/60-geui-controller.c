@@ -13,6 +13,7 @@ void initGEUI(void)
     defStyle.labelFont          = &defLabelFont;
     defStyle.textFont           = &defTextFont;
     defStyle.padding            = 5;
+    defStyle.focusWidth         = 2;
     defStyle.titleBgColor       = DEFAULT_COLOR;
     defStyle.windowBgColor      = DEFAULT_COLOR;
     defStyle.inputBgColor       = DEFAULT_COLOR;
@@ -22,6 +23,7 @@ void initGEUI(void)
     defStyle.buttonColor        = DEFAULT_COLOR;
     defStyle.buttonHilitColor   = CYAN;
     defStyle.buttonPressedColor = BLUE;
+    defStyle.focusColor         = createRGB(255, 0, 128, 1.0);
 
     GEUIController.wIndex = 0;
     GEUIController.topIndex = 0;
