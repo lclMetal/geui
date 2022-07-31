@@ -41,6 +41,7 @@ typedef struct WindowItemStruct
     char tag[256];      // item identifier tag
 
     ItemType type;      // item type
+    bool focusable;
 
     union ItemDataUnion // item data union for different item types
     {
@@ -127,6 +128,10 @@ struct GEUIControllerStruct
     int topIndex;
     Style sDefault;
     Window *wList;
+
+    WindowItem *focus;
+    long focusTileStartIndex;
+    long focusTileEndIndex;
 
     Actor *mButtonActors[GEUI_MOUSE_BUTTONS];
     char mButtonTopActorCName[GEUI_MOUSE_BUTTONS][GEUI_CLONENAME_SIZE];

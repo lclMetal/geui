@@ -1769,6 +1769,7 @@ typedef struct WindowItemStruct
     char tag[256];      // item identifier tag
 
     ItemType type;      // item type
+    bool focusable;
 
     union ItemDataUnion // item data union for different item types
     {
@@ -1855,6 +1856,10 @@ struct GEUIControllerStruct
     int topIndex;
     Style sDefault;
     Window *wList;
+
+    WindowItem *focus;
+    long focusTileStartIndex;
+    long focusTileEndIndex;
 
     Actor *mButtonActors[GEUI_MOUSE_BUTTONS];
     char mButtonTopActorCName[GEUI_MOUSE_BUTTONS][GEUI_CLONENAME_SIZE];
@@ -2095,6 +2100,10 @@ WindowItem *getItemFromPanelByTag(Panel *panel, char tag[256]);
 WindowItem *getItemByTag(Window *window, char tag[256]);
 WindowItem *getItemFromPanelByIndex(Panel *panel, int index);
 WindowItem *getItemByIndex(Window *window, int index);
+void focusItem(WindowItem *ptr);
+void blurItem(WindowItem *ptr);
+void buildFocus(WindowItem *ptr);
+void eraseFocus(WindowItem *ptr);
 void buildItems(Panel *panel);
 void buildItem(WindowItem *ptr);
 void buildText(WindowItem *ptr);
@@ -2118,6 +2127,7 @@ WindowItem *initNewItem(ItemType type, Window *window, Panel *panel, char tag[25
     if (!ptr) { DEBUG_MSG_FROM("memory allocation failed", "initNewItem"); return NULL; }
 
     ptr->type = type;
+    ptr->focusable = True;
     ptr->index = panel->iIndex ++;
     strcpy(ptr->tag, tag);
     ptr->myPanel = panel;
@@ -2328,6 +2338,26 @@ WindowItem *getItemByIndex(Window *window, int index)
         return ptr;
 
     return NULL;
+}
+
+void focusItem(WindowItem *ptr)
+{
+
+}
+
+void blurItem(WindowItem *ptr)
+{
+
+}
+
+void buildFocus(WindowItem *ptr)
+{
+
+}
+
+void eraseFocus(WindowItem *ptr)
+{
+
 }
 
 void buildItems(Panel *panel)
@@ -3537,6 +3567,9 @@ void initGEUI(void)
     GEUIController.topIndex = 0;
     GEUIController.sDefault = defStyle;
     GEUIController.wList = NULL;
+    GEUIController.focus = NULL;
+    GEUIController.focusTileStartIndex = -1;
+    GEUIController.focusTileEndIndex = -1;
 
     initLimValues();
 }

@@ -27,6 +27,9 @@ void initGEUI(void)
     GEUIController.topIndex = 0;
     GEUIController.sDefault = defStyle;
     GEUIController.wList = NULL;
+    GEUIController.focus = NULL;
+    GEUIController.focusTileStartIndex = -1;
+    GEUIController.focusTileEndIndex = -1;
 
     initLimValues();
 }

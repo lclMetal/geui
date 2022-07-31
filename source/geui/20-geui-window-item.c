@@ -17,6 +17,10 @@ WindowItem *getItemFromPanelByTag(Panel *panel, char tag[256]);
 WindowItem *getItemByTag(Window *window, char tag[256]);
 WindowItem *getItemFromPanelByIndex(Panel *panel, int index);
 WindowItem *getItemByIndex(Window *window, int index);
+void focusItem(WindowItem *ptr);
+void blurItem(WindowItem *ptr);
+void buildFocus(WindowItem *ptr);
+void eraseFocus(WindowItem *ptr);
 void buildItems(Panel *panel);
 void buildItem(WindowItem *ptr);
 void buildText(WindowItem *ptr);
@@ -40,6 +44,7 @@ WindowItem *initNewItem(ItemType type, Window *window, Panel *panel, char tag[25
     if (!ptr) { DEBUG_MSG_FROM("memory allocation failed", "initNewItem"); return NULL; }
 
     ptr->type = type;
+    ptr->focusable = True;
     ptr->index = panel->iIndex ++;
     strcpy(ptr->tag, tag);
     ptr->myPanel = panel;
@@ -250,6 +255,26 @@ WindowItem *getItemByIndex(Window *window, int index)
         return ptr;
 
     return NULL;
+}
+
+void focusItem(WindowItem *ptr)
+{
+
+}
+
+void blurItem(WindowItem *ptr)
+{
+
+}
+
+void buildFocus(WindowItem *ptr)
+{
+
+}
+
+void eraseFocus(WindowItem *ptr)
+{
+
 }
 
 void buildItems(Panel *panel)
