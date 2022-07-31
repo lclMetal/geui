@@ -2094,6 +2094,7 @@ typedef struct inputFieldStruct
 // from geui-panel.c
 void closePanel(Panel *panel);
 void destroyPanel(Panel *panel);
+Panel *getPanelByIndex(Panel *panel, int index);
 
 WindowItem *initNewItem(ItemType type, Window *window, Panel *panel, char tag[256]);
 WindowItem *addItemToWindow(WindowItem *ptr);
@@ -2107,6 +2108,7 @@ WindowItem *getItemFromPanelByTag(Panel *panel, char tag[256]);
 WindowItem *getItemByTag(Window *window, char tag[256]);
 WindowItem *getItemFromPanelByIndex(Panel *panel, int index);
 WindowItem *getItemByIndex(Window *window, int index);
+WindowItem *getNextFocusableItem(WindowItem *ptr);
 WindowItem *focusItem(WindowItem *ptr);
 void blurItem(WindowItem *ptr);
 void buildFocus(WindowItem *ptr);
@@ -2344,6 +2346,54 @@ WindowItem *getItemByIndex(Window *window, int index)
     if (ptr)
         return ptr;
 
+    return NULL;
+}
+
+WindowItem *getNextFocusableItem(WindowItem *ptr)
+{
+    Panel *panel = ptr->myPanel;
+    Window *window = ptr->parent;
+    WindowItem *next = getItemFromPanelByIndex(panel, ptr->index + 1);
+
+    if (next)
+    {
+        DEBUG_MSG_FROM("next was available", "getNextFocusableItem");
+        if (next->focusable)
+            return next;
+        return getNextFocusableItem(next);
+    }
+
+    panel = getPanelByIndex(&window->mainPanel, panel->index + 1);
+
+    if (panel)
+    {
+        next = getItemFromPanelByIndex(panel, 0);
+
+        if (next)
+        {
+        DEBUG_MSG_FROM("next was available", "getNextFocusableItem");
+            if (next->focusable)
+                return next;
+            return getNextFocusableItem(next);
+        }
+    }
+
+    panel = getPanelByIndex(&window->mainPanel, 0);
+
+    if (panel)
+    {
+        next = getItemFromPanelByIndex(panel, 0);
+
+        if (next)
+        {
+        DEBUG_MSG_FROM("next was available", "getNextFocusableItem");
+            if (next->focusable)
+                return next;
+            return getNextFocusableItem(next);
+        }
+    }
+
+        DEBUG_MSG_FROM("sadface", "getNextFocusableItem");
     return NULL;
 }
 
@@ -2642,7 +2692,10 @@ void eraseWindowItem(WindowItem *ptr)
     if (!ptr) { DEBUG_MSG_FROM("item is NULL", "eraseWindowItem"); return; }
 
     if (GEUIController.focus == ptr)
+    {
         eraseFocus();
+        GEUIController.focus = NULL;
+    }
 
     switch (ptr->type)
     {
@@ -3269,6 +3322,7 @@ void destroyWindow(Window *window)
 // without doing anything, which can be difficult to debug
 
 int isTopmostItemAtMouse(WindowItem *item);
+void focusNextItemInWindow();
 void doMouseEnter(const char *actorName);
 void doMouseLeave(const char *actorName);
 void doMouseButtonDown(const char *actorName, enum mouseButtonsEnum mButtonNumber);
@@ -3308,6 +3362,21 @@ int isTopmostItemAtMouse(WindowItem *item)
     }
 
     return 0;
+}
+
+void focusNextItemInWindow()
+{
+    WindowItem *nextFocus = NULL;
+
+    if (GEUIController.focus)
+    {
+        nextFocus = getNextFocusableItem(GEUIController.focus);
+
+        if (nextFocus)
+        {
+            focusItem(nextFocus);
+        }
+    }
 }
 
 void doMouseEnter(const char *actorName)

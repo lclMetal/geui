@@ -2,6 +2,7 @@
 // without doing anything, which can be difficult to debug
 
 int isTopmostItemAtMouse(WindowItem *item);
+void focusNextItemInWindow();
 void doMouseEnter(const char *actorName);
 void doMouseLeave(const char *actorName);
 void doMouseButtonDown(const char *actorName, enum mouseButtonsEnum mButtonNumber);
@@ -41,6 +42,21 @@ int isTopmostItemAtMouse(WindowItem *item)
     }
 
     return 0;
+}
+
+void focusNextItemInWindow()
+{
+    WindowItem *nextFocus = NULL;
+
+    if (GEUIController.focus)
+    {
+        nextFocus = getNextFocusableItem(GEUIController.focus);
+
+        if (nextFocus)
+        {
+            focusItem(nextFocus);
+        }
+    }
 }
 
 void doMouseEnter(const char *actorName)
