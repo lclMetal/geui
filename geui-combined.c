@@ -2422,6 +2422,14 @@ void blurItem(WindowItem *ptr)
     {
         eraseFocus(ptr);
         GEUIController.focus = NULL;
+
+        if (ptr->type == GEUI_Button)
+        {
+            ptr->data.button.state = 0;
+            colorClones("a_gui",
+                        ptr->data.button.bTileStartIndex,
+                        ptr->data.button.bTileEndIndex, ptr->parent->style.buttonColor);
+        }
     }
 }
 
@@ -3378,8 +3386,8 @@ int isMouseButtonDown(enum mouseButtonsEnum mButtonNumber);
 int isMouseButtonUp(enum mouseButtonsEnum mButtonNumber);
 int updateMouseButtonDown(enum mouseButtonsEnum mButtonNumber);
 void updateMouseButtonUp(enum mouseButtonsEnum mButtonNumber);
-void doKeyDown(WindowItem *item, short key);
-void doKeyUp(WindowItem *item, short key);
+void doKeyDown(WindowItem *item, int key);
+void doKeyUp(WindowItem *item, int key);
 
 int isTopmostItemAtMouse(WindowItem *item)
 {
@@ -3431,6 +3439,7 @@ void focusNextItemInWindow()
 
     if (nextFocus)
     {
+        blurItem(GEUIController.focus);
         focusItem(nextFocus);
     }
 }
@@ -3457,8 +3466,6 @@ void doMouseEnter(const char *actorName)
             {
                 long start = item->data.button.bTileStartIndex;
                 long end   = item->data.button.bTileEndIndex;
-
-                // focusItem(item);
 
                 if (item->data.button.state)
                     colorClones("a_gui", start, end, item->parent->style.buttonPressedColor);
@@ -3568,10 +3575,14 @@ void doMouseButtonDown(const char *actorName, enum mouseButtonsEnum mButtonNumbe
     switch (item->type)
     {
         case GEUI_Button:
+            focusItem(item);
             colorClones("a_gui",
                 item->data.button.bTileStartIndex,
                 item->data.button.bTileEndIndex, window->style.buttonPressedColor);
             item->data.button.state = 1;
+        break;
+        case GEUI_InputInt:
+            focusItem(item);
         break;
     }
 }
@@ -3772,14 +3783,59 @@ void updateMouseButtonUp(enum mouseButtonsEnum mButtonNumber)
     }
 }
 
-void doKeyDown(WindowItem *item, short key)
+void doKeyDown(WindowItem *item, int key)
 {
     // TODO: implement doKeyDown
+    if (item)
+    {
+        switch (item->type)
+        {
+            case GEUI_Button:
+                if (key == KEY_RETURN || key == KEY_SPACE)
+                {
+                    colorClones("a_gui",
+                        item->data.button.bTileStartIndex,
+                        item->data.button.bTileEndIndex, item->parent->style.buttonPressedColor);
+                    item->data.button.state = 1;
+                }
+            break;
+            case GEUI_InputInt:
+                handleIntInput(&item->data.inputInt, key);
+                refreshText(&item->data.inputInt.text);
+            break;
+        }
+    }
+
+    switch (key)
+    {
+        case KEY_TAB:
+            focusNextItemInWindow();
+        break;
+    }
 }
 
-void doKeyUp(WindowItem *item, short key)
+void doKeyUp(WindowItem *item, int key)
 {
     // TODO: implement doKeyUp
+    if (item)
+    {
+        switch (item->type)
+        {
+            case GEUI_Button:
+                if ((key == KEY_RETURN || key == KEY_SPACE) && item->data.button.state == 1)
+                {
+                    long start = item->data.button.bTileStartIndex;
+                    long end   = item->data.button.bTileEndIndex;
+
+                    if (item->data.button.actionFunction)
+                        item->data.button.actionFunction(item->parent, item);
+
+                    colorClones("a_gui", start, end, item->parent->style.buttonColor);
+                    item->data.button.state = 0;
+                }
+            break;
+        }
+    }
 }
 
 

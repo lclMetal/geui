@@ -332,6 +332,14 @@ void blurItem(WindowItem *ptr)
     {
         eraseFocus(ptr);
         GEUIController.focus = NULL;
+
+        if (ptr->type == GEUI_Button)
+        {
+            ptr->data.button.state = 0;
+            colorClones("a_gui",
+                        ptr->data.button.bTileStartIndex,
+                        ptr->data.button.bTileEndIndex, ptr->parent->style.buttonColor);
+        }
     }
 }
 
