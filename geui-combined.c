@@ -2354,7 +2354,11 @@ WindowItem *focusItem(WindowItem *ptr)
 
 void blurItem(WindowItem *ptr)
 {
-
+    if (GEUIController.focus == ptr)
+    {
+        eraseFocus(ptr);
+        GEUIController.focus = NULL;
+    }
 }
 
 void buildFocus(WindowItem *ptr)
