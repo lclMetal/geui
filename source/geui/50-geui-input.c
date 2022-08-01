@@ -212,6 +212,9 @@ void doMouseButtonDown(const char *actorName, enum mouseButtonsEnum mButtonNumbe
         case GEUI_InputInt:
             focusItem(item);
         break;
+        case GEUI_InputText:
+            focusItem(item);
+        break;
     }
 }
 
@@ -435,6 +438,10 @@ void doKeyDown(WindowItem *item, int key)
                 }
 
                 refreshText(&item->data.inputInt.text);
+            break;
+            case GEUI_InputText:
+                handleTextInput(&item->data.inputText, key);
+                refreshText(&item->data.inputText.text);
             break;
         }
     }

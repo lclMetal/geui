@@ -13,6 +13,7 @@ typedef enum ItemTypeEnum
     GEUI_Text,
     GEUI_Button,
     GEUI_InputInt,
+    GEUI_InputText,
     GEUI_Panel,
     GEUI_Embedder
 }ItemType;
@@ -35,6 +36,20 @@ typedef struct IntInputFieldStruct
     long tileEndIndex;
 }IntInputField;
 
+const unsigned long GEUI_TEXT_INPUT_SHIFT   = (1 << 0);
+const unsigned long GEUI_TEXT_INPUT_CTRL    = (1 << 1);
+const unsigned long GEUI_TEXT_INPUT_ALT     = (1 << 2);
+
+typedef struct TextInputFieldStruct
+{
+    long modifier;
+
+    Text text;
+
+    long tileStartIndex;
+    long tileEndIndex;
+}TextInputField;
+
 typedef struct WindowItemStruct
 {
     int index;          // item index
@@ -55,6 +70,7 @@ typedef struct WindowItemStruct
             void (*actionFunction)(struct WindowStruct *, struct WindowItemStruct *);
         }button;
         IntInputField inputInt;
+        TextInputField inputText;
         struct PanelStruct *panel;
         struct EmbedderItem
         {
