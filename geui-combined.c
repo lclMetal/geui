@@ -597,6 +597,7 @@ void setTextZDepth(Text *pText, double zDepth);
 void setTextParent(Text *pText, char *parentCName, bool keepCurrentPosition);
 void setTextPosition(Text *pText, int posX, int posY);
 void concatenateText(Text *pText, char *string);
+void concatenateCharToText(Text *pText, char c);
 void setTextText(Text *pText, char *string);
 void refreshText(Text *pText);
 void eraseText(Text *pText);
@@ -1200,6 +1201,13 @@ void concatenateText(Text *pText, char *string)
         pText->capacity = 0;
 }
 
+void concatenateCharToText(Text *pText, char c)
+{
+    char temp[2];
+    sprintf(temp, "%c", c);
+    concatenateText(pText, temp);
+}
+
 void setTextText(Text *pText, char *string)
 {
     size_t reqCapacity;
@@ -1771,10 +1779,6 @@ typedef struct IntInputFieldStruct
     long tileEndIndex;
 }IntInputField;
 
-const unsigned long GEUI_TEXT_INPUT_SHIFT   = (1 << 0);
-const unsigned long GEUI_TEXT_INPUT_CTRL    = (1 << 1);
-const unsigned long GEUI_TEXT_INPUT_ALT     = (1 << 2);
-
 typedef struct TextInputFieldStruct
 {
     long modifier;
@@ -2107,20 +2111,19 @@ typedef struct inputFieldStruct
 // ..\source\geui\16-geui-input-text.c
 void handleTextInput(TextInputField *field, int key)
 {
+    char newChar = '\0';
     char *keys = GetKeyState();
+    short shift = (keys[KEY_LSHIFT] || keys[KEY_RSHIFT]);
+    short ctrl  = (keys[KEY_LCTRL] || keys[KEY_RCTRL]);
+    short alt   = (keys[KEY_LALT] || keys[KEY_RALT]);
 
-    field->modifier = 0;
-    field->modifier |= GEUI_TEXT_INPUT_SHIFT * (keys[KEY_LSHIFT] || keys[KEY_RSHIFT]);
-    field->modifier |= GEUI_TEXT_INPUT_CTRL  * (keys[KEY_LCTRL] || keys[KEY_RCTRL]);
-    field->modifier |= GEUI_TEXT_INPUT_ALT   * (keys[KEY_LALT] || keys[KEY_RALT]);
 
+    if (key >= KEY_a && key <= KEY_z)
     {
-        char temp[256];
-        sprintf(temp, "shift: %d\tctrl: %d\talt: %d", field->modifier & GEUI_TEXT_INPUT_SHIFT,
-                                                      field->modifier & GEUI_TEXT_INPUT_CTRL,
-                                                      field->modifier & GEUI_TEXT_INPUT_ALT);
-        DEBUG_MSG_FROM(temp, "handleTextInput");
+        newChar = key - ('a' - 'A') * shift;
     }
+
+    concatenateCharToText(&field->text, newChar);
 }
 
 
@@ -3097,6 +3100,7 @@ void setPanelBaseParent(Panel *panel, char *parentName)
                     changeParentOfClones("a_gui", ptr->data.button.bTileStartIndex, ptr->data.button.bTileEndIndex, parentName);
                 break;
             case GEUI_InputInt: setTextParent(&ptr->data.inputInt.text, parentName, True); break;
+            case GEUI_InputText: setTextParent(&ptr->data.inputText.text, parentName, True); break;
             case GEUI_Panel: setPanelBaseParent(ptr->data.panel,  parentName); break;
             case GEUI_Embedder: ChangeParent(ptr->data.embedder.actorCName, parentName); break;
 

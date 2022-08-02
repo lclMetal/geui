@@ -1,17 +1,16 @@
 void handleTextInput(TextInputField *field, int key)
 {
+    char newChar = '\0';
     char *keys = GetKeyState();
+    short shift = (keys[KEY_LSHIFT] || keys[KEY_RSHIFT]);
+    short ctrl  = (keys[KEY_LCTRL] || keys[KEY_RCTRL]);
+    short alt   = (keys[KEY_LALT] || keys[KEY_RALT]);
 
-    field->modifier = 0;
-    field->modifier |= GEUI_TEXT_INPUT_SHIFT * (keys[KEY_LSHIFT] || keys[KEY_RSHIFT]);
-    field->modifier |= GEUI_TEXT_INPUT_CTRL  * (keys[KEY_LCTRL] || keys[KEY_RCTRL]);
-    field->modifier |= GEUI_TEXT_INPUT_ALT   * (keys[KEY_LALT] || keys[KEY_RALT]);
 
+    if (key >= KEY_a && key <= KEY_z)
     {
-        char temp[256];
-        sprintf(temp, "shift: %d\tctrl: %d\talt: %d", field->modifier & GEUI_TEXT_INPUT_SHIFT,
-                                                      field->modifier & GEUI_TEXT_INPUT_CTRL,
-                                                      field->modifier & GEUI_TEXT_INPUT_ALT);
-        DEBUG_MSG_FROM(temp, "handleTextInput");
+        newChar = key - ('a' - 'A') * shift;
     }
+
+    concatenateCharToText(&field->text, newChar);
 }

@@ -36,10 +36,6 @@ typedef struct IntInputFieldStruct
     long tileEndIndex;
 }IntInputField;
 
-const unsigned long GEUI_TEXT_INPUT_SHIFT   = (1 << 0);
-const unsigned long GEUI_TEXT_INPUT_CTRL    = (1 << 1);
-const unsigned long GEUI_TEXT_INPUT_ALT     = (1 << 2);
-
 typedef struct TextInputFieldStruct
 {
     long modifier;
