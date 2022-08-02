@@ -92,6 +92,7 @@ void setTextZDepth(Text *pText, double zDepth);
 void setTextParent(Text *pText, char *parentCName, bool keepCurrentPosition);
 void setTextPosition(Text *pText, int posX, int posY);
 void concatenateText(Text *pText, char *string);
+void concatenateCharToText(Text *pText, char c);
 void setTextText(Text *pText, char *string);
 void refreshText(Text *pText);
 void eraseText(Text *pText);
@@ -693,6 +694,13 @@ void concatenateText(Text *pText, char *string)
         strcat(pText->pString, string);
     else
         pText->capacity = 0;
+}
+
+void concatenateCharToText(Text *pText, char c)
+{
+    char temp[2];
+    sprintf(temp, "%c", c);
+    concatenateText(pText, temp);
 }
 
 void setTextText(Text *pText, char *string)
