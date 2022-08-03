@@ -95,7 +95,7 @@ void debugUpdateFps(void)
 
     if (debugController.fpsTime.sec_utc != debugController.fpsLastUpdate)
     {
-        debugController.fpsAverage = debugController.fpsHeap / (double) debugController.fpsCount;
+        debugController.fpsAverage = max(debugController.fpsHeap / (double)max(debugController.fpsCount, 1), 1);
         debugController.fpsLowest = debugController.fpsFindLowest;
         debugController.fpsHighest = debugController.fpsFindHighest;
         debugController.fpsHeap = 0;
