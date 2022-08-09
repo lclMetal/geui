@@ -11,7 +11,7 @@ WindowItem *addItemToWindow(WindowItem *ptr);
 WindowItem *addText(Window *window, Panel *panel, char tag[256], char *string, short maxWidth);
 WindowItem *addButton(Window *window, Panel *panel, char tag[256], char *string, void (*actionFunction)(Window *, WindowItem *));
 WindowItem *addInputInt(Window *window, Panel *panel, char tag[256], int defaultVal, int minVal, int maxVal);
-WindowItem *addInputText(Window *window, Panel *panel, char tag[256], char *string, short maxWidth);
+WindowItem *addInputText(Window *window, Panel *panel, char tag[256], const char *string, short maxWidth);
 WindowItem *addPanel(Window *window, Panel *panel, char tag[256]);
 WindowItem *addEmbedder(Window *window, Panel *panel, char tag[256], const char *actorName);
 void setPosition(WindowItem *this, short row, short col);
@@ -30,6 +30,7 @@ void buildText(WindowItem *ptr);
 void buildPanel(WindowItem *ptr);
 void buildButtonText(WindowItem *ptr);
 void buildButton(WindowItem *ptr);
+Actor *buildCaret(WindowItem *ptr, Text *pText, BlinkingCaret *caret);
 void buildInputField(WindowItem *ptr, long *tileStartIndex, long *tileEndIndex);
 void buildInputInt(WindowItem *ptr);
 void buildInputText(WindowItem *ptr);
@@ -119,6 +120,7 @@ WindowItem *addInputInt(Window *window, Panel *panel, char tag[256], int default
 
     ptr->focusable = True;
     ptr->data.inputInt.value = defaultVal;
+    initializeCaret(&ptr->data.inputInt.caret);
     sprintf(temp, "%d", defaultVal);
     ptr->data.inputInt.text = createText(temp, window->style.textFont, "(none)", ABSOLUTE, 0, 0);
     setTextColor(&ptr->data.inputInt.text, window->style.textColor);
@@ -133,13 +135,13 @@ WindowItem *addInputInt(Window *window, Panel *panel, char tag[256], int default
     return addItemToWindow(ptr);
 }
 
-WindowItem *addInputText(Window *window, Panel *panel, char tag[256], char *string, short maxWidth)
+WindowItem *addInputText(Window *window, Panel *panel, char tag[256], const char *string, short maxWidth)
 {
     WindowItem *ptr = initNewItem(GEUI_InputText, window, panel, tag);
     if (!ptr) { DEBUG_MSG_FROM("item is NULL", "addInputText"); return NULL; }
 
     ptr->focusable = True;
-    ptr->data.inputText.modifier = 0;
+    initializeCaret(&ptr->data.inputText.caret);
     ptr->data.inputText.text = createText(string, window->style.textFont, "(none)", ABSOLUTE, 0, 0);
     setTextColor(&ptr->data.inputText.text, window->style.textColor);
     setTextZDepth(&ptr->data.inputText.text, DEFAULT_ITEM_ZDEPTH);
@@ -341,6 +343,12 @@ WindowItem *focusItem(WindowItem *ptr)
             blurItem(GEUIController.focus);
             GEUIController.focus = ptr;
             buildFocus(ptr);
+
+            switch (ptr->type)
+            {
+                case GEUI_InputInt: showCaret(&ptr->data.inputInt.caret); break;
+                case GEUI_InputText: showCaret(&ptr->data.inputText.caret); break;
+            }
         }
 
         return ptr;
@@ -367,6 +375,11 @@ void blurItem(WindowItem *ptr)
         {
             enforceIntLimits(&ptr->data.inputInt);
             refreshText(&ptr->data.inputInt.text);
+            hideCaret(&ptr->data.inputInt.caret);
+        }
+        else if (ptr->type == GEUI_InputText)
+        {
+            hideCaret(&ptr->data.inputText.caret);
         }
     }
 }
@@ -563,6 +576,24 @@ void buildButton(WindowItem *ptr)
     buildButtonText(ptr);
 }
 
+Actor *buildCaret(WindowItem *ptr, Text *pText, BlinkingCaret *caret)
+{
+    Actor *a = CreateActor("a_gui", ptr->parent->style.guiAnim, ptr->parent->parentCName, "(none)", 0, 0, true);
+    a->animpos = 19;
+    a->myWindow = ptr->parent->index,
+    a->myPanel = ptr->myPanel->index;
+    a->myIndex = ptr->index;//
+    a->myProperties = GEUI_CARET;
+    SendActivationEvent(a->clonename);
+    ChangeZDepth(a->clonename, DEFAULT_ITEM_ZDEPTH);
+    strcpy(caret->actorCName, a->clonename);
+    caret->pText = pText;
+    colorActorByName(caret->actorCName, ptr->parent->style.textColor);
+    updateCaretPosition(caret);
+
+    return a;
+}
+
 void buildInputField(WindowItem *ptr, long *tileStartIndex, long *tileEndIndex)
 {
     short i;
@@ -606,6 +637,9 @@ void buildInputInt(WindowItem *ptr)
         getTile(ptr->data.inputInt.tileStartIndex)->x,
         getTile(ptr->data.inputInt.tileStartIndex)->y);
     refreshText(&ptr->data.inputInt.text);
+
+    buildCaret(ptr, &ptr->data.inputInt.text, &ptr->data.inputInt.caret);
+    hideCaret(&ptr->data.inputInt.caret);
 }
 
 void buildInputText(WindowItem *ptr)
@@ -620,6 +654,9 @@ void buildInputText(WindowItem *ptr)
         getTile(ptr->data.inputText.tileStartIndex)->x,
         getTile(ptr->data.inputText.tileStartIndex)->y);
     refreshText(&ptr->data.inputText.text);
+
+    buildCaret(ptr, &ptr->data.inputText.text, &ptr->data.inputText.caret);
+    hideCaret(&ptr->data.inputText.caret);
 }
 
 void buildEmbedder(WindowItem *ptr)
@@ -638,14 +675,14 @@ void buildEmbedder(WindowItem *ptr)
     actor->y = ptr->layout.starty + ptr->parent->style.padding + actor->height / 2;
     VisibilityState(ptr->data.embedder.actorCName, ENABLE);
 
-    {
-        char temp[256];
-        sprintf(temp, "%d, %d - %d, %d", ptr->layout.startx + ptr->parent->style.padding + actor->width / 2,
-                                ptr->layout.starty + ptr->parent->style.padding + actor->height / 2,
-                                (int)actor->x,
-                                (int)actor->y);
-        DEBUG_MSG_FROM(temp, "buildEmbedder");
-    }
+    // {
+        // char temp[256];
+        // sprintf(temp, "%d, %d - %d, %d", ptr->layout.startx + ptr->parent->style.padding + actor->width / 2,
+                                // ptr->layout.starty + ptr->parent->style.padding + actor->height / 2,
+                                // (int)actor->x,
+                                // (int)actor->y);
+        // DEBUG_MSG_FROM(temp, "buildEmbedder");
+    // }
 }
 
 void eraseWindowItem(WindowItem *ptr)
@@ -675,6 +712,7 @@ void eraseWindowItem(WindowItem *ptr)
         break;
         case GEUI_InputInt:
             eraseText(&ptr->data.inputInt.text);
+            eraseCaret(&ptr->data.inputInt.caret);
             setTextParent(&ptr->data.inputInt.text, "(none)", False);
             if (ptr->data.inputInt.tileStartIndex > -1)
             {
@@ -685,6 +723,7 @@ void eraseWindowItem(WindowItem *ptr)
         break;
         case GEUI_InputText:
             eraseText(&ptr->data.inputText.text);
+            eraseCaret(&ptr->data.inputText.caret);
             setTextParent(&ptr->data.inputText.text, "(none)", False);
             if (ptr->data.inputText.tileStartIndex > -1)
             {
@@ -725,6 +764,7 @@ void destroyWindowItem(WindowItem *ptr)
         break;
         case GEUI_InputInt:
             destroyText(&ptr->data.inputInt.text);
+            eraseCaret(&ptr->data.inputInt.caret);
             if (ptr->data.inputInt.tileStartIndex > -1)
             {
                 destroyClones("a_gui", ptr->data.inputInt.tileStartIndex, ptr->data.inputInt.tileEndIndex);
@@ -734,6 +774,7 @@ void destroyWindowItem(WindowItem *ptr)
         break;
         case GEUI_InputText:
             destroyText(&ptr->data.inputText.text);
+            eraseCaret(&ptr->data.inputText.caret);
             if (ptr->data.inputText.tileStartIndex > -1)
             {
                 destroyClones("a_gui", ptr->data.inputText.tileStartIndex, ptr->data.inputText.tileEndIndex);

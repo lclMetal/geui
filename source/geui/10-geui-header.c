@@ -21,6 +21,17 @@ typedef enum ItemTypeEnum
 struct WindowStruct;
 struct PanelStruct;
 
+typedef struct BlinkingCaretStruct
+{
+    float blinkRate;
+    float timer;
+    short state;
+    char actorCName[256];
+    Text *pText;
+}BlinkingCaret;
+
+#define GEUI_DEFAULT_CARET_BLINK_RATE 2
+
 typedef struct IntInputFieldStruct
 {
     int    value;
@@ -31,16 +42,23 @@ typedef struct IntInputFieldStruct
     short  typedZero;
 
     Text   text;
+    BlinkingCaret caret;
 
     long tileStartIndex;
     long tileEndIndex;
 }IntInputField;
 
+typedef enum KeyboardLayoutEnum
+{
+    GEUI_KeyboardUS = 0,
+    GEUI_KeyboardFI,
+    GEUI_KeyboardLayoutCount
+}KeyboardLayout;
+
 typedef struct TextInputFieldStruct
 {
-    long modifier;
-
     Text text;
+    BlinkingCaret caret;
 
     long tileStartIndex;
     long tileEndIndex;
@@ -114,6 +132,7 @@ const unsigned long GEUI_TITLE_BAR  = (1 << 0);
 const unsigned long GEUI_FAKE_ACTOR = (1 << 1);
 const unsigned long GEUI_CLICKED    = (1 << 2);
 const unsigned long GEUI_INPUT_BG   = (1 << 3);
+const unsigned long GEUI_CARET      = (1 << 4);
 
 enum mouseButtonsEnum // Used as array indices, don't touch!
 {
@@ -140,6 +159,7 @@ struct GEUIControllerStruct
     int wIndex;
     int topIndex;
     Style sDefault;
+    KeyboardLayout kbLayout;
     Window *wList;
 
     WindowItem *focus;
@@ -152,3 +172,5 @@ struct GEUIControllerStruct
     int mButtonState[GEUI_MOUSE_BUTTONS];
     enum mouseButtonsEnum activeButton;
 }GEUIController;
+
+#define CURRENT_KEYBOARD GEUIController.kbLayout

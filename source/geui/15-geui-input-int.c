@@ -1,11 +1,13 @@
 #define GEUI_INT_STRING_LENGTH 30
+#define GEUI_ALLOW_NO_VALUE 0
+#define GEUI_FORCE_VALUE_SHOWN 1
 
 int GEUI_INT_MIN_VALUE = 0;
 int GEUI_INT_MAX_VALUE = 0;
 
 IntInputField test;
 
-void updateIntText(IntInputField *field);
+void updateIntText(IntInputField *field, short forceValue);
 
 void initLimValues()
 {
@@ -65,7 +67,7 @@ void setIntLimits(IntInputField *field, int minLim, int maxLim)
             field->intSign = -1;
     }
 
-    updateIntText(field);
+    updateIntText(field, GEUI_ALLOW_NO_VALUE);
 }
 
 void enforceIntLimits(IntInputField *field)
@@ -76,7 +78,7 @@ void enforceIntLimits(IntInputField *field)
     if (field->value < field->minValue)
         field->value = field->minValue;
 
-    updateIntText(field);
+    updateIntText(field, GEUI_FORCE_VALUE_SHOWN);
 }
 
 int validateIntInput(IntInputField *field, int input)
@@ -166,10 +168,10 @@ void handleIntInput(IntInputField *field, int key)
         }
     }
 
-    updateIntText(field);
+    updateIntText(field, GEUI_ALLOW_NO_VALUE);
 }
 
-void updateIntText(IntInputField *field)
+void updateIntText(IntInputField *field, short forceValue)
 {
     char temp[GEUI_INT_STRING_LENGTH];
 
@@ -178,11 +180,21 @@ void updateIntText(IntInputField *field)
     if (field->value != 0)
         sprintf(temp, "%d", field->value); // print number
     else if (field->value == 0 && field->intSign == -1)
-        sprintf(temp, "-"); // print only negative sign
-    else if (field->value == 0 && field->typedZero)
-        sprintf(temp, "0"); // print 0 only if explicitly typed
+    {
+        if (!forceValue)
+            sprintf(temp, "-"); // print only negative sign
+        else
+            sprintf(temp, "0");
+    }
+    else if (field->value == 0 && (field->typedZero || forceValue))
+        sprintf(temp, "0"); // print 0 only if explicitly typed or value is forced to be shown
     else
-        strcpy(temp, "\0"); // print nothing
+    {
+        if (!forceValue)
+            strcpy(temp, "\0"); // print nothing
+        else
+            sprintf(temp, "%d", field->value);
+    }
 
     setTextText(&field->text, temp);
 }

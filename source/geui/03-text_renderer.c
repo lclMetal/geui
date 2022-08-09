@@ -85,6 +85,7 @@ void scrollTextByAmount(Text *pText, int scroll);
 void setTextScrollByPercent(Text *pText, double scrollPercent);
 void readFontDataFile(char *fileName, Font *fontData);
 size_t calculateRequiredCapacity(size_t len);
+void updateTextDimensions(Text *pText);
 Text createText(const char *string, Font *pFont, const char *parentCName, bool relative, int startX, int startY);
 void setTextAlignment(Text *pText, int alignment);
 void setTextColor(Text *pText, Color color);
@@ -550,6 +551,12 @@ Text createText(const char *string, Font *pFont, const char *parentCName, bool r
     return temp;
 }
 
+void updateTextDimensions(Text *pText)
+{
+    pText->width = calculateTextWidth(pText);
+    pText->height = calculateTextHeight(pText);
+}
+
 void execOnLCList(Text *pText, LetterCloneindex *list, LetterCloneindex *(*pFunc)(Text *, LetterCloneindex *))
 {
     LetterCloneindex *iterator = list, *next;
@@ -699,6 +706,18 @@ void concatenateText(Text *pText, char *string)
 void concatenateCharToText(Text *pText, char c)
 {
     char temp[2];
+
+    if (c == '\b')
+    {
+        pText->pString[strlen(pText->pString) - (strlen(pText->pString) > 0)] = '\0';
+        return;
+    }
+    else if (c == '$')
+    {
+        concatenateText(pText, "$$");
+        return;
+    }
+
     sprintf(temp, "%c", c);
     concatenateText(pText, temp);
 }

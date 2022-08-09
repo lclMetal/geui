@@ -432,16 +432,23 @@ void doKeyDown(WindowItem *item, int key)
             case GEUI_InputInt:
                 handleIntInput(&item->data.inputInt, key);
 
-                if (key == KEY_RETURN)
+                if (key == KEY_RETURN || key == KEY_TAB)
                 {
                     enforceIntLimits(&item->data.inputInt);
                 }
 
                 refreshText(&item->data.inputInt.text);
+                updateCaretPosition(&item->data.inputInt.caret);
+                {
+                    char temp[256];
+                    sprintf(temp, "int value: %d", item->data.inputInt.value);
+                    DEBUG_MSG_FROM(temp, "inputInt doKeyDown");
+                }
             break;
             case GEUI_InputText:
                 handleTextInput(&item->data.inputText, key);
                 refreshText(&item->data.inputText.text);
+                updateCaretPosition(&item->data.inputText.caret);
             break;
         }
     }

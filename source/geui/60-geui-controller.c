@@ -1,8 +1,8 @@
-void initGEUI(void);
+void initGEUI(KeyboardLayout kbLayout);
 void quitGEUI(void);
 void destroyWindowList(void);
 
-void initGEUI(void)
+void initGEUI(KeyboardLayout kbLayout)
 {
     //DEBUG_INIT(); // debug file initialization on startup disabled for now
     // TODO: separate DEBUG_INIT() and DEBUG_INIT_FILE()
@@ -28,12 +28,18 @@ void initGEUI(void)
     GEUIController.wIndex = 0;
     GEUIController.topIndex = -1;
     GEUIController.sDefault = defStyle;
+    GEUIController.kbLayout = kbLayout;
     GEUIController.wList = NULL;
     GEUIController.focus = NULL;
     GEUIController.focusTileStartIndex = -1;
     GEUIController.focusTileEndIndex = -1;
 
     initLimValues();
+}
+
+void setKeyboardLayout(KeyboardLayout kbLayout)
+{
+    GEUIController.kbLayout = kbLayout;
 }
 
 void quitGEUI(void)

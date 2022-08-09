@@ -163,6 +163,9 @@ Actor *createWindowBaseParent(Window *window)
 
     baseParent = CreateActor("a_gui", window->style.guiAnim, "(none)", "(none)", 0, 0, true);
     baseParent->animpos = 0;
+    baseParent->myWindow = window->index;
+    baseParent->myPanel = -1;
+    baseParent->myIndex = -1;
     ChangeZDepth(baseParent->clonename, window->zDepth);
     CollisionState(baseParent->clonename, DISABLE);
 
