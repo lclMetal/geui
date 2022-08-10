@@ -2699,6 +2699,7 @@ void blurItem(WindowItem *ptr)
         {
             enforceIntLimits(&ptr->data.inputInt);
             refreshText(&ptr->data.inputInt.text);
+            updateCaretPosition(&ptr->data.inputInt.caret);
             hideCaret(&ptr->data.inputInt.caret);
         }
         else if (ptr->type == GEUI_InputText)
