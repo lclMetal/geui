@@ -20,6 +20,7 @@ typedef enum ItemTypeEnum
 
 struct WindowStruct;
 struct PanelStruct;
+struct TextInputFieldStruct;
 
 typedef struct BlinkingCaretStruct
 {
@@ -31,6 +32,55 @@ typedef struct BlinkingCaretStruct
 }BlinkingCaret;
 
 #define GEUI_DEFAULT_CARET_BLINK_RATE 2
+
+typedef enum InputTypeEnum
+{
+    GEUI_TextInput,
+    GEUI_IntInput,
+    GEUI_RealInput
+}InputType;
+
+typedef struct TextInputSettingsStruct
+{
+    int empty;
+}TextInputSettings;
+
+typedef struct IntInputSettingsStruct
+{
+    int minVal;
+    int maxVal;
+    int defaultValue;
+}IntInputSettings;
+
+typedef struct RealInputSettingsStruct
+{
+    float minVal;
+    float maxVal;
+    float defaultValue;
+    short precisionDigits;
+}RealInputSettings;
+
+typedef union InputSettingsDataUnion
+{
+    TextInputSettings textInput;
+    IntInputSettings intInput;
+    RealInputSettings realInput;
+}InputSettingsData;
+
+typedef union InputValueUnion
+{
+    char *textValue;
+    int intValue;
+    float realValue;
+}InputValue;
+
+typedef struct InputSettingsStruct
+{
+    InputType type;
+    InputSettingsData data;
+    void (*settingsFunction)(struct TextInputFieldStruct *);
+    void (*valueFunction)(struct TextInputFieldStruct *);
+}InputSettings;
 
 typedef struct IntInputFieldStruct
 {
@@ -57,6 +107,9 @@ typedef enum KeyboardLayoutEnum
 
 typedef struct TextInputFieldStruct
 {
+    InputSettings settings;
+    InputValue value;
+
     Text text;
     BlinkingCaret caret;
 

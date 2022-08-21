@@ -1782,6 +1782,7 @@ typedef enum ItemTypeEnum
 
 struct WindowStruct;
 struct PanelStruct;
+struct TextInputFieldStruct;
 
 typedef struct BlinkingCaretStruct
 {
@@ -1793,6 +1794,55 @@ typedef struct BlinkingCaretStruct
 }BlinkingCaret;
 
 #define GEUI_DEFAULT_CARET_BLINK_RATE 2
+
+typedef enum InputTypeEnum
+{
+    GEUI_TextInput,
+    GEUI_IntInput,
+    GEUI_RealInput
+}InputType;
+
+typedef struct TextInputSettingsStruct
+{
+    int empty;
+}TextInputSettings;
+
+typedef struct IntInputSettingsStruct
+{
+    int minVal;
+    int maxVal;
+    int defaultValue;
+}IntInputSettings;
+
+typedef struct RealInputSettingsStruct
+{
+    float minVal;
+    float maxVal;
+    float defaultValue;
+    short precisionDigits;
+}RealInputSettings;
+
+typedef union InputSettingsDataUnion
+{
+    TextInputSettings textInput;
+    IntInputSettings intInput;
+    RealInputSettings realInput;
+}InputSettingsData;
+
+typedef union InputValueUnion
+{
+    char *textValue;
+    int intValue;
+    float realValue;
+}InputValue;
+
+typedef struct InputSettingsStruct
+{
+    InputType type;
+    InputSettingsData data;
+    void (*settingsFunction)(struct TextInputFieldStruct *);
+    void (*valueFunction)(struct TextInputFieldStruct *);
+}InputSettings;
 
 typedef struct IntInputFieldStruct
 {
@@ -1819,6 +1869,9 @@ typedef enum KeyboardLayoutEnum
 
 typedef struct TextInputFieldStruct
 {
+    InputSettings settings;
+    InputValue value;
+
     Text text;
     BlinkingCaret caret;
 
@@ -2234,6 +2287,76 @@ typedef struct inputFieldStruct
 // ..\source\geui\16-geui-input-text.c
 #define GEUI_KEYBOARD_MAPPING_SIZE GEUI_KeyboardLayoutCount + 1
 
+#define GEUI_MAX_VALID_KEYS_LIMIT 25
+
+const short validKeysForInputType[][GEUI_MAX_VALID_KEYS_LIMIT] =
+{
+    { -1 },
+    {
+        KEY_0, KEY_1, KEY_2, KEY_3, KEY_4, KEY_5,
+        KEY_6, KEY_7, KEY_8, KEY_9, KEY_MINUS,
+        KEY_PAD_0, KEY_PAD_1, KEY_PAD_2, KEY_PAD_3, KEY_PAD_4, KEY_PAD_5,
+        KEY_PAD_6, KEY_PAD_7, KEY_PAD_8, KEY_PAD_9, KEY_PAD_MINUS, KEY_BACKSPACE,
+    },
+    {
+        KEY_0, KEY_1, KEY_2, KEY_3, KEY_4, KEY_5,
+        KEY_6, KEY_7, KEY_8, KEY_9, KEY_MINUS,
+        KEY_PAD_0, KEY_PAD_1, KEY_PAD_2, KEY_PAD_3, KEY_PAD_4, KEY_PAD_5,
+        KEY_PAD_6, KEY_PAD_7, KEY_PAD_8, KEY_PAD_9, KEY_PAD_MINUS, KEY_BACKSPACE,
+        KEY_PERIOD, KEY_PAD_PERIOD
+    }
+};
+
+int checkKeyValidity(short key, InputType type)
+{
+    short i;
+
+    if (type == GEUI_TextInput)
+        return 1;
+
+    for (i = 0; i < GEUI_MAX_VALID_KEYS_LIMIT; i++)
+    {
+        if (validKeysForInputType[type][i] == key)
+            return 1;
+    }
+
+    return 0;
+}
+
+int greedyAtoi(const char *str)
+{
+    int val = 0;
+    size_t offset = 0;
+    size_t len = strlen(str);
+
+    do
+    {
+        val = atoi(&str[offset]);
+        offset++;
+    } while (!val && offset < len);
+
+    return val;
+}
+
+float greedyAtof(const char *str, int *readCount)
+{
+    int count = 0;
+    float val = 0;
+    size_t offset = 0;
+    size_t len = strlen(str);
+
+    do
+    {
+        count = sscanf(&str[offset], "%f%*s", &val, NULL);
+        offset++;
+    } while (!val && offset < len);
+
+    if (readCount)
+        *readCount = count;
+
+    return val;
+}
+
 const short keyboardLocalizations[][GEUI_KEYBOARD_MAPPING_SIZE] =
 {
     { KEY_0,            ')',    '='     },
@@ -2248,7 +2371,7 @@ const short keyboardLocalizations[][GEUI_KEYBOARD_MAPPING_SIZE] =
     { KEY_9,            '(',    ')'     },
     { KEY_EQUALS,       '=',    '+'     },
     { KEY_SLASH,        '/',    '\''    },
-    { KEY_PAD_PERIOD,   '.',    ','     }
+    { KEY_PAD_PERIOD,   '.',    '.'     }
 };
 
 char getLocalizedKeyboardChar(int key, KeyboardLayout kbLayout)
@@ -2266,14 +2389,51 @@ char getLocalizedKeyboardChar(int key, KeyboardLayout kbLayout)
     return '\0';
 }
 
-void handleTextInput(TextInputField *field, int key)
+void refreshValue(TextInputField *field)
 {
+    char tempNumText[GEUI_INT_STRING_LENGTH];
+
+    switch (field->settings.type)
+    {
+        case GEUI_TextInput: break;
+        case GEUI_IntInput:
+            sprintf(tempNumText, "%d", field->value.intValue);
+            setTextText(&field->text, tempNumText);
+            refreshText(&field->text);
+            break;
+        case GEUI_RealInput:
+            sprintf(tempNumText, "%.*f", field->settings.data.realInput.precisionDigits, field->value.realValue);
+            field->value.realValue = greedyAtof(tempNumText, NULL);
+            setTextText(&field->text, tempNumText);
+            refreshText(&field->text);
+            break;
+    }
+
+    updateCaretPosition(&field->caret);
+}
+
+void handleTextInput(TextInputField *field, short key)
+{
+    int readCount = 0;
+    char tempNumText[GEUI_INT_STRING_LENGTH];
     char newChar = '\0';
+    char rest[30] = "";
     char *keys = GetKeyState();
     short shift = (keys[KEY_LSHIFT] || keys[KEY_RSHIFT]);
     short ctrl  = (keys[KEY_LCTRL] || keys[KEY_RCTRL]);
     short alt   = (keys[KEY_LALT] || keys[KEY_RALT]);
 
+    if (key == KEY_RETURN)
+    {
+        field->settings.settingsFunction(field);
+        field->settings.valueFunction(field);
+    }
+
+    if (!checkKeyValidity(key, field->settings.type))
+    {
+        DEBUG_MSG("key not valid");
+        return;
+    }
 
     if (key >= KEY_a && key <= KEY_z)
     {
@@ -2295,8 +2455,7 @@ void handleTextInput(TextInputField *field, int key)
             case KEY_SPACE:         newChar = ' '; break;
             case KEY_COMMA:         newChar = shift ? ';' : ','; break;
             case KEY_PERIOD:        newChar = shift ? ':' : '.'; break;
-
-            case KEY_MINUS:         newChar = '-'; break;
+            case KEY_MINUS:         newChar = shift ? '_' : '-'; break;
             case KEY_PAD_DIVIDE:    newChar = '/'; break;
             case KEY_PAD_MULTIPLY:  newChar = '*'; break;
             case KEY_PAD_MINUS:     newChar = '-'; break;
@@ -2309,7 +2468,7 @@ void handleTextInput(TextInputField *field, int key)
                 newChar = getLocalizedKeyboardChar(key, CURRENT_KEYBOARD);
                 break;
             case KEY_BACKSPACE:
-                if (ctrl > 0)
+                if (ctrl)
                     setTextText(&field->text, "");
                 else
                     newChar = '\b';
@@ -2318,6 +2477,14 @@ void handleTextInput(TextInputField *field, int key)
     }
 
     concatenateCharToText(&field->text, newChar);
+
+    switch (field->settings.type)
+    {
+        case GEUI_IntInput:
+        case GEUI_RealInput:
+            field->settings.valueFunction(field);
+            break;
+    }
 }
 
 
@@ -2335,7 +2502,7 @@ WindowItem *addItemToWindow(WindowItem *ptr);
 WindowItem *addText(Window *window, Panel *panel, char tag[256], char *string, short maxWidth);
 WindowItem *addButton(Window *window, Panel *panel, char tag[256], char *string, void (*actionFunction)(Window *, WindowItem *));
 WindowItem *addInputInt(Window *window, Panel *panel, char tag[256], int defaultVal, int minVal, int maxVal);
-WindowItem *addInputText(Window *window, Panel *panel, char tag[256], const char *string, short maxWidth);
+WindowItem *addInputText(Window *window, Panel *panel, char tag[256], const char *string, InputSettings settings, short maxWidth);
 WindowItem *addPanel(Window *window, Panel *panel, char tag[256]);
 WindowItem *addEmbedder(Window *window, Panel *panel, char tag[256], const char *actorName);
 void setPosition(WindowItem *this, short row, short col);
@@ -2459,7 +2626,107 @@ WindowItem *addInputInt(Window *window, Panel *panel, char tag[256], int default
     return addItemToWindow(ptr);
 }
 
-WindowItem *addInputText(Window *window, Panel *panel, char tag[256], const char *string, short maxWidth)
+void enforceTextInputSettings(TextInputField *input)
+{
+    return;
+}
+
+void updateTextInputValue(TextInputField *input)
+{
+    return;
+}
+
+InputSettings createTextInputSettings()
+{
+    InputSettings settings;
+
+    settings.type = GEUI_TextInput;
+    (settings.settingsFunction = enforceTextInputSettings);
+    (settings.valueFunction = updateTextInputValue);
+
+    settings.data.textInput.empty = 0;
+
+    return settings;
+}
+
+void enforceIntInputSettings(TextInputField *input)
+{
+    if (input->value.intValue < input->settings.data.intInput.minVal)
+        input->value.intValue = input->settings.data.intInput.minVal;
+    else if (input->value.intValue > input->settings.data.intInput.maxVal)
+        input->value.intValue = input->settings.data.intInput.maxVal;
+
+    refreshValue(input);
+}
+
+void updateIntInputValue(TextInputField *input)
+{
+    if (greedyAtoi(input->text.pString) != 0)
+    {
+        input->value.intValue = greedyAtoi(input->text.pString);
+        refreshValue(input);
+    }
+}
+
+InputSettings createIntInputSettings(int minVal, int maxVal, int defaultValue)
+{
+    InputSettings settings;
+
+    settings.type = GEUI_IntInput;
+    (settings.settingsFunction = enforceIntInputSettings);
+    (settings.valueFunction = updateIntInputValue);
+
+    settings.data.intInput.minVal = minVal;
+    settings.data.intInput.maxVal = maxVal;
+    settings.data.intInput.defaultValue = defaultValue;
+
+    return settings;
+}
+
+void enforceRealInputSettings(TextInputField *input)
+{
+    char temp[256];
+    sprintf(temp, "%f %f %f", input->settings.data.realInput.minVal, input->settings.data.realInput.maxVal, input->value.realValue);
+    DEBUG_MSG(temp);
+
+    if (input->value.realValue < input->settings.data.realInput.minVal)
+        input->value.realValue = input->settings.data.realInput.minVal;
+    else if (input->value.realValue > input->settings.data.realInput.maxVal)
+        input->value.realValue = input->settings.data.realInput.maxVal;
+
+    refreshValue(input);
+}
+
+void updateRealInputValue(TextInputField *input)
+{
+    int readCount = 0;
+
+    if (greedyAtof(input->text.pString, &readCount) != 0)
+    {
+        input->value.realValue = greedyAtof(input->text.pString, NULL);
+
+        if (readCount > 1)
+            refreshValue(input);
+    }
+}
+
+InputSettings createRealInputSettings(float minVal, float maxVal, float defaultValue, short precisionDigits)
+{
+    InputSettings settings;
+
+    settings.type = GEUI_RealInput;
+    (settings.settingsFunction = enforceRealInputSettings);
+    (settings.valueFunction = updateRealInputValue);
+
+    settings.data.realInput.minVal = minVal;
+    settings.data.realInput.maxVal = maxVal;
+    settings.data.realInput.defaultValue = defaultValue;
+    settings.data.realInput.precisionDigits = precisionDigits;
+
+    return settings;
+}
+
+WindowItem *addInputText(Window *window, Panel *panel, char tag[256], const char *string, InputSettings settings, short maxWidth)
 {
     WindowItem *ptr = initNewItem(GEUI_InputText, window, panel, tag);
     if (!ptr) { DEBUG_MSG_FROM("item is NULL", "addInputText"); return NULL; }
@@ -2469,6 +2736,14 @@ WindowItem *addInputText(Window *window, Panel *panel, char tag[256], const char
     ptr->data.inputText.text = createText(string, window->style.textFont, "(none)", ABSOLUTE, 0, 0);
     setTextColor(&ptr->data.inputText.text, window->style.textColor);
     setTextZDepth(&ptr->data.inputText.text, DEFAULT_ITEM_ZDEPTH);
+    ptr->data.inputText.settings = settings;
+
+    switch (settings.type)
+    {
+        case GEUI_TextInput: ptr->data.inputText.value.textValue = ptr->data.inputText.text.pString; break;
+        case GEUI_IntInput: ptr->data.inputText.value.intValue = settings.data.intInput.defaultValue; break;
+        case GEUI_RealInput: ptr->data.inputText.value.realValue = settings.data.realInput.defaultValue; break;
+    }
 
     ptr->data.inputText.tileStartIndex = -1;
     ptr->data.inputText.tileEndIndex = -1;
@@ -2704,6 +2979,8 @@ void blurItem(WindowItem *ptr)
         }
         else if (ptr->type == GEUI_InputText)
         {
+            ptr->data.inputText.settings.settingsFunction(&ptr->data.inputText);
+            ptr->data.inputText.settings.valueFunction(&ptr->data.inputText);
             hideCaret(&ptr->data.inputText.caret);
         }
     }

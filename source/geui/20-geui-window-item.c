@@ -11,7 +11,7 @@ WindowItem *addItemToWindow(WindowItem *ptr);
 WindowItem *addText(Window *window, Panel *panel, char tag[256], char *string, short maxWidth);
 WindowItem *addButton(Window *window, Panel *panel, char tag[256], char *string, void (*actionFunction)(Window *, WindowItem *));
 WindowItem *addInputInt(Window *window, Panel *panel, char tag[256], int defaultVal, int minVal, int maxVal);
-WindowItem *addInputText(Window *window, Panel *panel, char tag[256], const char *string, short maxWidth);
+WindowItem *addInputText(Window *window, Panel *panel, char tag[256], const char *string, InputSettings settings, short maxWidth);
 WindowItem *addPanel(Window *window, Panel *panel, char tag[256]);
 WindowItem *addEmbedder(Window *window, Panel *panel, char tag[256], const char *actorName);
 void setPosition(WindowItem *this, short row, short col);
@@ -135,7 +135,107 @@ WindowItem *addInputInt(Window *window, Panel *panel, char tag[256], int default
     return addItemToWindow(ptr);
 }
 
-WindowItem *addInputText(Window *window, Panel *panel, char tag[256], const char *string, short maxWidth)
+void enforceTextInputSettings(TextInputField *input)
+{
+    return;
+}
+
+void updateTextInputValue(TextInputField *input)
+{
+    return;
+}
+
+InputSettings createTextInputSettings()
+{
+    InputSettings settings;
+
+    settings.type = GEUI_TextInput;
+    (settings.settingsFunction = enforceTextInputSettings);
+    (settings.valueFunction = updateTextInputValue);
+
+    settings.data.textInput.empty = 0;
+
+    return settings;
+}
+
+void enforceIntInputSettings(TextInputField *input)
+{
+    if (input->value.intValue < input->settings.data.intInput.minVal)
+        input->value.intValue = input->settings.data.intInput.minVal;
+    else if (input->value.intValue > input->settings.data.intInput.maxVal)
+        input->value.intValue = input->settings.data.intInput.maxVal;
+
+    refreshValue(input);
+}
+
+void updateIntInputValue(TextInputField *input)
+{
+    if (greedyAtoi(input->text.pString) != 0)
+    {
+        input->value.intValue = greedyAtoi(input->text.pString);
+        refreshValue(input);
+    }
+}
+
+InputSettings createIntInputSettings(int minVal, int maxVal, int defaultValue)
+{
+    InputSettings settings;
+
+    settings.type = GEUI_IntInput;
+    (settings.settingsFunction = enforceIntInputSettings);
+    (settings.valueFunction = updateIntInputValue);
+
+    settings.data.intInput.minVal = minVal;
+    settings.data.intInput.maxVal = maxVal;
+    settings.data.intInput.defaultValue = defaultValue;
+
+    return settings;
+}
+
+void enforceRealInputSettings(TextInputField *input)
+{
+    char temp[256];
+    sprintf(temp, "%f %f %f", input->settings.data.realInput.minVal, input->settings.data.realInput.maxVal, input->value.realValue);
+    DEBUG_MSG(temp);
+
+    if (input->value.realValue < input->settings.data.realInput.minVal)
+        input->value.realValue = input->settings.data.realInput.minVal;
+    else if (input->value.realValue > input->settings.data.realInput.maxVal)
+        input->value.realValue = input->settings.data.realInput.maxVal;
+
+    refreshValue(input);
+}
+
+void updateRealInputValue(TextInputField *input)
+{
+    int readCount = 0;
+
+    if (greedyAtof(input->text.pString, &readCount) != 0)
+    {
+        input->value.realValue = greedyAtof(input->text.pString, NULL);
+
+        if (readCount > 1)
+            refreshValue(input);
+    }
+}
+
+InputSettings createRealInputSettings(float minVal, float maxVal, float defaultValue, short precisionDigits)
+{
+    InputSettings settings;
+
+    settings.type = GEUI_RealInput;
+    (settings.settingsFunction = enforceRealInputSettings);
+    (settings.valueFunction = updateRealInputValue);
+
+    settings.data.realInput.minVal = minVal;
+    settings.data.realInput.maxVal = maxVal;
+    settings.data.realInput.defaultValue = defaultValue;
+    settings.data.realInput.precisionDigits = precisionDigits;
+
+    return settings;
+}
+
+WindowItem *addInputText(Window *window, Panel *panel, char tag[256], const char *string, InputSettings settings, short maxWidth)
 {
     WindowItem *ptr = initNewItem(GEUI_InputText, window, panel, tag);
     if (!ptr) { DEBUG_MSG_FROM("item is NULL", "addInputText"); return NULL; }
@@ -145,6 +245,14 @@ WindowItem *addInputText(Window *window, Panel *panel, char tag[256], const char
     ptr->data.inputText.text = createText(string, window->style.textFont, "(none)", ABSOLUTE, 0, 0);
     setTextColor(&ptr->data.inputText.text, window->style.textColor);
     setTextZDepth(&ptr->data.inputText.text, DEFAULT_ITEM_ZDEPTH);
+    ptr->data.inputText.settings = settings;
+
+    switch (settings.type)
+    {
+        case GEUI_TextInput: ptr->data.inputText.value.textValue = ptr->data.inputText.text.pString; break;
+        case GEUI_IntInput: ptr->data.inputText.value.intValue = settings.data.intInput.defaultValue; break;
+        case GEUI_RealInput: ptr->data.inputText.value.realValue = settings.data.realInput.defaultValue; break;
+    }
 
     ptr->data.inputText.tileStartIndex = -1;
     ptr->data.inputText.tileEndIndex = -1;
@@ -380,6 +488,8 @@ void blurItem(WindowItem *ptr)
         }
         else if (ptr->type == GEUI_InputText)
         {
+            ptr->data.inputText.settings.settingsFunction(&ptr->data.inputText);
+            ptr->data.inputText.settings.valueFunction(&ptr->data.inputText);
             hideCaret(&ptr->data.inputText.caret);
         }
     }
