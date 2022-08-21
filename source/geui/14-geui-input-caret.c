@@ -60,8 +60,12 @@ void doCaretBlink(BlinkingCaret *caret)
 void updateCaretPosition(BlinkingCaret *caret)
 {
     Actor *a = getclone(caret->actorCName);
-    updateTextDimensions(caret->pText);
-    a->x = caret->pText->beginX + caret->pText->width + caret->pText->pFont->letterSpacing + ceil(a->width * 0.5);
-    a->y = caret->pText->beginY;
-    resetCaretBlink(caret);
+
+    if (actorExists2(a))
+    {
+        updateTextDimensions(caret->pText);
+        a->x = caret->pText->beginX + caret->pText->width + caret->pText->pFont->letterSpacing + ceil(a->width * 0.5);
+        a->y = caret->pText->beginY;
+        resetCaretBlink(caret);
+    }
 }

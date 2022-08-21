@@ -12,15 +12,14 @@ typedef enum ItemTypeEnum
 {
     GEUI_Text,
     GEUI_Button,
-    GEUI_InputInt,
-    GEUI_InputText,
+    GEUI_Input,
     GEUI_Panel,
     GEUI_Embedder
 }ItemType;
 
 struct WindowStruct;
 struct PanelStruct;
-struct TextInputFieldStruct;
+struct InputFieldStruct;
 
 typedef struct BlinkingCaretStruct
 {
@@ -78,25 +77,9 @@ typedef struct InputSettingsStruct
 {
     InputType type;
     InputSettingsData data;
-    void (*settingsFunction)(struct TextInputFieldStruct *);
-    void (*valueFunction)(struct TextInputFieldStruct *);
+    void (*settingsFunction)(struct InputFieldStruct *);
+    void (*valueFunction)(struct InputFieldStruct *);
 }InputSettings;
-
-typedef struct IntInputFieldStruct
-{
-    int    value;
-    int    minValue;
-    int    maxValue;
-
-    short  intSign;
-    short  typedZero;
-
-    Text   text;
-    BlinkingCaret caret;
-
-    long tileStartIndex;
-    long tileEndIndex;
-}IntInputField;
 
 typedef enum KeyboardLayoutEnum
 {
@@ -105,7 +88,7 @@ typedef enum KeyboardLayoutEnum
     GEUI_KeyboardLayoutCount
 }KeyboardLayout;
 
-typedef struct TextInputFieldStruct
+typedef struct InputFieldStruct
 {
     InputSettings settings;
     InputValue value;
@@ -115,7 +98,7 @@ typedef struct TextInputFieldStruct
 
     long tileStartIndex;
     long tileEndIndex;
-}TextInputField;
+}InputField;
 
 typedef struct WindowItemStruct
 {
@@ -136,8 +119,7 @@ typedef struct WindowItemStruct
             long bTileEndIndex;
             void (*actionFunction)(struct WindowStruct *, struct WindowItemStruct *);
         }button;
-        IntInputField inputInt;
-        TextInputField inputText;
+        InputField input;
         struct PanelStruct *panel;
         struct EmbedderItem
         {

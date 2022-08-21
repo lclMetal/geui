@@ -33,8 +33,6 @@ void initGEUI(KeyboardLayout kbLayout)
     GEUIController.focus = NULL;
     GEUIController.focusTileStartIndex = -1;
     GEUIController.focusTileEndIndex = -1;
-
-    initLimValues();
 }
 
 void setKeyboardLayout(KeyboardLayout kbLayout)

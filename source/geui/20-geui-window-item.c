@@ -10,8 +10,7 @@ WindowItem *initNewItem(ItemType type, Window *window, Panel *panel, char tag[25
 WindowItem *addItemToWindow(WindowItem *ptr);
 WindowItem *addText(Window *window, Panel *panel, char tag[256], char *string, short maxWidth);
 WindowItem *addButton(Window *window, Panel *panel, char tag[256], char *string, void (*actionFunction)(Window *, WindowItem *));
-WindowItem *addInputInt(Window *window, Panel *panel, char tag[256], int defaultVal, int minVal, int maxVal);
-WindowItem *addInputText(Window *window, Panel *panel, char tag[256], const char *string, InputSettings settings, short maxWidth);
+WindowItem *addInputField(Window *window, Panel *panel, char tag[256], const char *string, InputSettings settings, short maxWidth);
 WindowItem *addPanel(Window *window, Panel *panel, char tag[256]);
 WindowItem *addEmbedder(Window *window, Panel *panel, char tag[256], const char *actorName);
 void setPosition(WindowItem *this, short row, short col);
@@ -31,9 +30,8 @@ void buildPanel(WindowItem *ptr);
 void buildButtonText(WindowItem *ptr);
 void buildButton(WindowItem *ptr);
 Actor *buildCaret(WindowItem *ptr, Text *pText, BlinkingCaret *caret);
-void buildInputField(WindowItem *ptr, long *tileStartIndex, long *tileEndIndex);
-void buildInputInt(WindowItem *ptr);
-void buildInputText(WindowItem *ptr);
+void buildInputFieldBackground(WindowItem *ptr, long *tileStartIndex, long *tileEndIndex);
+void buildInputField(WindowItem *ptr);
 void buildEmbedder(WindowItem *ptr);
 void eraseWindowItem(WindowItem *ptr);
 void destroyWindowItem(WindowItem *ptr);
@@ -112,35 +110,12 @@ WindowItem *addButton(Window *window, Panel *panel, char tag[256], char *string,
     return addItemToWindow(ptr);
 }
 
-WindowItem *addInputInt(Window *window, Panel *panel, char tag[256], int defaultVal, int minVal, int maxVal)
-{
-    char temp[GEUI_INT_STRING_LENGTH];
-    WindowItem *ptr = initNewItem(GEUI_InputInt, window, panel, tag);
-    if (!ptr) { DEBUG_MSG_FROM("item is NULL", "addInputInt"); return NULL; }
-
-    ptr->focusable = True;
-    ptr->data.inputInt.value = defaultVal;
-    initializeCaret(&ptr->data.inputInt.caret);
-    sprintf(temp, "%d", defaultVal);
-    ptr->data.inputInt.text = createText(temp, window->style.textFont, "(none)", ABSOLUTE, 0, 0);
-    setTextColor(&ptr->data.inputInt.text, window->style.textColor);
-    setTextZDepth(&ptr->data.inputInt.text, DEFAULT_ITEM_ZDEPTH);
-
-    setIntLimits(&ptr->data.inputInt, minVal, maxVal);
-    ptr->data.inputInt.tileStartIndex = -1;
-    ptr->data.inputInt.tileEndIndex = -1;
-    ptr->layout.width = calculateRequiredWidthInPixels(&ptr->data.inputInt) + ptr->parent->style.tileWidth * 2;
-    ptr->layout.height = ptr->parent->style.tileHeight;
-
-    return addItemToWindow(ptr);
-}
-
-void enforceTextInputSettings(TextInputField *input)
+void enforceTextInputSettings(InputField *input)
 {
     return;
 }
 
-void updateTextInputValue(TextInputField *input)
+void updateTextInputValue(InputField *input)
 {
     return;
 }
@@ -158,22 +133,18 @@ InputSettings createTextInputSettings()
     return settings;
 }
 
-void enforceIntInputSettings(TextInputField *input)
+void enforceIntInputSettings(InputField *input)
 {
-    if (input->value.intValue < input->settings.data.intInput.minVal)
-        input->value.intValue = input->settings.data.intInput.minVal;
-    else if (input->value.intValue > input->settings.data.intInput.maxVal)
-        input->value.intValue = input->settings.data.intInput.maxVal;
-
-    refreshValue(input);
+    input->value.intValue = iLimit(input->value.intValue, input->settings.data.intInput.minVal, input->settings.data.intInput.maxVal);
+    refreshInputValue(input);
 }
 
-void updateIntInputValue(TextInputField *input)
+void updateIntInputValue(InputField *input)
 {
     if (greedyAtoi(input->text.pString) != 0)
     {
         input->value.intValue = greedyAtoi(input->text.pString);
-        refreshValue(input);
+        refreshInputValue(input);
     }
 }
 
@@ -187,26 +158,18 @@ InputSettings createIntInputSettings(int minVal, int maxVal, int defaultValue)
 
     settings.data.intInput.minVal = minVal;
     settings.data.intInput.maxVal = maxVal;
-    settings.data.intInput.defaultValue = defaultValue;
+    settings.data.intInput.defaultValue = iLimit(defaultValue, minVal, maxVal);
 
     return settings;
 }
 
-void enforceRealInputSettings(TextInputField *input)
+void enforceRealInputSettings(InputField *input)
 {
-    char temp[256];
-    sprintf(temp, "%f %f %f", input->settings.data.realInput.minVal, input->settings.data.realInput.maxVal, input->value.realValue);
-    DEBUG_MSG(temp);
-
-    if (input->value.realValue < input->settings.data.realInput.minVal)
-        input->value.realValue = input->settings.data.realInput.minVal;
-    else if (input->value.realValue > input->settings.data.realInput.maxVal)
-        input->value.realValue = input->settings.data.realInput.maxVal;
-
-    refreshValue(input);
+    input->value.realValue = fLimit(input->value.realValue, input->settings.data.realInput.minVal, input->settings.data.realInput.maxVal);
+    refreshInputValue(input);
 }
 
-void updateRealInputValue(TextInputField *input)
+void updateRealInputValue(InputField *input)
 {
     int readCount = 0;
 
@@ -215,7 +178,7 @@ void updateRealInputValue(TextInputField *input)
         input->value.realValue = greedyAtof(input->text.pString, NULL);
 
         if (readCount > 1)
-            refreshValue(input);
+            refreshInputValue(input);
     }
 }
 
@@ -229,33 +192,35 @@ InputSettings createRealInputSettings(float minVal, float maxVal, float defaultV
 
     settings.data.realInput.minVal = minVal;
     settings.data.realInput.maxVal = maxVal;
-    settings.data.realInput.defaultValue = defaultValue;
-    settings.data.realInput.precisionDigits = precisionDigits;
+    settings.data.realInput.defaultValue = dfLimit(defaultValue, minVal, maxVal);
+    settings.data.realInput.precisionDigits = siLimit(precisionDigits, 0, 10);
 
     return settings;
 }
 
-WindowItem *addInputText(Window *window, Panel *panel, char tag[256], const char *string, InputSettings settings, short maxWidth)
+WindowItem *addInputField(Window *window, Panel *panel, char tag[256], const char *string, InputSettings settings, short maxWidth)
 {
-    WindowItem *ptr = initNewItem(GEUI_InputText, window, panel, tag);
-    if (!ptr) { DEBUG_MSG_FROM("item is NULL", "addInputText"); return NULL; }
+    WindowItem *ptr = initNewItem(GEUI_Input, window, panel, tag);
+    if (!ptr) { DEBUG_MSG_FROM("item is NULL", "addInputField"); return NULL; }
 
     ptr->focusable = True;
-    initializeCaret(&ptr->data.inputText.caret);
-    ptr->data.inputText.text = createText(string, window->style.textFont, "(none)", ABSOLUTE, 0, 0);
-    setTextColor(&ptr->data.inputText.text, window->style.textColor);
-    setTextZDepth(&ptr->data.inputText.text, DEFAULT_ITEM_ZDEPTH);
-    ptr->data.inputText.settings = settings;
+    initializeCaret(&ptr->data.input.caret);
+    ptr->data.input.text = createText(string, window->style.textFont, "(none)", ABSOLUTE, 0, 0);
+    setTextColor(&ptr->data.input.text, window->style.textColor);
+    setTextZDepth(&ptr->data.input.text, DEFAULT_ITEM_ZDEPTH);
+    ptr->data.input.settings = settings;
 
     switch (settings.type)
     {
-        case GEUI_TextInput: ptr->data.inputText.value.textValue = ptr->data.inputText.text.pString; break;
-        case GEUI_IntInput: ptr->data.inputText.value.intValue = settings.data.intInput.defaultValue; break;
-        case GEUI_RealInput: ptr->data.inputText.value.realValue = settings.data.realInput.defaultValue; break;
+        case GEUI_TextInput: ptr->data.input.value.textValue = ptr->data.input.text.pString; break;
+        case GEUI_IntInput: ptr->data.input.value.intValue = settings.data.intInput.defaultValue; break;
+        case GEUI_RealInput: ptr->data.input.value.realValue = settings.data.realInput.defaultValue; break;
     }
 
-    ptr->data.inputText.tileStartIndex = -1;
-    ptr->data.inputText.tileEndIndex = -1;
+    refreshValue(&ptr->data.input);
+
+    ptr->data.input.tileStartIndex = -1;
+    ptr->data.input.tileEndIndex = -1;
 
     ptr->layout.width = maxWidth + ptr->parent->style.tileWidth * 2;
     ptr->layout.height = ptr->parent->style.tileHeight;
@@ -454,8 +419,10 @@ WindowItem *focusItem(WindowItem *ptr)
 
             switch (ptr->type)
             {
-                case GEUI_InputInt: showCaret(&ptr->data.inputInt.caret); break;
-                case GEUI_InputText: showCaret(&ptr->data.inputText.caret); break;
+                case GEUI_Input:
+                    showCaret(&ptr->data.input.caret);
+                    updateCaretPosition(&ptr->data.input.caret);
+                break;
             }
         }
 
@@ -479,18 +446,12 @@ void blurItem(WindowItem *ptr)
                         ptr->data.button.bTileStartIndex,
                         ptr->data.button.bTileEndIndex, ptr->parent->style.buttonColor);
         }
-        else if (ptr->type == GEUI_InputInt)
+        else if (ptr->type == GEUI_Input)
         {
-            enforceIntLimits(&ptr->data.inputInt);
-            refreshText(&ptr->data.inputInt.text);
-            updateCaretPosition(&ptr->data.inputInt.caret);
-            hideCaret(&ptr->data.inputInt.caret);
-        }
-        else if (ptr->type == GEUI_InputText)
-        {
-            ptr->data.inputText.settings.settingsFunction(&ptr->data.inputText);
-            ptr->data.inputText.settings.valueFunction(&ptr->data.inputText);
-            hideCaret(&ptr->data.inputText.caret);
+            ptr->data.input.settings.settingsFunction(&ptr->data.input);
+            ptr->data.input.settings.valueFunction(&ptr->data.input);
+            updateCaretPosition(&ptr->data.input.caret);
+            hideCaret(&ptr->data.input.caret);
         }
     }
 }
@@ -610,8 +571,7 @@ void buildItem(WindowItem *ptr)
     {
         case GEUI_Text: buildText(ptr); break;
         case GEUI_Button: buildButton(ptr); break;
-        case GEUI_InputInt: buildInputInt(ptr); break;
-        case GEUI_InputText: buildInputText(ptr); break;
+        case GEUI_Input: buildInputField(ptr); break;
         case GEUI_Panel: buildPanel(ptr); break;
         case GEUI_Embedder: buildEmbedder(ptr); break;
     }
@@ -693,7 +653,7 @@ Actor *buildCaret(WindowItem *ptr, Text *pText, BlinkingCaret *caret)
     a->animpos = 19;
     a->myWindow = ptr->parent->index,
     a->myPanel = ptr->myPanel->index;
-    a->myIndex = ptr->index;//
+    a->myIndex = ptr->index;
     a->myProperties = GEUI_CARET;
     SendActivationEvent(a->clonename);
     ChangeZDepth(a->clonename, DEFAULT_ITEM_ZDEPTH);
@@ -705,7 +665,7 @@ Actor *buildCaret(WindowItem *ptr, Text *pText, BlinkingCaret *caret)
     return a;
 }
 
-void buildInputField(WindowItem *ptr, long *tileStartIndex, long *tileEndIndex)
+void buildInputFieldBackground(WindowItem *ptr, long *tileStartIndex, long *tileEndIndex)
 {
     short i;
     Actor *a;
@@ -736,38 +696,21 @@ void buildInputField(WindowItem *ptr, long *tileStartIndex, long *tileEndIndex)
     }
 }
 
-void buildInputInt(WindowItem *ptr)
+void buildInputField(WindowItem *ptr)
 {
-    if (ptr->type != GEUI_InputInt) { DEBUG_MSG_FROM("item is not a valid InputInt item", "buildInputInt"); return; }
+    if (ptr->type != GEUI_Input) { DEBUG_MSG_FROM("item is not a valid InputText item", "buildInputText"); return; }
 
-    buildInputField(ptr, &ptr->data.inputInt.tileStartIndex, &ptr->data.inputInt.tileEndIndex);
-    colorClones("a_gui", ptr->data.inputInt.tileStartIndex, ptr->data.inputInt.tileEndIndex, ptr->parent->style.inputBgColor);
+    buildInputFieldBackground(ptr, &ptr->data.input.tileStartIndex, &ptr->data.input.tileEndIndex);
+    colorClones("a_gui", ptr->data.input.tileStartIndex, ptr->data.input.tileEndIndex, ptr->parent->style.inputBgColor);
 
-    setTextZDepth(&ptr->data.inputInt.text, DEFAULT_ITEM_ZDEPTH);
-    setTextPosition(&ptr->data.inputInt.text,
-        getTile(ptr->data.inputInt.tileStartIndex)->x,
-        getTile(ptr->data.inputInt.tileStartIndex)->y);
-    refreshText(&ptr->data.inputInt.text);
+    setTextZDepth(&ptr->data.input.text, DEFAULT_ITEM_ZDEPTH);
+    setTextPosition(&ptr->data.input.text,
+        getTile(ptr->data.input.tileStartIndex)->x,
+        getTile(ptr->data.input.tileStartIndex)->y);
+    refreshText(&ptr->data.input.text);
 
-    buildCaret(ptr, &ptr->data.inputInt.text, &ptr->data.inputInt.caret);
-    hideCaret(&ptr->data.inputInt.caret);
-}
-
-void buildInputText(WindowItem *ptr)
-{
-    if (ptr->type != GEUI_InputText) { DEBUG_MSG_FROM("item is not a valid InputText item", "buildInputText"); return; }
-
-    buildInputField(ptr, &ptr->data.inputText.tileStartIndex, &ptr->data.inputText.tileEndIndex);
-    colorClones("a_gui", ptr->data.inputText.tileStartIndex, ptr->data.inputText.tileEndIndex, ptr->parent->style.inputBgColor);
-
-    setTextZDepth(&ptr->data.inputText.text, DEFAULT_ITEM_ZDEPTH);
-    setTextPosition(&ptr->data.inputText.text,
-        getTile(ptr->data.inputText.tileStartIndex)->x,
-        getTile(ptr->data.inputText.tileStartIndex)->y);
-    refreshText(&ptr->data.inputText.text);
-
-    buildCaret(ptr, &ptr->data.inputText.text, &ptr->data.inputText.caret);
-    hideCaret(&ptr->data.inputText.caret);
+    buildCaret(ptr, &ptr->data.input.text, &ptr->data.input.caret);
+    hideCaret(&ptr->data.input.caret);
 }
 
 void buildEmbedder(WindowItem *ptr)
@@ -821,26 +764,15 @@ void eraseWindowItem(WindowItem *ptr)
                 ptr->data.button.bTileEndIndex = -1;
             }
         break;
-        case GEUI_InputInt:
-            eraseText(&ptr->data.inputInt.text);
-            eraseCaret(&ptr->data.inputInt.caret);
-            setTextParent(&ptr->data.inputInt.text, "(none)", False);
-            if (ptr->data.inputInt.tileStartIndex > -1)
+        case GEUI_Input:
+            eraseText(&ptr->data.input.text);
+            eraseCaret(&ptr->data.input.caret);
+            setTextParent(&ptr->data.input.text, "(none)", False);
+            if (ptr->data.input.tileStartIndex > -1)
             {
-                destroyClones("a_gui", ptr->data.inputInt.tileStartIndex, ptr->data.inputInt.tileEndIndex);
-                ptr->data.inputInt.tileStartIndex = -1;
-                ptr->data.inputInt.tileEndIndex = -1;
-            }
-        break;
-        case GEUI_InputText:
-            eraseText(&ptr->data.inputText.text);
-            eraseCaret(&ptr->data.inputText.caret);
-            setTextParent(&ptr->data.inputText.text, "(none)", False);
-            if (ptr->data.inputText.tileStartIndex > -1)
-            {
-                destroyClones("a_gui", ptr->data.inputText.tileStartIndex, ptr->data.inputText.tileEndIndex);
-                ptr->data.inputText.tileStartIndex = -1;
-                ptr->data.inputText.tileEndIndex = -1;
+                destroyClones("a_gui", ptr->data.input.tileStartIndex, ptr->data.input.tileEndIndex);
+                ptr->data.input.tileStartIndex = -1;
+                ptr->data.input.tileEndIndex = -1;
             }
         break;
         case GEUI_Panel:
@@ -873,24 +805,14 @@ void destroyWindowItem(WindowItem *ptr)
                 ptr->data.button.bTileEndIndex = -1;
             }
         break;
-        case GEUI_InputInt:
-            destroyText(&ptr->data.inputInt.text);
-            eraseCaret(&ptr->data.inputInt.caret);
-            if (ptr->data.inputInt.tileStartIndex > -1)
+        case GEUI_Input:
+            destroyText(&ptr->data.input.text);
+            eraseCaret(&ptr->data.input.caret);
+            if (ptr->data.input.tileStartIndex > -1)
             {
-                destroyClones("a_gui", ptr->data.inputInt.tileStartIndex, ptr->data.inputInt.tileEndIndex);
-                ptr->data.inputInt.tileStartIndex = -1;
-                ptr->data.inputInt.tileEndIndex = -1;
-            }
-        break;
-        case GEUI_InputText:
-            destroyText(&ptr->data.inputText.text);
-            eraseCaret(&ptr->data.inputText.caret);
-            if (ptr->data.inputText.tileStartIndex > -1)
-            {
-                destroyClones("a_gui", ptr->data.inputText.tileStartIndex, ptr->data.inputText.tileEndIndex);
-                ptr->data.inputText.tileStartIndex = -1;
-                ptr->data.inputText.tileEndIndex = -1;
+                destroyClones("a_gui", ptr->data.input.tileStartIndex, ptr->data.input.tileEndIndex);
+                ptr->data.input.tileStartIndex = -1;
+                ptr->data.input.tileEndIndex = -1;
             }
         break;
         case GEUI_Panel:

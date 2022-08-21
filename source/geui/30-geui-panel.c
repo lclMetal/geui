@@ -212,8 +212,7 @@ void setPanelBaseParent(Panel *panel, char *parentName)
                 if (ptr->data.button.bTileStartIndex > -1)
                     changeParentOfClones("a_gui", ptr->data.button.bTileStartIndex, ptr->data.button.bTileEndIndex, parentName);
                 break;
-            case GEUI_InputInt: setTextParent(&ptr->data.inputInt.text, parentName, True); break;
-            case GEUI_InputText: setTextParent(&ptr->data.inputText.text, parentName, True); break;
+            case GEUI_Input: setTextParent(&ptr->data.input.text, parentName, True); break;
             case GEUI_Panel: setPanelBaseParent(ptr->data.panel,  parentName); break;
             case GEUI_Embedder: ChangeParent(ptr->data.embedder.actorCName, parentName); break;
 

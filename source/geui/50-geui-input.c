@@ -209,10 +209,7 @@ void doMouseButtonDown(const char *actorName, enum mouseButtonsEnum mButtonNumbe
                 item->data.button.bTileEndIndex, window->style.buttonPressedColor);
             item->data.button.state = 1;
         break;
-        case GEUI_InputInt:
-            focusItem(item);
-        break;
-        case GEUI_InputText:
+        case GEUI_Input:
             focusItem(item);
         break;
     }
@@ -429,26 +426,10 @@ void doKeyDown(WindowItem *item, int key)
                     item->data.button.state = 1;
                 }
             break;
-            case GEUI_InputInt:
-                handleIntInput(&item->data.inputInt, key);
-
-                if (key == KEY_RETURN || key == KEY_TAB)
-                {
-                    enforceIntLimits(&item->data.inputInt);
-                }
-
-                refreshText(&item->data.inputInt.text);
-                updateCaretPosition(&item->data.inputInt.caret);
-                {
-                    char temp[256];
-                    sprintf(temp, "int value: %d", item->data.inputInt.value);
-                    DEBUG_MSG_FROM(temp, "inputInt doKeyDown");
-                }
-            break;
-            case GEUI_InputText:
-                handleTextInput(&item->data.inputText, key);
-                refreshText(&item->data.inputText.text);
-                updateCaretPosition(&item->data.inputText.caret);
+            case GEUI_Input:
+                handleTextInput(&item->data.input, key);
+                refreshText(&item->data.input.text);
+                updateCaretPosition(&item->data.input.caret);
             break;
         }
     }

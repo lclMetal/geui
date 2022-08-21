@@ -1,6 +1,7 @@
 #define GEUI_KEYBOARD_MAPPING_SIZE GEUI_KeyboardLayoutCount + 1
-
 #define GEUI_MAX_VALID_KEYS_LIMIT 25
+
+#define GEUI_NUM_STRING_LENGTH 30
 
 const short validKeysForInputType[][GEUI_MAX_VALID_KEYS_LIMIT] =
 {
@@ -102,9 +103,9 @@ char getLocalizedKeyboardChar(int key, KeyboardLayout kbLayout)
     return '\0';
 }
 
-void refreshValue(TextInputField *field)
+void refreshValue(InputField *field)
 {
-    char tempNumText[GEUI_INT_STRING_LENGTH];
+    char tempNumText[GEUI_NUM_STRING_LENGTH];
 
     switch (field->settings.type)
     {
@@ -112,23 +113,26 @@ void refreshValue(TextInputField *field)
         case GEUI_IntInput:
             sprintf(tempNumText, "%d", field->value.intValue);
             setTextText(&field->text, tempNumText);
-            refreshText(&field->text);
-            break;
+        break;
         case GEUI_RealInput:
             sprintf(tempNumText, "%.*f", field->settings.data.realInput.precisionDigits, field->value.realValue);
             field->value.realValue = greedyAtof(tempNumText, NULL);
             setTextText(&field->text, tempNumText);
-            refreshText(&field->text);
-            break;
+        break;
     }
+}
 
+void refreshInputValue(InputField *field)
+{
+    refreshValue(field);
+    refreshText(&field->text);
     updateCaretPosition(&field->caret);
 }
 
-void handleTextInput(TextInputField *field, short key)
+void handleTextInput(InputField *field, short key)
 {
     int readCount = 0;
-    char tempNumText[GEUI_INT_STRING_LENGTH];
+    char tempNumText[GEUI_NUM_STRING_LENGTH];
     char newChar = '\0';
     char rest[30] = "";
     char *keys = GetKeyState();
@@ -179,13 +183,13 @@ void handleTextInput(TextInputField *field, short key)
             case KEY_SLASH:
             case KEY_PAD_PERIOD:
                 newChar = getLocalizedKeyboardChar(key, CURRENT_KEYBOARD);
-                break;
+            break;
             case KEY_BACKSPACE:
                 if (ctrl)
                     setTextText(&field->text, "");
                 else
                     newChar = '\b';
-                break;
+            break;
         }
     }
 
@@ -196,6 +200,6 @@ void handleTextInput(TextInputField *field, short key)
         case GEUI_IntInput:
         case GEUI_RealInput:
             field->settings.valueFunction(field);
-            break;
+        break;
     }
 }

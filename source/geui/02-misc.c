@@ -3,6 +3,10 @@
 #define HALF_WIDTH_ACTOR(X) (X->width / 2)
 #define HALF_HEIGHT_ACTOR(X) (X->height / 2)
 
+int iLimit(int value, int minVal, int maxVal);
+short siLimit(short value, short minVal, short maxVal);
+float fLimit(float value, float minVal, float maxVal);
+double dfLimit(double value, double minVal, double maxVal);
 int safeStrcat(char *destination, const char *source, int maxLen);
 char *addFileExtension(char *fileName, char *fileExtension);
 int actorExists(char *actorName);
@@ -18,6 +22,26 @@ int mouseOverRegion(void);
 int mouseOverPartOfRegion(int startX, int startY, int endX, int endY);
 int mouseOverActor(const char *actorName);
 int mouseOverClones(const char *actorName, long startIndex, long endIndex);
+
+int iLimit(int value, int minVal, int maxVal)
+{
+    return (int)max(min(minVal, maxVal), min(value, max(maxVal, minVal)));
+}
+
+short siLimit(short value, short minVal, short maxVal)
+{
+    return (short)max(min(minVal, maxVal), min(value, max(maxVal, minVal)));
+}
+
+float fLimit(float value, float minVal, float maxVal)
+{
+    return (float)max(min(minVal, maxVal), min(value, max(maxVal, minVal)));
+}
+
+double dfLimit(double value, double minVal, double maxVal)
+{
+    return max(min(minVal, maxVal), min(value, max(maxVal, minVal)));
+}
 
 int safeStrcat(char *destination, const char *source, int maxLen)
 {
