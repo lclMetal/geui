@@ -129,7 +129,7 @@ void refreshInputValue(InputField *field)
     updateCaretPosition(&field->caret);
 }
 
-void handleTextInput(InputField *field, short key)
+void handleInputFieldInput(InputField *field, short key)
 {
     int readCount = 0;
     char tempNumText[GEUI_NUM_STRING_LENGTH];

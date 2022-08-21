@@ -414,7 +414,7 @@ void doKeyDown(WindowItem *item, int key)
                 }
             break;
             case GEUI_Input:
-                handleTextInput(&item->data.input, key);
+                handleInputFieldInput(&item->data.input, key);
                 refreshText(&item->data.input.text);
                 updateCaretPosition(&item->data.input.caret);
             break;
