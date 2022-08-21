@@ -21,6 +21,8 @@ struct WindowStruct;
 struct PanelStruct;
 struct InputFieldStruct;
 
+#define GEUI_DEFAULT_CARET_BLINK_RATE 2
+
 typedef struct BlinkingCaretStruct
 {
     float blinkRate;
@@ -30,7 +32,13 @@ typedef struct BlinkingCaretStruct
     Text *pText;
 }BlinkingCaret;
 
-#define GEUI_DEFAULT_CARET_BLINK_RATE 2
+typedef struct TileIndicesStruct
+{
+    long first;
+    long last;
+}TileIndices;
+
+TileIndices noIndices = { -1, -1 };
 
 typedef enum InputTypeEnum
 {
@@ -96,8 +104,7 @@ typedef struct InputFieldStruct
     Text text;
     BlinkingCaret caret;
 
-    long tileStartIndex;
-    long tileEndIndex;
+    TileIndices tiles;
 }InputField;
 
 typedef struct WindowItemStruct
@@ -115,8 +122,7 @@ typedef struct WindowItemStruct
         {
             Text text;
             char state;
-            long bTileStartIndex;
-            long bTileEndIndex;
+            TileIndices tiles;
             void (*actionFunction)(struct WindowStruct *, struct WindowItemStruct *);
         }button;
         InputField input;
@@ -154,8 +160,7 @@ typedef struct WindowStruct
     Style style;        // window style
     double zDepth;      // window z depth
     char parentCName[256]; // clonename of the window parent actor
-    long wTileStartIndex;   // cloneindex of the first window tile
-    long wTileEndIndex;     // cloneindex of the last window tile
+    TileIndices tiles;          // cloneindices of the window tiles
     Panel mainPanel;            // window main panel
     struct WindowStruct *next;  // pointer to next window in list
 }Window;
@@ -198,8 +203,7 @@ struct GEUIControllerStruct
     Window *wList;
 
     WindowItem *focus;
-    long focusTileStartIndex;
-    long focusTileEndIndex;
+    TileIndices focusTiles;
 
     Actor *mButtonActors[GEUI_MOUSE_BUTTONS];
     char mButtonTopActorCName[GEUI_MOUSE_BUTTONS][GEUI_CLONENAME_SIZE];

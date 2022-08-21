@@ -27,8 +27,7 @@ Window *createWindow(char tag[256], Style style)
     ptr->style = style;
     ptr->zDepth = DEFAULT_WINDOW_ZDEPTH;
     strcpy(ptr->parentCName, "");
-    ptr->wTileStartIndex = -1;
-    ptr->wTileEndIndex = -1;
+    ptr->tiles = noIndices;
     ptr->mainPanel.index = ptr->pIndex++;
     ptr->mainPanel.iIndex = 0;
     ptr->mainPanel.rows = 0;
@@ -152,7 +151,7 @@ void buildWindow(Window *window)
 
             if (j == 0) tile->myProperties = GEUI_TITLE_BAR; // part of the window title bar
 
-            updateIndexBounds(&window->wTileStartIndex, &window->wTileEndIndex, tile->cloneindex);
+            updateGuiTileIndices(&window->tiles, tile->cloneindex);
         }
     }
 }
@@ -181,9 +180,7 @@ void setWindowBaseParent(Window *window, char *parentName)
 
     strcpy(window->parentCName, parentName);
 
-    if (window->wTileStartIndex > -1)
-        changeParentOfClones("a_gui", window->wTileStartIndex, window->wTileEndIndex, parentName);
-
+    changeParentOfClones("a_gui", window->tiles.first, window->tiles.last, parentName);
     setPanelBaseParent(&window->mainPanel, parentName);
 }
 
@@ -235,12 +232,7 @@ void closeWindow(Window *window)
     DestroyActor(window->parentCName);
     strcpy(window->parentCName, "(none)");
 
-    if (window->wTileStartIndex > -1)
-    {
-        destroyClones("a_gui", window->wTileStartIndex, window->wTileEndIndex);
-        window->wTileStartIndex = -1;
-        window->wTileEndIndex = -1;
-    }
+    eraseGuiTiles(&window->tiles);
 
     if (window->index == GEUIController.topIndex)
     {

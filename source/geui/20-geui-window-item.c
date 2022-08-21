@@ -6,6 +6,9 @@ void closePanel(Panel *panel);
 void destroyPanel(Panel *panel);
 Panel *getPanelByIndex(Panel *panel, int index);
 
+void updateGuiTileIndices(TileIndices *indices, long newIndex);
+void eraseGuiTiles(TileIndices *indices);
+void colorGuiTiles(TileIndices indices, Color color);
 WindowItem *initNewItem(ItemType type, Window *window, Panel *panel, char tag[256]);
 WindowItem *addItemToWindow(WindowItem *ptr);
 WindowItem *addText(Window *window, Panel *panel, char tag[256], char *string, short maxWidth);
@@ -30,11 +33,27 @@ void buildPanel(WindowItem *ptr);
 void buildButtonText(WindowItem *ptr);
 void buildButton(WindowItem *ptr);
 Actor *buildCaret(WindowItem *ptr, Text *pText, BlinkingCaret *caret);
-void buildInputFieldBackground(WindowItem *ptr, long *tileStartIndex, long *tileEndIndex);
+void buildInputFieldBackground(WindowItem *ptr, TileIndices *tiles);
 void buildInputField(WindowItem *ptr);
 void buildEmbedder(WindowItem *ptr);
 void eraseWindowItem(WindowItem *ptr);
 void destroyWindowItem(WindowItem *ptr);
+
+void updateGuiTileIndices(TileIndices *indices, long newIndex)
+{
+    updateIndexBounds(&indices->first, &indices->last, newIndex);
+}
+
+void eraseGuiTiles(TileIndices *indices)
+{
+    destroyClones("a_gui", indices->first, indices->last);
+    *indices = noIndices;
+}
+
+void colorGuiTiles(TileIndices indices, Color color)
+{
+    colorClones("a_gui", indices.first, indices.last, color);
+}
 
 WindowItem *initNewItem(ItemType type, Window *window, Panel *panel, char tag[256])
 {
@@ -100,8 +119,7 @@ WindowItem *addButton(Window *window, Panel *panel, char tag[256], char *string,
     setTextColor(&ptr->data.button.text, window->style.textColor);
     setTextZDepth(&ptr->data.button.text, DEFAULT_ITEM_ZDEPTH);
     ptr->data.button.state = 0;
-    ptr->data.button.bTileStartIndex = -1;
-    ptr->data.button.bTileEndIndex = -1;
+    ptr->data.button.tiles = noIndices;
     ptr->data.button.actionFunction = actionFunction;
 
     ptr->layout.width = ptr->data.button.text.width + ptr->parent->style.tileWidth * 2;
@@ -219,8 +237,7 @@ WindowItem *addInputField(Window *window, Panel *panel, char tag[256], const cha
 
     refreshValue(&ptr->data.input);
 
-    ptr->data.input.tileStartIndex = -1;
-    ptr->data.input.tileEndIndex = -1;
+    ptr->data.input.tiles = noIndices;
 
     ptr->layout.width = maxWidth + ptr->parent->style.tileWidth * 2;
     ptr->layout.height = ptr->parent->style.tileHeight;
@@ -442,9 +459,7 @@ void blurItem(WindowItem *ptr)
         if (ptr->type == GEUI_Button)
         {
             ptr->data.button.state = 0;
-            colorClones("a_gui",
-                        ptr->data.button.bTileStartIndex,
-                        ptr->data.button.bTileEndIndex, ptr->parent->style.buttonColor);
+            colorGuiTiles(ptr->data.button.tiles, ptr->parent->style.buttonColor);
         }
         else if (ptr->type == GEUI_Input)
         {
@@ -492,7 +507,7 @@ void buildFocus(WindowItem *ptr)
             ChangeZDepth(tile->clonename, DEFAULT_ITEM_ZDEPTH);
             EventDisable(tile->clonename, EVENTCOLLISION);
             EventDisable(tile->clonename, EVENTCOLLISIONFINISH);
-            updateIndexBounds(&GEUIController.focusTileStartIndex, &GEUIController.focusTileEndIndex, tile->cloneindex);
+            updateGuiTileIndices(&GEUIController.focusTiles, tile->cloneindex);
 
             tile = CreateActor("a_gui", ptr->parent->style.guiAnim,
                            ptr->parent->parentCName, "(none)", 0, 0, true);
@@ -507,7 +522,7 @@ void buildFocus(WindowItem *ptr)
             ChangeZDepth(tile->clonename, DEFAULT_ITEM_ZDEPTH);
             EventDisable(tile->clonename, EVENTCOLLISION);
             EventDisable(tile->clonename, EVENTCOLLISIONFINISH);
-            updateIndexBounds(&GEUIController.focusTileStartIndex, &GEUIController.focusTileEndIndex, tile->cloneindex);
+            updateGuiTileIndices(&GEUIController.focusTiles, tile->cloneindex);
         }
     }
     else
@@ -536,7 +551,7 @@ void buildFocus(WindowItem *ptr)
                 ChangeZDepth(tile->clonename, DEFAULT_ITEM_ZDEPTH);
                 EventDisable(tile->clonename, EVENTCOLLISION);
                 EventDisable(tile->clonename, EVENTCOLLISIONFINISH);
-                updateIndexBounds(&GEUIController.focusTileStartIndex, &GEUIController.focusTileEndIndex, tile->cloneindex);
+                updateGuiTileIndices(&GEUIController.focusTiles, tile->cloneindex);
             }
         }
     }
@@ -544,12 +559,7 @@ void buildFocus(WindowItem *ptr)
 
 void eraseFocus()
 {
-    if (GEUIController.focusTileStartIndex > -1)
-    {
-        destroyClones("a_gui", GEUIController.focusTileStartIndex, GEUIController.focusTileEndIndex);
-        GEUIController.focusTileStartIndex = -1;
-        GEUIController.focusTileEndIndex = -1;
-    }
+    eraseGuiTiles(&GEUIController.focusTiles);
 }
 
 void buildItems(Panel *panel)
@@ -598,8 +608,8 @@ void buildPanel(WindowItem *ptr)
 
 void buildButtonText(WindowItem *ptr)
 {
-    long start = ptr->data.button.bTileStartIndex;
-    long end = ptr->data.button.bTileEndIndex;
+    long start = ptr->data.button.tiles.first;
+    long end = ptr->data.button.tiles.last;
 
     Text *buttonText = &ptr->data.button.text;
 
@@ -641,7 +651,7 @@ void buildButton(WindowItem *ptr)
         ChangeZDepth(a->clonename, DEFAULT_ITEM_ZDEPTH);
         a->animpos = 9 + (i > 0) + (i == tilesHorizontal - 1) + (i > 0 && i == tilesHorizontal - 2 && buttonWidth < tileWidth * 2.5);// TODO: make nicer
 
-        updateIndexBounds(&ptr->data.button.bTileStartIndex, &ptr->data.button.bTileEndIndex, a->cloneindex);
+        updateGuiTileIndices(&ptr->data.button.tiles, a->cloneindex);
     }
 
     buildButtonText(ptr);
@@ -665,7 +675,7 @@ Actor *buildCaret(WindowItem *ptr, Text *pText, BlinkingCaret *caret)
     return a;
 }
 
-void buildInputFieldBackground(WindowItem *ptr, long *tileStartIndex, long *tileEndIndex)
+void buildInputFieldBackground(WindowItem *ptr, TileIndices *tiles)
 {
     short i;
     Actor *a;
@@ -692,7 +702,7 @@ void buildInputFieldBackground(WindowItem *ptr, long *tileStartIndex, long *tile
         SendActivationEvent(a->clonename);
         ChangeZDepth(a->clonename, DEFAULT_ITEM_ZDEPTH);
 
-        updateIndexBounds(tileStartIndex, tileEndIndex, a->cloneindex);
+        updateGuiTileIndices(tiles, a->cloneindex);
     }
 }
 
@@ -700,13 +710,13 @@ void buildInputField(WindowItem *ptr)
 {
     if (ptr->type != GEUI_Input) { DEBUG_MSG_FROM("item is not a valid InputText item", "buildInputText"); return; }
 
-    buildInputFieldBackground(ptr, &ptr->data.input.tileStartIndex, &ptr->data.input.tileEndIndex);
-    colorClones("a_gui", ptr->data.input.tileStartIndex, ptr->data.input.tileEndIndex, ptr->parent->style.inputBgColor);
+    buildInputFieldBackground(ptr, &ptr->data.input.tiles);
+    colorGuiTiles(ptr->data.input.tiles, ptr->parent->style.inputBgColor);
 
     setTextZDepth(&ptr->data.input.text, DEFAULT_ITEM_ZDEPTH);
     setTextPosition(&ptr->data.input.text,
-        getTile(ptr->data.input.tileStartIndex)->x,
-        getTile(ptr->data.input.tileStartIndex)->y);
+        getTile(ptr->data.input.tiles.first)->x,
+        getTile(ptr->data.input.tiles.last)->y);
     refreshText(&ptr->data.input.text);
 
     buildCaret(ptr, &ptr->data.input.text, &ptr->data.input.caret);
@@ -757,23 +767,13 @@ void eraseWindowItem(WindowItem *ptr)
         break;
         case GEUI_Button:
             eraseText(&ptr->data.button.text);
-            if (ptr->data.button.bTileStartIndex > -1)
-            {
-                destroyClones("a_gui", ptr->data.button.bTileStartIndex, ptr->data.button.bTileEndIndex);
-                ptr->data.button.bTileStartIndex = -1;
-                ptr->data.button.bTileEndIndex = -1;
-            }
+            eraseGuiTiles(&ptr->data.button.tiles);
         break;
         case GEUI_Input:
             eraseText(&ptr->data.input.text);
             eraseCaret(&ptr->data.input.caret);
             setTextParent(&ptr->data.input.text, "(none)", False);
-            if (ptr->data.input.tileStartIndex > -1)
-            {
-                destroyClones("a_gui", ptr->data.input.tileStartIndex, ptr->data.input.tileEndIndex);
-                ptr->data.input.tileStartIndex = -1;
-                ptr->data.input.tileEndIndex = -1;
-            }
+            eraseGuiTiles(&ptr->data.input.tiles);
         break;
         case GEUI_Panel:
             closePanel(ptr->data.panel);
@@ -798,22 +798,12 @@ void destroyWindowItem(WindowItem *ptr)
         case GEUI_Text: destroyText(&ptr->data.text); break;
         case GEUI_Button:
             destroyText(&ptr->data.button.text);
-            if (ptr->data.button.bTileStartIndex > -1)
-            {
-                destroyClones("a_gui", ptr->data.button.bTileStartIndex, ptr->data.button.bTileEndIndex);
-                ptr->data.button.bTileStartIndex = -1;
-                ptr->data.button.bTileEndIndex = -1;
-            }
+            eraseGuiTiles(&ptr->data.button.tiles);
         break;
         case GEUI_Input:
             destroyText(&ptr->data.input.text);
             eraseCaret(&ptr->data.input.caret);
-            if (ptr->data.input.tileStartIndex > -1)
-            {
-                destroyClones("a_gui", ptr->data.input.tileStartIndex, ptr->data.input.tileEndIndex);
-                ptr->data.input.tileStartIndex = -1;
-                ptr->data.input.tileEndIndex = -1;
-            }
+            eraseGuiTiles(&ptr->data.input.tiles);
         break;
         case GEUI_Panel:
             destroyPanel(ptr->data.panel);

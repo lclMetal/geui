@@ -92,13 +92,10 @@ void doMouseEnter(const char *actorName)
         case GEUI_Button:
             if (isTopmostItemAtMouse(item))
             {
-                long start = item->data.button.bTileStartIndex;
-                long end   = item->data.button.bTileEndIndex;
-
                 if (item->data.button.state)
-                    colorClones("a_gui", start, end, item->parent->style.buttonPressedColor);
+                    colorGuiTiles(item->data.button.tiles, item->parent->style.buttonPressedColor);
                 else
-                    colorClones("a_gui", start, end, item->parent->style.buttonHilitColor);
+                    colorGuiTiles(item->data.button.tiles, item->parent->style.buttonHilitColor);
             }
             else doMouseLeave(actorName);
         break;
@@ -125,13 +122,10 @@ void doMouseLeave(const char *actorName)
         case GEUI_Button:
             if (!isTopmostItemAtMouse(item))
             {
-                long start = item->data.button.bTileStartIndex;
-                long end   = item->data.button.bTileEndIndex;
-
                 if (item->data.button.state)
-                    colorClones("a_gui", start, end, item->parent->style.buttonPressedColor);
+                    colorGuiTiles(item->data.button.tiles, item->parent->style.buttonPressedColor);
                 else
-                    colorClones("a_gui", start, end, item->parent->style.buttonColor);
+                    colorGuiTiles(item->data.button.tiles, item->parent->style.buttonColor);
             }
         break;
     }
@@ -204,9 +198,7 @@ void doMouseButtonDown(const char *actorName, enum mouseButtonsEnum mButtonNumbe
     {
         case GEUI_Button:
             focusItem(item);
-            colorClones("a_gui",
-                item->data.button.bTileStartIndex,
-                item->data.button.bTileEndIndex, window->style.buttonPressedColor);
+            colorGuiTiles(item->data.button.tiles, window->style.buttonPressedColor);
             item->data.button.state = 1;
         break;
         case GEUI_Input:
@@ -273,18 +265,15 @@ void doMouseButtonUp(const char *actorName, enum mouseButtonsEnum mButtonNumber)
     {
         case GEUI_Button:
         {
-            long start = item->data.button.bTileStartIndex;
-            long end   = item->data.button.bTileEndIndex;
-
             if (isTopmostItemAtMouse(item))
             {
-                colorClones("a_gui", start, end, window->style.buttonHilitColor);
+                colorGuiTiles(item->data.button.tiles, window->style.buttonHilitColor);
                 if (item->data.button.state && item->data.button.actionFunction)
                     item->data.button.actionFunction(window, item);
             }
             else
             {
-                colorClones("a_gui", start, end, window->style.buttonColor);
+                colorGuiTiles(item->data.button.tiles, window->style.buttonColor);
             }
             item->data.button.state = 0;
         }
@@ -420,9 +409,7 @@ void doKeyDown(WindowItem *item, int key)
             case GEUI_Button:
                 if (key == KEY_RETURN || key == KEY_SPACE)
                 {
-                    colorClones("a_gui",
-                        item->data.button.bTileStartIndex,
-                        item->data.button.bTileEndIndex, item->parent->style.buttonPressedColor);
+                    colorGuiTiles(item->data.button.tiles, item->parent->style.buttonPressedColor);
                     item->data.button.state = 1;
                 }
             break;
@@ -451,13 +438,10 @@ void doKeyUp(WindowItem *item, int key)
             case GEUI_Button:
                 if ((key == KEY_RETURN || key == KEY_SPACE) && item->data.button.state == 1)
                 {
-                    long start = item->data.button.bTileStartIndex;
-                    long end   = item->data.button.bTileEndIndex;
-
                     if (item->data.button.actionFunction)
                         item->data.button.actionFunction(item->parent, item);
 
-                    colorClones("a_gui", start, end, item->parent->style.buttonColor);
+                    colorGuiTiles(item->data.button.tiles, item->parent->style.buttonColor);
                     item->data.button.state = 0;
                 }
             break;
