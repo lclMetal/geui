@@ -2077,7 +2077,7 @@ void updateCaretPosition(BlinkingCaret *caret)
 
 // ..\source\geui\16-geui-input-field.c
 #define GEUI_KEYBOARD_MAPPING_SIZE GEUI_KeyboardLayoutCount + 1
-#define GEUI_MAX_VALID_KEYS_LIMIT 25
+#define GEUI_MAX_VALID_KEYS_LIMIT 26
 
 #define GEUI_NUM_STRING_LENGTH 30
 
@@ -2095,7 +2095,7 @@ const short validKeysForInputType[][GEUI_MAX_VALID_KEYS_LIMIT] =
         KEY_6, KEY_7, KEY_8, KEY_9, KEY_MINUS,
         KEY_PAD_0, KEY_PAD_1, KEY_PAD_2, KEY_PAD_3, KEY_PAD_4, KEY_PAD_5,
         KEY_PAD_6, KEY_PAD_7, KEY_PAD_8, KEY_PAD_9, KEY_PAD_MINUS, KEY_BACKSPACE,
-        KEY_PERIOD, KEY_PAD_PERIOD
+        KEY_PERIOD, KEY_PAD_PERIOD, KEY_e
     }
 };
 
