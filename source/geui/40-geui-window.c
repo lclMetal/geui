@@ -2,6 +2,7 @@
 // without doing anything, which can be difficult to debug
 
 #define GEUI_SCREEN_CENTER -1, -1
+#define GEUI_MOUSE_POSITION xmouse, ymouse
 
 Window *createWindow(char tag[256], Style style);
 Window *getWindowByTag(char tag[256]);
