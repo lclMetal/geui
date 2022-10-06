@@ -3426,8 +3426,8 @@ void destroyPanel(Panel *panel)
 // TODO: make functions return error codes instead of just exiting
 // without doing anything, which can be difficult to debug
 
-#define GEUI_SCREEN_CENTER -1, -1
-#define GEUI_MOUSE_POSITION xmouse, ymouse
+#define GEUI_XY_SCREEN_CENTER -1, -1
+#define GEUI_XY_MOUSE_POSITION xmouse, ymouse
 
 Window *createWindow(char tag[256], Style style);
 Window *getWindowByTag(char tag[256]);

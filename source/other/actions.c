@@ -29,7 +29,7 @@ void printItemList(Window *win, WindowItem *item)
 
 void openOtherWindow(Window *win, WindowItem *item)
 {
-    openWindow("second", GEUI_MOUSE_POSITION);
+    openWindow("second", GEUI_XY_MOUSE_POSITION);
 }
 
 void setRandomColor(Window *win, WindowItem *item)
