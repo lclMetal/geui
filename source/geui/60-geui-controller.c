@@ -14,6 +14,8 @@ void initGEUI(KeyboardLayout kbLayout)
     defStyle.textFont           = &defTextFont;
     defStyle.padding            = 5;
     defStyle.focusWidth         = 2;
+    defStyle.buttonProperties   = 0;
+    defStyle.buttonPadding      = 1.0f;
     defStyle.titleBgColor       = DEFAULT_COLOR;
     defStyle.windowBgColor      = DEFAULT_COLOR;
     defStyle.inputBgColor       = DEFAULT_COLOR;

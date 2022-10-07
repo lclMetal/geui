@@ -92,6 +92,14 @@ short getColWidth(Panel *panel, short col)
             width = item->layout.width;
     }
 
+    for (item = panel->iList; item != NULL; item = item->next)
+    {
+        if (item->type == GEUI_Button && panel->parent->style.buttonProperties & GEUI_BUTTON_STRETCH && item->layout.col == col)
+        {
+            item->layout.width = width;
+        }
+    }
+
     return width + panel->parent->style.padding * (col < panel->cols - 1);
 }
 

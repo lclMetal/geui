@@ -1,3 +1,6 @@
+#define GEUI_BUTTON_STRETCH 1
+#define GEUI_BUTTON_TEXT_ALIGN_LEFT 2
+
 typedef struct StyleStruct
 {
     char guiAnim[100];
@@ -11,6 +14,8 @@ typedef struct StyleStruct
 
     short padding;
     short focusWidth;
+    short buttonProperties;
+    float buttonPadding;
 
     Color titleBgColor;
     Color windowBgColor;
@@ -30,12 +35,6 @@ typedef struct StyleStruct
 Style defStyle;
 Style *setDimensions;
 
-Style createStyle(const char guiAnim[100], Font *titleFont, Font *labelFont, Font *textFont,
-                  short padding, short focusWidth, Color titleBgColor, Color windowBgColor,
-                  Color inputBgColor, Color titleColor, Color labelColor, Color textColor,
-                  Color buttonColor, Color buttonHilitColor, Color buttonPressedColor,
-                  Color focusColor);
-
 void getTileDimensions(Style *style)
 {
     Actor*a=CreateActor("a_gui", style->guiAnim, "(none)", "(none)", 0, 0, true);
@@ -52,7 +51,7 @@ void setTileDimensions()
 }
 
 Style createStyle(const char guiAnim[100], Font *titleFont, Font *labelFont, Font *textFont,
-                  short padding, short focusWidth, Color titleBgColor, Color windowBgColor,
+                  short padding, short focusWidth, short buttonProperties, float buttonPadding, Color titleBgColor, Color windowBgColor,
                   Color inputBgColor, Color titleColor, Color labelColor, Color textColor,
                   Color buttonColor, Color buttonHilitColor, Color buttonPressedColor,
                   Color focusColor)
@@ -65,6 +64,8 @@ Style createStyle(const char guiAnim[100], Font *titleFont, Font *labelFont, Fon
     new.textFont = textFont;
     new.padding = padding;
     new.focusWidth = focusWidth;
+    new.buttonProperties = buttonProperties;
+    new.buttonPadding = buttonPadding;
     new.titleBgColor = titleBgColor;
     new.windowBgColor = windowBgColor;
     new.inputBgColor = inputBgColor;
