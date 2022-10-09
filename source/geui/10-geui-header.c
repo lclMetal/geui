@@ -157,6 +157,7 @@ typedef struct WindowStruct
     int pIndex;         // next available panel index
     char tag[256];      // window identifier tag
     bool isOpen;        // is window currently open or not
+    long fakeIndex;     // fake tile index
     Style style;        // window style
     double zDepth;      // window z depth
     char parentCName[256]; // clonename of the window parent actor

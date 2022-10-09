@@ -27,6 +27,7 @@ Window *createWindow(char tag[256], Style style)
     ptr->pIndex = 0;
     strcpy(ptr->tag, tag);
     ptr->isOpen = False;
+    ptr->fakeIndex = -1;
     ptr->style = style;
     ptr->zDepth = DEFAULT_WINDOW_ZDEPTH;
     strcpy(ptr->parentCName, "");
@@ -243,6 +244,9 @@ void closeWindow(Window *window)
 
     DestroyActor(window->parentCName);
     strcpy(window->parentCName, "(none)");
+
+    DestroyActor(getTile(window->fakeIndex)->clonename);
+    window->fakeIndex = -1;
 
     eraseGuiTiles(&window->tiles);
 

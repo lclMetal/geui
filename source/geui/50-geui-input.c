@@ -186,6 +186,8 @@ void doMouseButtonDown(const char *actorName, enum mouseButtonsEnum mButtonNumbe
 
         actor->myProperties |= GEUI_CLICKED;
         FollowMouse(actor->clonename, BOTH_AXIS);
+
+        window->fakeIndex = fake->cloneindex;
     }
 
     bringWindowToFront(window);
@@ -253,6 +255,7 @@ void doMouseButtonUp(const char *actorName, enum mouseButtonsEnum mButtonNumber)
 
         // destroy the fake actor
         DestroyActor(getTile(actor->myFakeIndex)->clonename);
+        window->fakeIndex = -1;
     }
 
     //ChangeZDepth(window->parentCName, 0.5);
