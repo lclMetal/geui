@@ -271,8 +271,8 @@ void doMouseButtonUp(const char *actorName, enum mouseButtonsEnum mButtonNumber)
             if (isTopmostItemAtMouse(item))
             {
                 colorGuiTiles(item->data.button.tiles, window->style.buttonHilitColor);
-                if (item->data.button.state && item->data.button.actionFunction)
-                    item->data.button.actionFunction(window, item);
+                if (item->data.button.state && item->data.button.action.fpAction)
+                    item->data.button.action.fpAction(&item->data.button.action);
             }
             else
             {
@@ -441,8 +441,8 @@ void doKeyUp(WindowItem *item, int key)
             case GEUI_Button:
                 if ((key == KEY_RETURN || key == KEY_SPACE) && item->data.button.state == 1)
                 {
-                    if (item->data.button.actionFunction)
-                        item->data.button.actionFunction(item->parent, item);
+                    if (item->data.button.action.fpAction)
+                        item->data.button.action.fpAction(&item->data.button.action);
 
                     colorGuiTiles(item->data.button.tiles, item->parent->style.buttonColor);
                     item->data.button.state = 0;

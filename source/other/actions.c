@@ -1,9 +1,3 @@
-void close(Window *win, WindowItem *item)
-{
-    if (item->type == GEUI_Button)
-        closeWindow(win);
-}
-
 void printItemsInPanel(Panel *panel)
 {
     char temp[256];
@@ -22,27 +16,22 @@ void printItemsInPanel(Panel *panel)
     }
 }
 
-void printItemList(Window *win, WindowItem *item)
+void printItemList(GUIAction *action)
 {
-    printItemsInPanel(&win->mainPanel);
+    printItemsInPanel(&action->window->mainPanel);
 }
 
-void openOtherWindow(Window *win, WindowItem *item)
-{
-    openWindow("second", GEUI_XY_MOUSE_POSITION);
-}
-
-void setRandomColor(Window *win, WindowItem *item)
+void setRandomColor(GUIAction *action)
 {
     colorActorByName("f", createRGB(rand(256), rand(256), rand(256), 1));
 }
 
-void toggleTransparency(Window *win, WindowItem *item)
+void toggleTransparency(GUIAction *action)
 {
-    if (getclone(win->parentCName)->transp > 0)
-        getclone(win->parentCName)->transp = 0;
+    if (getclone(action->window->parentCName)->transp > 0)
+        getclone(action->window->parentCName)->transp = 0;
     else
-        getclone(win->parentCName)->transp = 0.5;
+        getclone(action->window->parentCName)->transp = 0.5;
 
     if (getclone(getWindowByTag("tag")->parentCName)->transp > 0)
         getclone(getWindowByTag("tag")->parentCName)->transp = 0;
@@ -56,18 +45,18 @@ void toggleTransparency(Window *win, WindowItem *item)
         getclone(getWindowByTag("win3")->parentCName)->transp = 0.5;
 }
 
-void movePacman(Window *win, WindowItem *item)
+void movePacman(GUIAction *action)
 {
     getclone("pac")->xvelocity = 0.5;
 }
 
-void exit(Window *win, WindowItem *item)
+void exit(GUIAction *action)
 {
     quitGEUI();
     ExitGame();
 }
 
-void exitos(Window *win, WindowItem *item)
+void exitos(GUIAction *action)
 {
     quitGEUI();
     ExitGame();

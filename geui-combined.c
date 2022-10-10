@@ -1894,6 +1894,37 @@ typedef struct InputFieldStruct
     TileIndices tiles;
 }InputField;
 
+typedef enum ActionTypeEnum
+{
+    GEUI_ACTION,
+    GEUI_ACTION_OPEN_WINDOW,
+    GEUI_ACTION_CLOSE_WINDOW
+}ActionType;
+
+typedef struct GUIActionStruct
+{
+    ActionType type;
+    union ActionDataEnum
+    {
+        struct actionOpenWindowStruct
+        {
+            char tag[256];
+            float x;
+            float y;
+        }openWindow;
+        struct actionCloseWindowStruct
+        {
+            char tag[256];
+        }closeWindow;
+    }data;
+
+    struct WindowStruct *window;
+    struct PanelStruct *panel;
+    struct WindowItemStruct *item;
+
+    void (*fpAction)(struct GUIActionStruct *);
+}GUIAction;
+
 typedef struct WindowItemStruct
 {
     int index;          // item index
@@ -1910,7 +1941,7 @@ typedef struct WindowItemStruct
             Text text;
             char state;
             TileIndices tiles;
-            void (*actionFunction)(struct WindowStruct *, struct WindowItemStruct *);
+            GUIAction action;
         }button;
         InputField input;
         struct PanelStruct *panel;
@@ -2300,7 +2331,7 @@ void colorGuiTiles(TileIndices indices, Color color);
 WindowItem *initNewItem(ItemType type, Window *window, Panel *panel, char tag[256]);
 WindowItem *addItemToWindow(WindowItem *ptr);
 WindowItem *addText(Window *window, Panel *panel, char tag[256], char *string, short maxWidth);
-WindowItem *addButton(Window *window, Panel *panel, char tag[256], char *string, void (*actionFunction)(Window *, WindowItem *));
+WindowItem *addButton(Window *window, Panel *panel, char tag[256], char *string, GUIAction action);
 WindowItem *addInputField(Window *window, Panel *panel, char tag[256], const char *string, InputSettings settings, short maxWidth);
 WindowItem *addPanel(Window *window, Panel *panel, char tag[256]);
 WindowItem *addEmbedder(Window *window, Panel *panel, char tag[256], const char *actorName);
@@ -2397,7 +2428,56 @@ WindowItem *addText(Window *window, Panel *panel, char tag[256], char *string, s
     return addItemToWindow(ptr);
 }
 
-WindowItem *addButton(Window *window, Panel *panel, char tag[256], char *string, void (*actionFunction)(Window *, WindowItem *))
+// from geui-window.c
+Window *openWindow(char tag[256], float startX, float startY);
+void closeWindow(Window *window);
+Window *getWindowByTag(char tag[256]);
+
+GUIAction createAction(void (*fpAction)(struct GUIActionStruct *))
+{
+    GUIAction action;
+    action.type = GEUI_ACTION;
+    action.fpAction = fpAction;
+    return action;
+}
+
+void guiActionOpenWindow(GUIAction *action)
+{
+    if (action->type == GEUI_ACTION_OPEN_WINDOW)
+    {
+        openWindow(action->data.openWindow.tag, action->data.openWindow.x, action->data.openWindow.y);
+    }
+}
+
+GUIAction createOpenWindowAction(char tag[256], float x, float y)
+{
+    GUIAction action;
+    action.type = GEUI_ACTION_OPEN_WINDOW;
+    strcpy(action.data.openWindow.tag, tag);
+    action.data.openWindow.x = x;
+    action.data.openWindow.y = y;
+    (action.fpAction = guiActionOpenWindow); // parentheses required due to GE bug
+    return action;
+}
+
+void guiActionCloseWindow(GUIAction *action)
+{
+    if (action->type == GEUI_ACTION_CLOSE_WINDOW)
+    {
+        closeWindow(getWindowByTag(action->data.closeWindow.tag));
+    }
+}
+
+GUIAction createCloseWindowAction(char tag[256])
+{
+    GUIAction action;
+    action.type = GEUI_ACTION_CLOSE_WINDOW;
+    strcpy(action.data.closeWindow.tag, tag);
+    (action.fpAction = guiActionCloseWindow); // parentheses required due to GE bug
+    return action;
+}
+
+WindowItem *addButton(Window *window, Panel *panel, char tag[256], char *string, GUIAction action)
 {
     short buttonMinWidth;
     WindowItem *ptr = initNewItem(GEUI_Button, window, panel, tag);
@@ -2409,7 +2489,11 @@ WindowItem *addButton(Window *window, Panel *panel, char tag[256], char *string,
     setTextZDepth(&ptr->data.button.text, DEFAULT_ITEM_ZDEPTH);
     ptr->data.button.state = 0;
     ptr->data.button.tiles = noIndices;
-    ptr->data.button.actionFunction = actionFunction;
+
+    ptr->data.button.action = action;
+    ptr->data.button.action.window = window;
+    ptr->data.button.action.panel = panel;
+    (ptr->data.button.action).item = ptr; // parentheses required due to GE bug
 
     ptr->layout.width = ptr->data.button.text.width + ptr->parent->style.tileWidth * ptr->parent->style.buttonPadding * 2;
     buttonMinWidth = ptr->parent->style.tileWidth * 2;
@@ -3696,8 +3780,11 @@ void closeWindow(Window *window)
     DestroyActor(window->parentCName);
     strcpy(window->parentCName, "(none)");
 
-    DestroyActor(getTile(window->fakeIndex)->clonename);
-    window->fakeIndex = -1;
+    if (window->fakeIndex > -1)
+    {
+        DestroyActor(getTile(window->fakeIndex)->clonename);
+        window->fakeIndex = -1;
+    }
 
     eraseGuiTiles(&window->tiles);
 
@@ -4000,8 +4087,8 @@ void doMouseButtonUp(const char *actorName, enum mouseButtonsEnum mButtonNumber)
             if (isTopmostItemAtMouse(item))
             {
                 colorGuiTiles(item->data.button.tiles, window->style.buttonHilitColor);
-                if (item->data.button.state && item->data.button.actionFunction)
-                    item->data.button.actionFunction(window, item);
+                if (item->data.button.state && item->data.button.action.fpAction)
+                    item->data.button.action.fpAction(&item->data.button.action);
             }
             else
             {
@@ -4170,8 +4257,8 @@ void doKeyUp(WindowItem *item, int key)
             case GEUI_Button:
                 if ((key == KEY_RETURN || key == KEY_SPACE) && item->data.button.state == 1)
                 {
-                    if (item->data.button.actionFunction)
-                        item->data.button.actionFunction(item->parent, item);
+                    if (item->data.button.action.fpAction)
+                        item->data.button.action.fpAction(&item->data.button.action);
 
                     colorGuiTiles(item->data.button.tiles, item->parent->style.buttonColor);
                     item->data.button.state = 0;

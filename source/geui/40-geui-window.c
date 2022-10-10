@@ -245,8 +245,11 @@ void closeWindow(Window *window)
     DestroyActor(window->parentCName);
     strcpy(window->parentCName, "(none)");
 
-    DestroyActor(getTile(window->fakeIndex)->clonename);
-    window->fakeIndex = -1;
+    if (window->fakeIndex > -1)
+    {
+        DestroyActor(getTile(window->fakeIndex)->clonename);
+        window->fakeIndex = -1;
+    }
 
     eraseGuiTiles(&window->tiles);
 

@@ -107,6 +107,37 @@ typedef struct InputFieldStruct
     TileIndices tiles;
 }InputField;
 
+typedef enum ActionTypeEnum
+{
+    GEUI_ACTION,
+    GEUI_ACTION_OPEN_WINDOW,
+    GEUI_ACTION_CLOSE_WINDOW
+}ActionType;
+
+typedef struct GUIActionStruct
+{
+    ActionType type;
+    union ActionDataEnum
+    {
+        struct actionOpenWindowStruct
+        {
+            char tag[256];
+            float x;
+            float y;
+        }openWindow;
+        struct actionCloseWindowStruct
+        {
+            char tag[256];
+        }closeWindow;
+    }data;
+
+    struct WindowStruct *window;
+    struct PanelStruct *panel;
+    struct WindowItemStruct *item;
+
+    void (*fpAction)(struct GUIActionStruct *);
+}GUIAction;
+
 typedef struct WindowItemStruct
 {
     int index;          // item index
@@ -123,7 +154,7 @@ typedef struct WindowItemStruct
             Text text;
             char state;
             TileIndices tiles;
-            void (*actionFunction)(struct WindowStruct *, struct WindowItemStruct *);
+            GUIAction action;
         }button;
         InputField input;
         struct PanelStruct *panel;

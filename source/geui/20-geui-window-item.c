@@ -12,7 +12,7 @@ void colorGuiTiles(TileIndices indices, Color color);
 WindowItem *initNewItem(ItemType type, Window *window, Panel *panel, char tag[256]);
 WindowItem *addItemToWindow(WindowItem *ptr);
 WindowItem *addText(Window *window, Panel *panel, char tag[256], char *string, short maxWidth);
-WindowItem *addButton(Window *window, Panel *panel, char tag[256], char *string, void (*actionFunction)(Window *, WindowItem *));
+WindowItem *addButton(Window *window, Panel *panel, char tag[256], char *string, GUIAction action);
 WindowItem *addInputField(Window *window, Panel *panel, char tag[256], const char *string, InputSettings settings, short maxWidth);
 WindowItem *addPanel(Window *window, Panel *panel, char tag[256]);
 WindowItem *addEmbedder(Window *window, Panel *panel, char tag[256], const char *actorName);
@@ -109,7 +109,56 @@ WindowItem *addText(Window *window, Panel *panel, char tag[256], char *string, s
     return addItemToWindow(ptr);
 }
 
-WindowItem *addButton(Window *window, Panel *panel, char tag[256], char *string, void (*actionFunction)(Window *, WindowItem *))
+// from geui-window.c
+Window *openWindow(char tag[256], float startX, float startY);
+void closeWindow(Window *window);
+Window *getWindowByTag(char tag[256]);
+
+GUIAction createAction(void (*fpAction)(struct GUIActionStruct *))
+{
+    GUIAction action;
+    action.type = GEUI_ACTION;
+    action.fpAction = fpAction;
+    return action;
+}
+
+void guiActionOpenWindow(GUIAction *action)
+{
+    if (action->type == GEUI_ACTION_OPEN_WINDOW)
+    {
+        openWindow(action->data.openWindow.tag, action->data.openWindow.x, action->data.openWindow.y);
+    }
+}
+
+GUIAction createOpenWindowAction(char tag[256], float x, float y)
+{
+    GUIAction action;
+    action.type = GEUI_ACTION_OPEN_WINDOW;
+    strcpy(action.data.openWindow.tag, tag);
+    action.data.openWindow.x = x;
+    action.data.openWindow.y = y;
+    (action.fpAction = guiActionOpenWindow); // parentheses required due to GE bug
+    return action;
+}
+
+void guiActionCloseWindow(GUIAction *action)
+{
+    if (action->type == GEUI_ACTION_CLOSE_WINDOW)
+    {
+        closeWindow(getWindowByTag(action->data.closeWindow.tag));
+    }
+}
+
+GUIAction createCloseWindowAction(char tag[256])
+{
+    GUIAction action;
+    action.type = GEUI_ACTION_CLOSE_WINDOW;
+    strcpy(action.data.closeWindow.tag, tag);
+    (action.fpAction = guiActionCloseWindow); // parentheses required due to GE bug
+    return action;
+}
+
+WindowItem *addButton(Window *window, Panel *panel, char tag[256], char *string, GUIAction action)
 {
     short buttonMinWidth;
     WindowItem *ptr = initNewItem(GEUI_Button, window, panel, tag);
@@ -121,7 +170,11 @@ WindowItem *addButton(Window *window, Panel *panel, char tag[256], char *string,
     setTextZDepth(&ptr->data.button.text, DEFAULT_ITEM_ZDEPTH);
     ptr->data.button.state = 0;
     ptr->data.button.tiles = noIndices;
-    ptr->data.button.actionFunction = actionFunction;
+
+    ptr->data.button.action = action;
+    ptr->data.button.action.window = window;
+    ptr->data.button.action.panel = panel;
+    (ptr->data.button.action).item = ptr; // parentheses required due to GE bug
 
     ptr->layout.width = ptr->data.button.text.width + ptr->parent->style.tileWidth * ptr->parent->style.buttonPadding * 2;
     buttonMinWidth = ptr->parent->style.tileWidth * 2;
