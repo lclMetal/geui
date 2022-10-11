@@ -1785,6 +1785,12 @@ int calculateAnimpos(short w, short h, short i, short j)
 
 
 // ..\source\geui\10-geui-header.c
+typedef struct ScreenCoordsStruct
+{
+    float x;
+    float y;
+}ScreenCoords;
+
 typedef struct LayoutStruct
 {
     short row;      // row in a panel
@@ -1901,6 +1907,19 @@ typedef enum ActionTypeEnum
     GEUI_ACTION_CLOSE_WINDOW
 }ActionType;
 
+typedef enum WindowPositionSettingEnum
+{
+    GEUI_WindowPosCoords,
+    GEUI_WindowPosMouse,
+    GEUI_WindowPosScreenCenter
+}WindowPositionSetting;
+
+typedef struct WindowPositionStruct
+{
+    WindowPositionSetting type;
+    ScreenCoords pos;
+}WindowPosition;
+
 typedef struct GUIActionStruct
 {
     ActionType type;
@@ -1909,8 +1928,7 @@ typedef struct GUIActionStruct
         struct actionOpenWindowStruct
         {
             char tag[256];
-            float x;
-            float y;
+            WindowPosition pos;
         }openWindow;
         struct actionCloseWindowStruct
         {
@@ -2032,6 +2050,30 @@ struct GEUIControllerStruct
 }GEUIController;
 
 #define CURRENT_KEYBOARD GEUIController.kbLayout
+
+
+// ..\source\geui\12-geui-screen-coords.c
+ScreenCoords createScreenCoords(float x, float y)
+{
+    ScreenCoords coords;
+    coords.x = x;
+    coords.y = y;
+    return coords;
+}
+
+ScreenCoords getMouseCoords()
+{
+    return createScreenCoords(xmouse, ymouse);
+}
+
+ScreenCoords getCenteredWindowCoords(struct WindowStruct *window)
+{
+    if (!window)
+        return createScreenCoords(view.width * 0.5f, view.width * 0.5f);
+
+    return createScreenCoords(view.width * 0.5f - window->root.width * 0.5f,
+                              view.height * 0.5f - window->root.height * 0.5f);
+}
 
 
 // ..\source\geui\14-geui-input-caret.c
@@ -2429,7 +2471,7 @@ WindowItem *addText(Panel *panel, char tag[256], char *string, short maxWidth)
 }
 
 // from geui-window.c
-Window *openWindow(char tag[256], float startX, float startY);
+Window *openWindow(char tag[256], WindowPosition pos);
 void closeWindow(Window *window);
 Window *getWindowByTag(char tag[256]);
 
@@ -2445,17 +2487,16 @@ void guiActionOpenWindow(GUIAction *action)
 {
     if (action->type == GEUI_ACTION_OPEN_WINDOW)
     {
-        openWindow(action->data.openWindow.tag, action->data.openWindow.x, action->data.openWindow.y);
+        openWindow(action->data.openWindow.tag, action->data.openWindow.pos);
     }
 }
 
-GUIAction createOpenWindowAction(char tag[256], float x, float y)
+GUIAction createOpenWindowAction(char tag[256], WindowPosition pos)
 {
     GUIAction action;
     action.type = GEUI_ACTION_OPEN_WINDOW;
     strcpy(action.data.openWindow.tag, tag);
-    action.data.openWindow.x = x;
-    action.data.openWindow.y = y;
+    action.data.openWindow.pos = pos;
     (action.fpAction = guiActionOpenWindow); // parentheses required due to GE bug
     return action;
 }
@@ -3555,9 +3596,9 @@ Window *createWindow(char tag[256], Style style);
 Window *getWindowByTag(char tag[256]);
 Window *getWindowByIndex(int index);
 Window *getFirstOpenWindow();
-Window *openWindow(char tag[256], float startX, float startY);
-void buildWindow(Window *window, float startX, float startY);
-Actor *createWindowBaseParent(Window *window, float startX, float startY);
+Window *openWindow(char tag[256], WindowPosition pos);
+void buildWindow(Window *window, WindowPosition pos);
+Actor *createWindowBaseParent(Window *window, WindowPosition pos);
 void setWindowBaseParent(Window *window, char *parentName);
 void bringWindowToFront(Window *window);
 void closeWindow(Window *window);
@@ -3655,7 +3696,35 @@ Window *getFirstOpenWindow()
     return NULL;
 }
 
-Window *openWindow(char tag[256], float startX, float startY)
+WindowPosition createWindowPosition(float x, float y)
+{
+    WindowPosition posi;
+    posi.type = GEUI_WindowPosCoords;
+    posi.pos = createScreenCoords(x, y);
+    return posi;
+}
+
+#define GEUI_WINDOWPOS_USE_MOUSE_POSITION createMousePosition()
+
+WindowPosition createMousePosition()
+{
+    WindowPosition posi;
+    posi.type = GEUI_WindowPosMouse;
+    posi.pos = createScreenCoords(0, 0);
+    return posi;
+}
+
+#define GEUI_WINDOWPOS_SCREEN_CENTER createScreenCenterPosition()
+
+WindowPosition createScreenCenterPosition()
+{
+    WindowPosition posi;
+    posi.type = GEUI_WindowPosScreenCenter;
+    posi.pos = createScreenCoords(0, 0);
+    return posi;
+}
+
+Window *openWindow(char tag[256], WindowPosition pos)
 {
     Window *window = getWindowByTag(tag);
 
@@ -3663,7 +3732,7 @@ Window *openWindow(char tag[256], float startX, float startY)
     if (window->isOpen) { DEBUG_MSG_FROM("window is already open", "openWindow"); return window; }
 
     updatePanelLayout(NULL, &window->root);
-    buildWindow(window, startX, startY);
+    buildWindow(window, pos);
     buildItems(&window->root);
 
     window->isOpen = True;
@@ -3672,7 +3741,7 @@ Window *openWindow(char tag[256], float startX, float startY)
     return window;
 }
 
-void buildWindow(Window *window, float startX, float startY)
+void buildWindow(Window *window, WindowPosition pos)
 {
     short i, j;
     Actor *tile;
@@ -3681,7 +3750,7 @@ void buildWindow(Window *window, float startX, float startY)
     short windowWidth, windowHeight;
     short tilesHorizontal, tilesVertical;
 
-    setWindowBaseParent(window, createWindowBaseParent(window, startX, startY)->clonename);
+    setWindowBaseParent(window, createWindowBaseParent(window, pos)->clonename);
 
     tileWidth = window->style.tileWidth;
     tileHeight = window->style.tileHeight;
@@ -3717,20 +3786,19 @@ void buildWindow(Window *window, float startX, float startY)
     }
 }
 
-Actor *createWindowBaseParent(Window *window, float startX, float startY)
+Actor *createWindowBaseParent(Window *window, WindowPosition pos)
 {
     Actor *baseParent;
-    float posX = startX;
-    float posY = startY;
+    ScreenCoords realPos;
 
-    // Magic values to indicate that the window should be centered
-    if (startX == -1 && startY == -1)
+    switch (pos.type)
     {
-        posX = view.width * 0.5f - window->root.width * 0.5f;
-        posY = view.height * 0.5f - window->root.height * 0.5f;
+        case GEUI_WindowPosCoords:       realPos = pos.pos;                         break;
+        case GEUI_WindowPosMouse:        realPos = getMouseCoords();                break;
+        case GEUI_WindowPosScreenCenter: realPos = getCenteredWindowCoords(window); break;
     }
 
-    baseParent = CreateActor("a_gui", window->style.guiAnim, "(none)", "(none)", view.x + posX, view.y + posY, true);
+    baseParent = CreateActor("a_gui", window->style.guiAnim, "(none)", "(none)", view.x + realPos.x, view.y + realPos.y, true);
     baseParent->animpos = 0;
     baseParent->myWindow = window->index;
     baseParent->myPanel = -1;

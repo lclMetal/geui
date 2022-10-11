@@ -110,7 +110,7 @@ WindowItem *addText(Panel *panel, char tag[256], char *string, short maxWidth)
 }
 
 // from geui-window.c
-Window *openWindow(char tag[256], float startX, float startY);
+Window *openWindow(char tag[256], WindowPosition pos);
 void closeWindow(Window *window);
 Window *getWindowByTag(char tag[256]);
 
@@ -126,17 +126,16 @@ void guiActionOpenWindow(GUIAction *action)
 {
     if (action->type == GEUI_ACTION_OPEN_WINDOW)
     {
-        openWindow(action->data.openWindow.tag, action->data.openWindow.x, action->data.openWindow.y);
+        openWindow(action->data.openWindow.tag, action->data.openWindow.pos);
     }
 }
 
-GUIAction createOpenWindowAction(char tag[256], float x, float y)
+GUIAction createOpenWindowAction(char tag[256], WindowPosition pos)
 {
     GUIAction action;
     action.type = GEUI_ACTION_OPEN_WINDOW;
     strcpy(action.data.openWindow.tag, tag);
-    action.data.openWindow.x = x;
-    action.data.openWindow.y = y;
+    action.data.openWindow.pos = pos;
     (action.fpAction = guiActionOpenWindow); // parentheses required due to GE bug
     return action;
 }

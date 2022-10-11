@@ -1,3 +1,9 @@
+typedef struct ScreenCoordsStruct
+{
+    float x;
+    float y;
+}ScreenCoords;
+
 typedef struct LayoutStruct
 {
     short row;      // row in a panel
@@ -114,6 +120,19 @@ typedef enum ActionTypeEnum
     GEUI_ACTION_CLOSE_WINDOW
 }ActionType;
 
+typedef enum WindowPositionSettingEnum
+{
+    GEUI_WindowPosCoords,
+    GEUI_WindowPosMouse,
+    GEUI_WindowPosScreenCenter
+}WindowPositionSetting;
+
+typedef struct WindowPositionStruct
+{
+    WindowPositionSetting type;
+    ScreenCoords pos;
+}WindowPosition;
+
 typedef struct GUIActionStruct
 {
     ActionType type;
@@ -122,8 +141,7 @@ typedef struct GUIActionStruct
         struct actionOpenWindowStruct
         {
             char tag[256];
-            float x;
-            float y;
+            WindowPosition pos;
         }openWindow;
         struct actionCloseWindowStruct
         {
