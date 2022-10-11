@@ -32,14 +32,14 @@ Window *createWindow(char tag[256], Style style)
     ptr->zDepth = DEFAULT_WINDOW_ZDEPTH;
     strcpy(ptr->parentCName, "");
     ptr->tiles = noIndices;
-    ptr->mainPanel.index = ptr->pIndex++;
-    ptr->mainPanel.iIndex = 0;
-    ptr->mainPanel.rows = 0;
-    ptr->mainPanel.cols = 0;
-    ptr->mainPanel.width = -1;
-    ptr->mainPanel.height = -1;
-    ptr->mainPanel.parent = ptr;
-    ptr->mainPanel.iList = NULL;
+    ptr->root.index = ptr->pIndex++;
+    ptr->root.iIndex = 0;
+    ptr->root.rows = 0;
+    ptr->root.cols = 0;
+    ptr->root.width = -1;
+    ptr->root.height = -1;
+    ptr->root.parent = ptr;
+    ptr->root.iList = NULL;
     ptr->next = GEUIController.wList;
 
     GEUIController.wList = ptr;
@@ -81,6 +81,16 @@ Window *getWindowByIndex(int index)
     return NULL;
 }
 
+Panel *getWindowRootPanel(Window *window)
+{
+    if (window)
+    {
+        return &window->root;
+    }
+
+    return NULL;
+}
+
 Window *getFirstOpenWindow()
 {
     Window *ptr = GEUIController.wList;
@@ -105,9 +115,9 @@ Window *openWindow(char tag[256], float startX, float startY)
     if (!window) { DEBUG_MSG_FROM("window is NULL", "openWindow"); return NULL; }
     if (window->isOpen) { DEBUG_MSG_FROM("window is already open", "openWindow"); return window; }
 
-    updatePanelLayout(NULL, &window->mainPanel);
+    updatePanelLayout(NULL, &window->root);
     buildWindow(window, startX, startY);
-    buildItems(&window->mainPanel);
+    buildItems(&window->root);
 
     window->isOpen = True;
     bringWindowToFront(window);
@@ -129,8 +139,8 @@ void buildWindow(Window *window, float startX, float startY)
     tileWidth = window->style.tileWidth;
     tileHeight = window->style.tileHeight;
 
-    windowWidth = window->mainPanel.width + window->style.tileWidth + window->style.padding * 2;
-    windowHeight = window->mainPanel.height + window->style.tileHeight + window->style.padding * 2;
+    windowWidth = window->root.width + window->style.tileWidth + window->style.padding * 2;
+    windowHeight = window->root.height + window->style.tileHeight + window->style.padding * 2;
 
     tilesHorizontal = ceil(windowWidth / (float)tileWidth);
     tilesVertical = ceil(windowHeight / (float)tileHeight);
@@ -145,7 +155,7 @@ void buildWindow(Window *window, float startX, float startY)
             tile->x = i * tileWidth  + (i >= 2 && i >= tilesHorizontal - 2) * (windowWidth  - tilesHorizontal * tileWidth);
             tile->y = j * tileHeight + (j >= 2 && j >= tilesVertical - 2) * (windowHeight - tilesVertical * tileHeight);
             tile->myWindow = window->index;
-            tile->myPanel = window->mainPanel.index;
+            tile->myPanel = window->root.index;
             tile->myIndex = -1;
             tile->animpos = calculateAnimpos(tilesHorizontal, tilesVertical, i, j);
             colorActor(tile, window->style.windowBgColor);
@@ -169,8 +179,8 @@ Actor *createWindowBaseParent(Window *window, float startX, float startY)
     // Magic values to indicate that the window should be centered
     if (startX == -1 && startY == -1)
     {
-        posX = view.width * 0.5f - window->mainPanel.width * 0.5f;
-        posY = view.height * 0.5f - window->mainPanel.height * 0.5f;
+        posX = view.width * 0.5f - window->root.width * 0.5f;
+        posY = view.height * 0.5f - window->root.height * 0.5f;
     }
 
     baseParent = CreateActor("a_gui", window->style.guiAnim, "(none)", "(none)", view.x + posX, view.y + posY, true);
@@ -194,7 +204,7 @@ void setWindowBaseParent(Window *window, char *parentName)
     strcpy(window->parentCName, parentName);
 
     changeParentOfClones("a_gui", window->tiles.first, window->tiles.last, parentName);
-    setPanelBaseParent(&window->mainPanel, parentName);
+    setPanelBaseParent(&window->root, parentName);
 }
 
 void bringWindowToFront(Window *window)
@@ -267,12 +277,12 @@ void closeWindow(Window *window)
         }
     }
 
-    closePanel(&window->mainPanel);
+    closePanel(&window->root);
 }
 
 void destroyWindow(Window *window)
 {
     closeWindow(window);
-    destroyPanel(&window->mainPanel);
+    destroyPanel(&window->root);
     free(window);
 }

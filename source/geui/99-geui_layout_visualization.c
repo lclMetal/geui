@@ -13,7 +13,7 @@ void visualize(Window *window, WindowItem *panelItem, Color color)
         if (panelItem)
             panel = panelItem->data.panel;
         else
-            panel = &window->mainPanel;
+            panel = &window->root;
 
         parent = getclone(window->parentCName);
 
@@ -54,7 +54,7 @@ void printVisualizationData(Window *window, WindowItem *panelItem)
         if (panelItem)
             panel = panelItem->data.panel;
         else
-            panel = &window->mainPanel;
+            panel = &window->root;
 
         for (row = 0; row <= panel->rows; row++)
         {
@@ -66,8 +66,9 @@ void printVisualizationData(Window *window, WindowItem *panelItem)
                 if (panelItem)
                     sprintf(panelTag, "%s.%d w: %d h: %d cw: %d rh: %d", panelItem->tag, window->index, getPanelWidth(panelItem->data.panel), getPanelHeight(panelItem->data.panel), getColWidth(panelItem->data.panel, col), getRowHeight(panelItem->data.panel, row));
                 else
-                    sprintf(panelTag, "mainPanel.%d w: %d h: %d cw: %d rh: %d", window->index, getPanelWidth(&window->mainPanel), getPanelHeight(&window->mainPanel), getColWidth(&window->mainPanel, col), getRowHeight(&window->mainPanel, row));
-                sprintf(temp, "%s row: %d, col: %d, x: %d, y: %d, rows: %d", panelTag, row, col, x, y, window->mainPanel.rows);
+                    sprintf(panelTag, "root.%d w: %d h: %d cw: %d rh: %d", window->index, getPanelWidth(&window->root), getPanelHeight(&window->root), getColWidth(&window->root, col), getRowHeight(&window->root, row));
+
+                sprintf(temp, "%s row: %d, col: %d, x: %d, y: %d, rows: %d", panelTag, row, col, x, y, window->root.rows);
                 DEBUG_MSG(temp);
             }
         }

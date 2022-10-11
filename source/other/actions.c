@@ -16,9 +16,9 @@ void printItemsInPanel(Panel *panel)
     }
 }
 
-void printItemList(GUIAction *action)
+void printItems(GUIAction *action)
 {
-    printItemsInPanel(&action->window->mainPanel);
+    printItemsInPanel(&action->window->root);
 }
 
 void setRandomColor(GUIAction *action)

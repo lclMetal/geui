@@ -193,7 +193,7 @@ typedef struct WindowStruct
     double zDepth;      // window z depth
     char parentCName[256]; // clonename of the window parent actor
     TileIndices tiles;          // cloneindices of the window tiles
-    Panel mainPanel;            // window main panel
+    Panel root;                 // window main panel
     struct WindowStruct *next;  // pointer to next window in list
 }Window;
 

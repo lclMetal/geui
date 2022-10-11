@@ -58,7 +58,7 @@ void focusNextItemInWindow()
         window = getWindowByIndex(GEUIController.topIndex);
         if (window && window->isOpen)
         {
-            nextFocus = getItemFromPanelByIndex(&window->mainPanel, 0);
+            nextFocus = getItemFromPanelByIndex(&window->root, 0);
             if (nextFocus && nextFocus->focusable == False)
             {
                 nextFocus = getNextFocusableItem(nextFocus);
@@ -84,7 +84,7 @@ void doMouseEnter(const char *actorName)
         { DEBUG_MSG_FROM("actor window, panel or index is invalid", "doMouseEnter"); return; }
     if (!(window = getWindowByIndex(actor->myWindow)))
         { DEBUG_MSG_FROM("window is NULL", "doMouseEnter"); return; }
-    if (!(item = getItemFromPanelByIndex(getPanelByIndex(&window->mainPanel, actor->myPanel), actor->myIndex)))
+    if (!(item = getItemFromPanelByIndex(getPanelByIndex(&window->root, actor->myPanel), actor->myIndex)))
         { DEBUG_MSG_FROM("item is NULL", "doMouseEnter"); return; }
 
     switch (item->type)
@@ -114,7 +114,7 @@ void doMouseLeave(const char *actorName)
         { DEBUG_MSG_FROM("actor window, panel or index is invalid", "doMouseLeave"); return; }
     if (!(window = getWindowByIndex(actor->myWindow)))
         { DEBUG_MSG_FROM("window is NULL", "doMouseLeave"); return; }
-    if (!(item = getItemFromPanelByIndex(getPanelByIndex(&window->mainPanel, actor->myPanel), actor->myIndex)))
+    if (!(item = getItemFromPanelByIndex(getPanelByIndex(&window->root, actor->myPanel), actor->myIndex)))
         { DEBUG_MSG_FROM("item is NULL", "doMouseLeave"); return; }
 
     switch (item->type)
@@ -193,7 +193,7 @@ void doMouseButtonDown(const char *actorName, enum mouseButtonsEnum mButtonNumbe
     bringWindowToFront(window);
 
     if (actor->myIndex < 0) return;
-    if (!(item = getItemFromPanelByIndex(getPanelByIndex(&window->mainPanel, actor->myPanel), actor->myIndex)))
+    if (!(item = getItemFromPanelByIndex(getPanelByIndex(&window->root, actor->myPanel), actor->myIndex)))
         { DEBUG_MSG_FROM("item is NULL", "doMouseButtonDown"); return; }
 
     switch (item->type)
@@ -261,7 +261,7 @@ void doMouseButtonUp(const char *actorName, enum mouseButtonsEnum mButtonNumber)
     //ChangeZDepth(window->parentCName, 0.5);
 
     if (actor->myIndex < 0) return;
-    if (!(item = getItemFromPanelByIndex(getPanelByIndex(&window->mainPanel, actor->myPanel), actor->myIndex)))
+    if (!(item = getItemFromPanelByIndex(getPanelByIndex(&window->root, actor->myPanel), actor->myIndex)))
         { DEBUG_MSG_FROM("item is NULL", "doMouseButtonUp"); return; }
 
     switch (item->type)
