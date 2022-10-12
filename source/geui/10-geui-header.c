@@ -120,16 +120,18 @@ typedef enum ActionTypeEnum
     GEUI_ACTION_CLOSE_WINDOW
 }ActionType;
 
-typedef enum WindowPositionSettingEnum
+typedef enum WPosSettingEnum
 {
-    GEUI_WindowPosCoords,
-    GEUI_WindowPosMouse,
-    GEUI_WindowPosScreenCenter
-}WindowPositionSetting;
+    GEUI_WPosCoords,
+    GEUI_WPosMouseCenter,
+    GEUI_WPosMouseTopLeft,
+    GEUI_WPosMouseTop,
+    GEUI_WPosScreenCenter
+}WPosSetting;
 
 typedef struct WindowPositionStruct
 {
-    WindowPositionSetting type;
+    WPosSetting type;
     ScreenCoords pos;
 }WindowPosition;
 
