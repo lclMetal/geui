@@ -108,7 +108,7 @@ Window *getFirstOpenWindow()
     return NULL;
 }
 
-WindowPosition createWindowPosition(float x, float y)
+WindowPosition createWPos(float x, float y)
 {
     WindowPosition posi;
     posi.type = GEUI_WindowPosCoords;
@@ -116,9 +116,9 @@ WindowPosition createWindowPosition(float x, float y)
     return posi;
 }
 
-#define GEUI_WINDOWPOS_USE_MOUSE_POSITION createMousePosition()
+#define GEUI_WPOS_MOUSE createWPosAtMouse()
 
-WindowPosition createMousePosition()
+WindowPosition createWPosAtMouse()
 {
     WindowPosition posi;
     posi.type = GEUI_WindowPosMouse;
@@ -126,9 +126,9 @@ WindowPosition createMousePosition()
     return posi;
 }
 
-#define GEUI_WINDOWPOS_SCREEN_CENTER createScreenCenterPosition()
+#define GEUI_WPOS_SCREEN_CENTER createWPosAtScreenCenter()
 
-WindowPosition createScreenCenterPosition()
+WindowPosition createWPosAtScreenCenter()
 {
     WindowPosition posi;
     posi.type = GEUI_WindowPosScreenCenter;
@@ -206,8 +206,8 @@ Actor *createWindowBaseParent(Window *window, WindowPosition pos)
     switch (pos.type)
     {
         case GEUI_WindowPosCoords:       realPos = pos.pos;                         break;
-        case GEUI_WindowPosMouse:        realPos = getMouseCoords();                break;
-        case GEUI_WindowPosScreenCenter: realPos = getCenteredWindowCoords(window); break;
+        case GEUI_WindowPosMouse:        realPos = getWPosAtMouse(window);          break;
+        case GEUI_WindowPosScreenCenter: realPos = getWPosAtScreenCenter(window);   break;
     }
 
     baseParent = CreateActor("a_gui", window->style.guiAnim, "(none)", "(none)", view.x + realPos.x, view.y + realPos.y, true);

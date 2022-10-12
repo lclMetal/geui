@@ -6,12 +6,15 @@ ScreenCoords createScreenCoords(float x, float y)
     return coords;
 }
 
-ScreenCoords getMouseCoords()
+ScreenCoords getWPosAtMouse(struct WindowStruct *window)
 {
-    return createScreenCoords(xmouse, ymouse);
+    if (!window)
+        return createScreenCoords(view.width * 0.5f, view.width * 0.5f);
+
+    return createScreenCoords(xmouse - window->root.width * 0.5f, ymouse);
 }
 
-ScreenCoords getCenteredWindowCoords(struct WindowStruct *window)
+ScreenCoords getWPosAtScreenCenter(struct WindowStruct *window)
 {
     if (!window)
         return createScreenCoords(view.width * 0.5f, view.width * 0.5f);
