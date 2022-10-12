@@ -1938,7 +1938,7 @@ typedef struct GUIActionStruct
 
     struct WindowStruct *window;
     struct PanelStruct *panel;
-    struct WindowItemStruct *item;
+    int itemIndex;
 
     void (*fpAction)(struct GUIActionStruct *);
 }GUIAction;
@@ -2534,7 +2534,7 @@ WindowItem *addButton(Panel *panel, char tag[256], char *string, GUIAction actio
     ptr->data.button.action = action;
     ptr->data.button.action.window = panel->parent;
     ptr->data.button.action.panel = panel;
-    (ptr->data.button.action).item = ptr; // parentheses required due to GE bug
+    ptr->data.button.action.itemIndex = ptr->index;
 
     ptr->layout.width = ptr->data.button.text.width + ptr->parent->style.tileWidth * ptr->parent->style.buttonPadding * 2;
     buttonMinWidth = ptr->parent->style.tileWidth * 2;

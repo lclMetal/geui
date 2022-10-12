@@ -151,7 +151,7 @@ typedef struct GUIActionStruct
 
     struct WindowStruct *window;
     struct PanelStruct *panel;
-    struct WindowItemStruct *item;
+    int itemIndex;
 
     void (*fpAction)(struct GUIActionStruct *);
 }GUIAction;
