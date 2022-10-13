@@ -1,7 +1,3 @@
-#define GEUI_MOUSE_AT_CENTER        0
-#define GEUI_MOUSE_AT_TOP_LEFT      1
-#define GEUI_MOUSE_AT_TOP_CENTER    2
-
 ScreenCoords createScreenCoords(float x, float y)
 {
     ScreenCoords coords;
@@ -10,7 +6,7 @@ ScreenCoords createScreenCoords(float x, float y)
     return coords;
 }
 
-ScreenCoords getWPosAtMouse(struct WindowStruct *window, unsigned char mode)
+ScreenCoords getWPosAtMouse(struct WindowStruct *window, WPosSetting mode)
 {
     ScreenCoords result;
     ScreenCoords mouseAtCenterCoords;
@@ -24,13 +20,9 @@ ScreenCoords getWPosAtMouse(struct WindowStruct *window, unsigned char mode)
 
     switch (mode)
     {
-        case GEUI_MOUSE_AT_CENTER:
-            result = mouseAtCenterCoords;
-            break;
-        case GEUI_MOUSE_AT_TOP_LEFT:
-            result = mouseCoords;
-            break;
-        case GEUI_MOUSE_AT_TOP_CENTER:
+        case GEUI_WPosMouseCenter:  result = mouseAtCenterCoords;   break;
+        case GEUI_WPosMouseTopLeft: result = mouseCoords;           break;
+        case GEUI_WPosMouseTop:
             result = createScreenCoords(mouseAtCenterCoords.x, mouseCoords.y);
             break;
         default:

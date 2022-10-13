@@ -113,20 +113,20 @@ WindowPosition createWPos(float x, float y)
     return pos;
 }
 
-#define GEUI_WPOS_MOUSE_CENTER      createWPosAtMouse(GEUI_MOUSE_AT_CENTER)
-#define GEUI_WPOS_MOUSE_TOP_LEFT    createWPosAtMouse(GEUI_MOUSE_AT_TOP_LEFT)
-#define GEUI_WPOS_MOUSE_TOP         createWPosAtMouse(GEUI_MOUSE_AT_TOP_CENTER)
+#define GEUI_WPOS_MOUSE_CENTER      createWPosAtMouse(GEUI_WPosMouseCenter)
+#define GEUI_WPOS_MOUSE_TOP_LEFT    createWPosAtMouse(GEUI_WPosMouseTopLeft)
+#define GEUI_WPOS_MOUSE_TOP         createWPosAtMouse(GEUI_WPosMouseTop)
 
-WindowPosition createWPosAtMouse(unsigned char mode)
+WindowPosition createWPosAtMouse(WPosSetting mode)
 {
     WindowPosition pos;
 
     switch (mode)
     {
-        case GEUI_MOUSE_AT_CENTER:      pos.type = GEUI_WPosMouseCenter;    break;
-        case GEUI_MOUSE_AT_TOP_LEFT:    pos.type = GEUI_WPosMouseTopLeft;   break;
-        case GEUI_MOUSE_AT_TOP_CENTER:  pos.type = GEUI_WPosMouseTop;       break;
-        default:                        pos.type = GEUI_WPosMouseTopLeft;   break;
+        case GEUI_WPosMouseCenter:
+        case GEUI_WPosMouseTopLeft:
+        case GEUI_WPosMouseTop:     pos.type = mode;                    break;
+        default:                    pos.type = GEUI_WPosMouseTopLeft;   break;
     }
 
     pos.pos = createScreenCoords(0, 0);
@@ -212,11 +212,12 @@ Actor *createWindowBaseParent(Window *window, WindowPosition pos)
 
     switch (pos.type)
     {
-        case GEUI_WPosCoords:       realPos = pos.pos;                                          break;
-        case GEUI_WPosMouseCenter:  realPos = getWPosAtMouse(window, GEUI_MOUSE_AT_CENTER);     break;
-        case GEUI_WPosMouseTopLeft: realPos = getWPosAtMouse(window, GEUI_MOUSE_AT_TOP_LEFT);   break;
-        case GEUI_WPosMouseTop:     realPos = getWPosAtMouse(window, GEUI_MOUSE_AT_TOP_CENTER); break;
-        case GEUI_WPosScreenCenter: realPos = getWPosAtScreenCenter(window);                    break;
+        case GEUI_WPosCoords:       realPos = pos.pos;                          break;
+        case GEUI_WPosMouseCenter:  // all mouse related positionings are handled based on the
+        case GEUI_WPosMouseTopLeft: // WindowPosition type, so the control is allowed to fall-through
+        case GEUI_WPosMouseTop:     realPos = getWPosAtMouse(window, pos.type); break;
+        case GEUI_WPosScreenCenter: realPos = getWPosAtScreenCenter(window);    break;
+        default: realPos = getWPosAtScreenCenter(window);                       break;
     }
 
     baseParent = CreateActor("a_gui", window->style.guiAnim, "(none)", "(none)", view.x + realPos.x, view.y + realPos.y, true);
