@@ -21,7 +21,7 @@ WindowItem *getItemFromPanelByTag(Panel *panel, char tag[256]);
 WindowItem *getItemByTag(Window *window, char tag[256]);
 WindowItem *getItemFromPanelByIndex(Panel *panel, int index);
 WindowItem *getItemByIndex(Window *window, int index);
-WindowItem *getNextFocusableItem(WindowItem *ptr);
+WindowItem *getNextFocusableItem(WindowItem *ptr, WindowItem *start, bool reverse);
 WindowItem *focusItem(WindowItem *ptr);
 void blurItem(WindowItem *ptr);
 void buildFocus(WindowItem *ptr);
@@ -436,49 +436,66 @@ WindowItem *getItemByIndex(Window *window, int index)
     return NULL;
 }
 
-WindowItem *getNextFocusableItem(WindowItem *ptr)
+bool bothPointToSameItem(WindowItem *item1, WindowItem *item2)
+{
+    return (item1 && item2 && item1 == item2);
+}
+
+WindowItem *getNextFocusableItem(WindowItem *ptr, WindowItem *start, bool reverse)
 {
     Panel *panel = ptr->myPanel;
     Window *window = ptr->parent;
-    WindowItem *next = getItemFromPanelByIndex(panel, ptr->index + 1);
+    WindowItem *next = getItemFromPanelByIndex(panel, ptr->index + (reverse ? -1 : 1));
+
+    // The search looped around, there's no focusable items in this window
+    if (bothPointToSameItem(next, start))
+        return NULL;
 
     // If there was a next item in the same panel
     if (next)
     {
         if (next->focusable)
             return next;
-        return getNextFocusableItem(next);
+        return getNextFocusableItem(next, start, reverse);
     }
 
     // Otherwise get the next panel in this window
-    panel = getPanelByIndex(&window->root, panel->index + 1);
+    panel = getPanelByIndex(&window->root, panel->index + (reverse ? -1 : 1));
 
     // If there was a next panel in the same window
     if (panel)
     {
-        next = getItemFromPanelByIndex(panel, 0);
+        next = getItemFromPanelByIndex(panel, reverse ? panel->iIndex - 1 : 0);
+
+        // The search looped around, there's no focusable items in this window
+        if (bothPointToSameItem(next, start))
+            return NULL;
 
         // Panel had an item inside with index 0
         if (next)
         {
             if (next->focusable)
                 return next;
-            return getNextFocusableItem(next);
+            return getNextFocusableItem(next, start, reverse);
         }
     }
 
     // Otherwise use the main panel (always has index 0) of the window
-    panel = getPanelByIndex(&window->root, 0);
+    panel = getPanelByIndex(&window->root, reverse ? window->pIndex - 1 : 0);
 
     if (panel)
     {
-        next = getItemFromPanelByIndex(panel, 0);
+        next = getItemFromPanelByIndex(panel, reverse ? panel->iIndex - 1 : 0);
+
+        // The search looped around, there's no focusable items in this window
+        if (bothPointToSameItem(next, start))
+            return NULL;
 
         if (next)
         {
             if (next->focusable)
                 return next;
-            return getNextFocusableItem(next);
+            return getNextFocusableItem(next, start, reverse);
         }
     }
 

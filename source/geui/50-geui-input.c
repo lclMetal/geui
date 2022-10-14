@@ -2,7 +2,7 @@
 // without doing anything, which can be difficult to debug
 
 int isTopmostItemAtMouse(WindowItem *item);
-void focusNextItemInWindow();
+void focusNextItemInWindow(bool reverse);
 void doMouseEnter(const char *actorName);
 void doMouseLeave(const char *actorName);
 void doMouseButtonDown(const char *actorName, enum mouseButtonsEnum mButtonNumber);
@@ -44,14 +44,14 @@ int isTopmostItemAtMouse(WindowItem *item)
     return 0;
 }
 
-void focusNextItemInWindow()
+void focusNextItemInWindow(bool reverse)
 {
     Window *window = getWindowByIndex(GEUIController.topIndex);
     WindowItem *nextFocus = NULL;
 
     if (GEUIController.focus && GEUIController.focus->parent->index == GEUIController.topIndex)
     {
-        nextFocus = getNextFocusableItem(GEUIController.focus);
+        nextFocus = getNextFocusableItem(GEUIController.focus, GEUIController.focus, reverse);
     }
     else
     {
@@ -61,7 +61,7 @@ void focusNextItemInWindow()
             nextFocus = getItemFromPanelByIndex(&window->root, 0);
             if (nextFocus && nextFocus->focusable == False)
             {
-                nextFocus = getNextFocusableItem(nextFocus);
+                nextFocus = getNextFocusableItem(nextFocus, nextFocus, reverse);
             }
         }
     }
@@ -405,6 +405,8 @@ void updateMouseButtonUp(enum mouseButtonsEnum mButtonNumber)
 
 void doKeyDown(WindowItem *item, int key)
 {
+    char *keys = GetKeyState();
+
     if (item)
     {
         switch (item->type)
@@ -427,7 +429,7 @@ void doKeyDown(WindowItem *item, int key)
     switch (key)
     {
         case KEY_TAB:
-            focusNextItemInWindow();
+            focusNextItemInWindow(keys[KEY_LSHIFT] || keys[KEY_RSHIFT]);
         break;
     }
 }
