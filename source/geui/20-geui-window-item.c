@@ -200,8 +200,8 @@ InputSettings createTextInputSettings()
     InputSettings settings;
 
     settings.type = GEUI_TextInput;
-    (settings.settingsFunction = enforceTextInputSettings);
-    (settings.valueFunction = updateTextInputValue);
+    (settings.applyConstraintsFunc = enforceTextInputSettings);
+    (settings.readValueFunc = updateTextInputValue);
 
     settings.data.textInput.empty = 0;
 
@@ -211,7 +211,6 @@ InputSettings createTextInputSettings()
 void enforceIntInputSettings(InputField *input)
 {
     input->value.intValue = iLimit(input->value.intValue, input->settings.data.intInput.minVal, input->settings.data.intInput.maxVal);
-    refreshInputValue(input);
 }
 
 void updateIntInputValue(InputField *input)
@@ -219,7 +218,6 @@ void updateIntInputValue(InputField *input)
     if (greedyAtoi(input->text.pString) != 0)
     {
         input->value.intValue = greedyAtoi(input->text.pString);
-        refreshInputValue(input);
     }
 }
 
@@ -228,8 +226,8 @@ InputSettings createIntInputSettings(int minVal, int maxVal, int defaultValue)
     InputSettings settings;
 
     settings.type = GEUI_IntInput;
-    (settings.settingsFunction = enforceIntInputSettings);
-    (settings.valueFunction = updateIntInputValue);
+    (settings.applyConstraintsFunc = enforceIntInputSettings);
+    (settings.readValueFunc = updateIntInputValue);
 
     settings.data.intInput.minVal = minVal;
     settings.data.intInput.maxVal = maxVal;
@@ -238,37 +236,31 @@ InputSettings createIntInputSettings(int minVal, int maxVal, int defaultValue)
     return settings;
 }
 
-void enforceRealInputSettings(InputField *input)
+void enforceDecimalInputSettings(InputField *input)
 {
-    input->value.realValue = fLimit(input->value.realValue, input->settings.data.realInput.minVal, input->settings.data.realInput.maxVal);
-    refreshInputValue(input);
+    input->value.decimalValue = fLimit(input->value.decimalValue, input->settings.data.decimalInput.minVal, input->settings.data.decimalInput.maxVal);
 }
 
-void updateRealInputValue(InputField *input)
+void updateDecimalInputValue(InputField *input)
 {
-    int readCount = 0;
-
-    if (greedyAtof(input->text.pString, &readCount) != 0)
+    if (greedyAtof(input->text.pString) != 0)
     {
-        input->value.realValue = greedyAtof(input->text.pString, NULL);
-
-        if (readCount > 1)
-            refreshInputValue(input);
+        input->value.decimalValue = greedyAtof(input->text.pString);
     }
 }
 
-InputSettings createRealInputSettings(float minVal, float maxVal, float defaultValue, short precisionDigits)
+InputSettings createDecimalInputSettings(float minVal, float maxVal, float defaultValue, short precisionDigits)
 {
     InputSettings settings;
 
-    settings.type = GEUI_RealInput;
-    (settings.settingsFunction = enforceRealInputSettings);
-    (settings.valueFunction = updateRealInputValue);
+    settings.type = GEUI_DecimalInput;
+    (settings.applyConstraintsFunc = enforceDecimalInputSettings);
+    (settings.readValueFunc = updateDecimalInputValue);
 
-    settings.data.realInput.minVal = minVal;
-    settings.data.realInput.maxVal = maxVal;
-    settings.data.realInput.defaultValue = dfLimit(defaultValue, minVal, maxVal);
-    settings.data.realInput.precisionDigits = siLimit(precisionDigits, 0, 10);
+    settings.data.decimalInput.minVal = minVal;
+    settings.data.decimalInput.maxVal = maxVal;
+    settings.data.decimalInput.defaultValue = dfLimit(defaultValue, minVal, maxVal);
+    settings.data.decimalInput.precisionDigits = siLimit(precisionDigits, 0, 10);
 
     return settings;
 }
@@ -289,10 +281,10 @@ WindowItem *addInputField(Panel *panel, char tag[256], const char *string, Input
     {
         case GEUI_TextInput: ptr->data.input.value.textValue = ptr->data.input.text.pString; break;
         case GEUI_IntInput: ptr->data.input.value.intValue = settings.data.intInput.defaultValue; break;
-        case GEUI_RealInput: ptr->data.input.value.realValue = settings.data.realInput.defaultValue; break;
+        case GEUI_DecimalInput: ptr->data.input.value.decimalValue = settings.data.decimalInput.defaultValue; break;
     }
 
-    refreshValue(&ptr->data.input);
+    refreshValueText(&ptr->data.input);
 
     ptr->data.input.tiles = noIndices;
 
@@ -532,8 +524,9 @@ void blurItem(WindowItem *ptr)
         }
         else if (ptr->type == GEUI_Input)
         {
-            ptr->data.input.settings.settingsFunction(&ptr->data.input);
-            ptr->data.input.settings.valueFunction(&ptr->data.input);
+            ptr->data.input.settings.readValueFunc(&ptr->data.input);
+            ptr->data.input.settings.applyConstraintsFunc(&ptr->data.input);
+            refreshInputValue(&ptr->data.input);
             updateCaretPosition(&ptr->data.input.caret);
             hideCaret(&ptr->data.input.caret);
         }

@@ -50,7 +50,7 @@ typedef enum InputTypeEnum
 {
     GEUI_TextInput,
     GEUI_IntInput,
-    GEUI_RealInput
+    GEUI_DecimalInput
 }InputType;
 
 typedef struct TextInputSettingsStruct
@@ -65,34 +65,34 @@ typedef struct IntInputSettingsStruct
     int defaultValue;
 }IntInputSettings;
 
-typedef struct RealInputSettingsStruct
+typedef struct DecimalInputSettingsStruct
 {
     float minVal;
     float maxVal;
     float defaultValue;
     short precisionDigits;
-}RealInputSettings;
+}DecimalInputSettings;
 
 typedef union InputSettingsDataUnion
 {
     TextInputSettings textInput;
     IntInputSettings intInput;
-    RealInputSettings realInput;
+    DecimalInputSettings decimalInput;
 }InputSettingsData;
 
 typedef union InputValueUnion
 {
     char *textValue;
     int intValue;
-    float realValue;
+    float decimalValue;
 }InputValue;
 
 typedef struct InputSettingsStruct
 {
     InputType type;
     InputSettingsData data;
-    void (*settingsFunction)(struct InputFieldStruct *);
-    void (*valueFunction)(struct InputFieldStruct *);
+    void (*applyConstraintsFunc)(struct InputFieldStruct *);
+    void (*readValueFunc)(struct InputFieldStruct *);
 }InputSettings;
 
 typedef enum KeyboardLayoutEnum

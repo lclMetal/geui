@@ -52,7 +52,7 @@ int greedyAtoi(const char *str)
     return val;
 }
 
-float greedyAtof(const char *str, int *readCount)
+float greedyAtof(const char *str)
 {
     int count = 0;
     float val = 0;
@@ -64,9 +64,6 @@ float greedyAtof(const char *str, int *readCount)
         count = sscanf(&str[offset], "%f%*s", &val, NULL);
         offset++;
     } while (!val && offset < len);
-
-    if (readCount)
-        *readCount = count;
 
     return val;
 }
@@ -103,7 +100,7 @@ char getLocalizedKeyboardChar(int key, KeyboardLayout kbLayout)
     return '\0';
 }
 
-void refreshValue(InputField *field)
+void refreshValueText(InputField *field)
 {
     char tempNumText[GEUI_NUM_STRING_LENGTH];
 
@@ -114,9 +111,9 @@ void refreshValue(InputField *field)
             sprintf(tempNumText, "%d", field->value.intValue);
             setTextText(&field->text, tempNumText);
         break;
-        case GEUI_RealInput:
-            sprintf(tempNumText, "%.*f", field->settings.data.realInput.precisionDigits, field->value.realValue);
-            field->value.realValue = greedyAtof(tempNumText, NULL);
+        case GEUI_DecimalInput:
+            sprintf(tempNumText, "%.*f", field->settings.data.decimalInput.precisionDigits, field->value.decimalValue);
+            field->value.decimalValue = greedyAtof(tempNumText);
             setTextText(&field->text, tempNumText);
         break;
     }
@@ -124,7 +121,7 @@ void refreshValue(InputField *field)
 
 void refreshInputValue(InputField *field)
 {
-    refreshValue(field);
+    refreshValueText(field);
     refreshText(&field->text);
     updateCaretPosition(&field->caret);
 }
@@ -136,19 +133,21 @@ void handleInputFieldInput(InputField *field, short key)
     char newChar = '\0';
     char rest[30] = "";
     char *keys = GetKeyState();
-    short shift = (keys[KEY_LSHIFT] || keys[KEY_RSHIFT]);
+    short isTextInput = (field->settings.type == GEUI_TextInput);
+    short shift = (keys[KEY_LSHIFT] || keys[KEY_RSHIFT]) && isTextInput;
     short ctrl  = (keys[KEY_LCTRL] || keys[KEY_RCTRL]);
     short alt   = (keys[KEY_LALT] || keys[KEY_RALT]);
 
     if (key == KEY_RETURN)
     {
-        field->settings.settingsFunction(field);
-        field->settings.valueFunction(field);
+        field->settings.readValueFunc(field);
+        field->settings.applyConstraintsFunc(field);
+        refreshInputValue(field);
     }
 
     if (!checkKeyValidity(key, field->settings.type))
     {
-        DEBUG_MSG("key not valid");
+        DEBUG_MSG_FROM("key not valid", "handleInputFieldInput");
         return;
     }
 
@@ -177,7 +176,7 @@ void handleInputFieldInput(InputField *field, short key)
             case KEY_PAD_MULTIPLY:  newChar = '*'; break;
             case KEY_PAD_MINUS:     newChar = '-'; break;
             case KEY_PAD_PLUS:      newChar = '+'; break;
-            case KEY_TAB:           newChar = '\t'; break;
+            // case KEY_TAB:           newChar = '\t'; break;
             case KEY_RETURN:        newChar = '\n'; break;
             case KEY_EQUALS:
             case KEY_SLASH:
@@ -198,8 +197,80 @@ void handleInputFieldInput(InputField *field, short key)
     switch (field->settings.type)
     {
         case GEUI_IntInput:
-        case GEUI_RealInput:
-            field->settings.valueFunction(field);
+        case GEUI_DecimalInput:
+            field->settings.readValueFunc(field);
         break;
     }
+}
+
+char *getTextInputValue(InputField *field)
+{
+    if (field->settings.type != GEUI_TextInput)
+    {
+        DEBUG_MSG_FROM("field is not a text input", "getTextInputValue");
+        return NULL;
+    }
+
+    return field->value.textValue;
+}
+
+char *readTextInput(WindowItem *item)
+{
+    if (item->type != GEUI_Input)
+    {
+        DEBUG_MSG_FROM("item is not an input field", "readTextInput");
+        return NULL;
+    }
+
+    return getTextInputValue(&item->data.input);
+}
+
+int getIntInputValue(InputField *field)
+{
+    if (field->settings.type != GEUI_IntInput)
+    {
+        DEBUG_MSG_FROM("field is not an int input", "getIntInputValue");
+        return 0;
+    }
+
+    field->settings.readValueFunc(field);
+    field->settings.applyConstraintsFunc(field);
+
+    return field->value.intValue;
+}
+
+int readIntInput(WindowItem *item)
+{
+    if (item->type != GEUI_Input)
+    {
+        DEBUG_MSG_FROM("item is not an input field", "readIntInput");
+        return 0;
+    }
+
+    return getIntInputValue(&item->data.input);
+}
+
+float getDecimalInputValue(InputField *field)
+{
+    if (field->settings.type != GEUI_DecimalInput)
+    {
+        DEBUG_MSG_FROM("field is not a decimal input", "getDecimalInputValue");
+        return 0;
+    }
+
+    field->settings.readValueFunc(field);
+    field->settings.applyConstraintsFunc(field);
+
+    return field->value.decimalValue;
+}
+
+float readDecimalInput(WindowItem *item)
+{
+    if (item->type != GEUI_Input)
+    {
+        DEBUG_MSG_FROM("item is not an input field", "readDecimalInput");
+        return 0;
+    }
+
+    return getDecimalInputValue(&item->data.input);
 }
