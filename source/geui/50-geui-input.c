@@ -281,6 +281,13 @@ void doMouseButtonUp(const char *actorName, enum mouseButtonsEnum mButtonNumber)
             item->data.button.state = 0;
         }
         break;
+        case GEUI_Checkbox:
+            if (isTopmostItemAtMouse(item))
+            {
+                item->data.checkbox.state = !item->data.checkbox.state;
+                getTile(item->data.checkbox.tileIndex)->animpos = 24 + item->data.checkbox.state;
+            }
+        break;
     }
 }
 
@@ -448,6 +455,13 @@ void doKeyUp(WindowItem *item, int key)
 
                     colorGuiTiles(item->data.button.tiles, item->parent->style.buttonColor);
                     item->data.button.state = 0;
+                }
+            break;
+            case GEUI_Checkbox:
+                if (key == KEY_RETURN || key == KEY_SPACE)
+                {
+                    item->data.checkbox.state = !item->data.checkbox.state;
+                    getTile(item->data.checkbox.tileIndex)->animpos = 24 + item->data.checkbox.state;
                 }
             break;
         }

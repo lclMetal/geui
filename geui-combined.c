@@ -1805,6 +1805,7 @@ typedef enum ItemTypeEnum
 {
     GEUI_Text,
     GEUI_Button,
+    GEUI_Checkbox,
     GEUI_Input,
     GEUI_Panel,
     GEUI_Embedder
@@ -1963,6 +1964,11 @@ typedef struct WindowItemStruct
             TileIndices tiles;
             GUIAction action;
         }button;
+        struct CheckboxItem
+        {
+            bool state;
+            long tileIndex;
+        }checkbox;
         InputField input;
         struct PanelStruct *panel;
         struct EmbedderItem
@@ -2470,6 +2476,7 @@ WindowItem *initNewItem(ItemType type, Panel *panel, char tag[256]);
 WindowItem *addItemToWindow(WindowItem *ptr);
 WindowItem *addText(Panel *panel, char tag[256], char *string, short maxWidth);
 WindowItem *addButton(Panel *panel, char tag[256], char *string, GUIAction action);
+WindowItem *addCheckbox(Panel *panel, char tag[256], bool state);
 WindowItem *addInputField(Panel *panel, char tag[256], const char *string, InputSettings settings, short maxWidth);
 WindowItem *addPanel(Panel *panel, char tag[256]);
 WindowItem *addEmbedder(Panel *panel, char tag[256], const char *actorName);
@@ -2489,6 +2496,7 @@ void buildText(WindowItem *ptr);
 void buildPanel(WindowItem *ptr);
 void buildButtonText(WindowItem *ptr);
 void buildButton(WindowItem *ptr);
+void buildCheckbox(WindowItem *ptr);
 Actor *buildCaret(WindowItem *ptr, Text *pText, BlinkingCaret *caret);
 void buildInputFieldBackground(WindowItem *ptr, TileIndices *tiles);
 void buildInputField(WindowItem *ptr);
@@ -2637,6 +2645,21 @@ WindowItem *addButton(Panel *panel, char tag[256], char *string, GUIAction actio
     if (ptr->layout.width < buttonMinWidth)
         ptr->layout.width = buttonMinWidth;
 
+    ptr->layout.height = ptr->parent->style.tileHeight;
+
+    return addItemToWindow(ptr);
+}
+
+WindowItem *addCheckbox(Panel *panel, char tag[256], bool state)
+{
+    WindowItem *ptr = initNewItem(GEUI_Checkbox, panel, tag);
+    if (!ptr) { DEBUG_MSG_FROM("item is NULL", "addCheckbox"); return NULL; }
+
+    ptr->focusable = True;
+    ptr->data.checkbox.state = state;
+    ptr->data.checkbox.tileIndex = -1;
+
+    ptr->layout.width = ptr->parent->style.tileWidth;
     ptr->layout.height = ptr->parent->style.tileHeight;
 
     return addItemToWindow(ptr);
@@ -3117,6 +3140,7 @@ void buildItem(WindowItem *ptr)
     {
         case GEUI_Text: buildText(ptr); break;
         case GEUI_Button: buildButton(ptr); break;
+        case GEUI_Checkbox: buildCheckbox(ptr); break;
         case GEUI_Input: buildInputField(ptr); break;
         case GEUI_Panel: buildPanel(ptr); break;
         case GEUI_Embedder: buildEmbedder(ptr); break;
@@ -3202,6 +3226,21 @@ void buildButton(WindowItem *ptr)
     }
 
     buildButtonText(ptr);
+}
+
+void buildCheckbox(WindowItem *ptr)
+{
+    Actor *a = CreateActor("a_gui", ptr->parent->style.guiAnim, ptr->parent->parentCName, "(none)", 0, 0, true);
+    a->x = ptr->layout.startx + ptr->parent->style.tileWidth / 2;
+    a->x += ptr->parent->style.padding;
+    a->y = ptr->layout.starty + ptr->parent->style.tileHeight / 2;
+    a->y += ptr->parent->style.padding;
+    ChangeZDepth(a->clonename, DEFAULT_ITEM_ZDEPTH);
+    a->animpos = 24 + (ptr->data.checkbox.state == True);
+    a->myWindow = ptr->parent->index;
+    a->myPanel  = ptr->myPanel->index;
+    a->myIndex  = ptr->index;
+    ptr->data.checkbox.tileIndex = a->cloneindex;
 }
 
 Actor *buildCaret(WindowItem *ptr, Text *pText, BlinkingCaret *caret)
@@ -3316,6 +3355,10 @@ void eraseWindowItem(WindowItem *ptr)
             eraseText(&ptr->data.button.text);
             eraseGuiTiles(&ptr->data.button.tiles);
         break;
+        case GEUI_Checkbox:
+            DestroyActor(getTile(ptr->data.checkbox.tileIndex)->clonename);
+            ptr->data.checkbox.tileIndex = -1;
+        break;
         case GEUI_Input:
             eraseText(&ptr->data.input.text);
             eraseCaret(&ptr->data.input.caret);
@@ -3346,6 +3389,10 @@ void destroyWindowItem(WindowItem *ptr)
         case GEUI_Button:
             destroyText(&ptr->data.button.text);
             eraseGuiTiles(&ptr->data.button.tiles);
+        break;
+        case GEUI_Checkbox:
+            DestroyActor(getTile(ptr->data.checkbox.tileIndex)->clonename);
+            ptr->data.checkbox.tileIndex = -1;
         break;
         case GEUI_Input:
             destroyText(&ptr->data.input.text);
@@ -4303,6 +4350,13 @@ void doMouseButtonUp(const char *actorName, enum mouseButtonsEnum mButtonNumber)
             item->data.button.state = 0;
         }
         break;
+        case GEUI_Checkbox:
+            if (isTopmostItemAtMouse(item))
+            {
+                item->data.checkbox.state = !item->data.checkbox.state;
+                getTile(item->data.checkbox.tileIndex)->animpos = 24 + item->data.checkbox.state;
+            }
+        break;
     }
 }
 
@@ -4470,6 +4524,13 @@ void doKeyUp(WindowItem *item, int key)
 
                     colorGuiTiles(item->data.button.tiles, item->parent->style.buttonColor);
                     item->data.button.state = 0;
+                }
+            break;
+            case GEUI_Checkbox:
+                if (key == KEY_RETURN || key == KEY_SPACE)
+                {
+                    item->data.checkbox.state = !item->data.checkbox.state;
+                    getTile(item->data.checkbox.tileIndex)->animpos = 24 + item->data.checkbox.state;
                 }
             break;
         }

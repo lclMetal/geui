@@ -18,6 +18,7 @@ typedef enum ItemTypeEnum
 {
     GEUI_Text,
     GEUI_Button,
+    GEUI_Checkbox,
     GEUI_Input,
     GEUI_Panel,
     GEUI_Embedder
@@ -176,6 +177,11 @@ typedef struct WindowItemStruct
             TileIndices tiles;
             GUIAction action;
         }button;
+        struct CheckboxItem
+        {
+            bool state;
+            long tileIndex;
+        }checkbox;
         InputField input;
         struct PanelStruct *panel;
         struct EmbedderItem
