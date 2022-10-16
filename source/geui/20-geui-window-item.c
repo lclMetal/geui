@@ -734,6 +734,7 @@ void buildCheckbox(WindowItem *ptr)
     a->y = ptr->layout.starty + ptr->parent->style.tileHeight / 2;
     a->y += ptr->parent->style.padding;
     ChangeZDepth(a->clonename, DEFAULT_ITEM_ZDEPTH);
+    colorActor(a, ptr->parent->style.buttonColor);
     a->animpos = 24 + (ptr->data.checkbox.state == True);
     a->myWindow = ptr->parent->index;
     a->myPanel  = ptr->myPanel->index;

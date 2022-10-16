@@ -3200,6 +3200,7 @@ void buildCheckbox(WindowItem *ptr)
     a->y = ptr->layout.starty + ptr->parent->style.tileHeight / 2;
     a->y += ptr->parent->style.padding;
     ChangeZDepth(a->clonename, DEFAULT_ITEM_ZDEPTH);
+    colorActor(a, ptr->parent->style.buttonColor);
     a->animpos = 24 + (ptr->data.checkbox.state == True);
     a->myWindow = ptr->parent->index;
     a->myPanel  = ptr->myPanel->index;
@@ -3929,6 +3930,7 @@ Actor *createWindowBaseParent(Window *window, WindowPosition pos)
     baseParent->myWindow = window->index;
     baseParent->myPanel = -1;
     baseParent->myIndex = -1;
+    colorActor(baseParent, WHITE);
     ChangeZDepth(baseParent->clonename, window->zDepth);
     CollisionState(baseParent->clonename, DISABLE);
 
@@ -4131,6 +4133,9 @@ void doMouseEnter(const char *actorName)
             }
             else doMouseLeave(actorName);
         break;
+        case GEUI_Checkbox:
+            colorActor(getTile(item->data.checkbox.tileIndex), item->parent->style.buttonHilitColor);
+        break;
     }
 }
 
@@ -4159,6 +4164,9 @@ void doMouseLeave(const char *actorName)
                 else
                     colorGuiTiles(item->data.button.tiles, item->parent->style.buttonColor);
             }
+        break;
+        case GEUI_Checkbox:
+            colorActor(getTile(item->data.checkbox.tileIndex), item->parent->style.buttonColor);
         break;
     }
 }
@@ -4235,6 +4243,7 @@ void doMouseButtonDown(const char *actorName, enum mouseButtonsEnum mButtonNumbe
             colorGuiTiles(item->data.button.tiles, window->style.buttonPressedColor);
             item->data.button.state = 1;
         break;
+        case GEUI_Checkbox:
         case GEUI_Input:
             focusItem(item);
         break;

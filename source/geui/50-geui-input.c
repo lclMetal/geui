@@ -99,6 +99,9 @@ void doMouseEnter(const char *actorName)
             }
             else doMouseLeave(actorName);
         break;
+        case GEUI_Checkbox:
+            colorActor(getTile(item->data.checkbox.tileIndex), item->parent->style.buttonHilitColor);
+        break;
     }
 }
 
@@ -127,6 +130,9 @@ void doMouseLeave(const char *actorName)
                 else
                     colorGuiTiles(item->data.button.tiles, item->parent->style.buttonColor);
             }
+        break;
+        case GEUI_Checkbox:
+            colorActor(getTile(item->data.checkbox.tileIndex), item->parent->style.buttonColor);
         break;
     }
 }
@@ -203,6 +209,7 @@ void doMouseButtonDown(const char *actorName, enum mouseButtonsEnum mButtonNumbe
             colorGuiTiles(item->data.button.tiles, window->style.buttonPressedColor);
             item->data.button.state = 1;
         break;
+        case GEUI_Checkbox:
         case GEUI_Input:
             focusItem(item);
         break;

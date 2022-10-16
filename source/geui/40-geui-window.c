@@ -225,6 +225,7 @@ Actor *createWindowBaseParent(Window *window, WindowPosition pos)
     baseParent->myWindow = window->index;
     baseParent->myPanel = -1;
     baseParent->myIndex = -1;
+    colorActor(baseParent, WHITE);
     ChangeZDepth(baseParent->clonename, window->zDepth);
     CollisionState(baseParent->clonename, DISABLE);
 
