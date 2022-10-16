@@ -3,6 +3,7 @@ Font defTitleFont =
      1, // Letter spacing in pixels
      6, // Word spacing in pixels
     25, // Line spacing in pixels
+     4, // Baseline offset in pixels
     28, // Indentation in pixels
     "segoeui20", // Font animation name
     {   // Character widths
@@ -24,6 +25,7 @@ Font defLabelFont =
      1, // Letter spacing in pixels
      4, // Word spacing in pixels
     19, // Line spacing in pixels
+     3, // Baseline offset in pixels
     21, // Indentation in pixels
     "segoeui16", // Font animation name
     {   // Character widths
@@ -45,6 +47,7 @@ Font defTextFont =
      1, // Letter spacing in pixels
      4, // Word spacing in pixels
     19, // Line spacing in pixels
+     3, // Baseline offset in pixels
     21, // Indentation in pixels
     "segoeui16", // Font animation name
     {   // Character widths

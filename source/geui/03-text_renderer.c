@@ -28,6 +28,7 @@ typedef struct
     int letterSpacing;
     int wordSpacing;
     int lineSpacing;
+    int baselineOffset;
     int indentation;
     char fontName[256];
     int fontCharWidths[CHARS];
@@ -441,7 +442,7 @@ void fitTextInArea(Text *pText, int topLeftX, int topLeftY, int bottomRightX, in
         case ALIGN_RIGHT: pText->beginX = bottomRightX; break;
     }
 
-    pText->beginY = topLeftY + ceil(pText->pFont->lineSpacing * 0.5);
+    pText->beginY = topLeftY + ceil(pText->pFont->lineSpacing * 0.5) + pText->pFont->baselineOffset;
     pText->textAreaScrollPosition = pText->beginY;
     pText->textAreaScrollPercent = 1.0;
 
@@ -513,7 +514,7 @@ Text createText(const char *string, Font *pFont, const char *parentCName, bool r
     temp.rendered = False;
     temp.lastRenderFrame = -1;
     temp.beginX = startX;
-    temp.beginY = startY;
+    temp.beginY = startY + pFont->baselineOffset;
     temp.relative = relative;
     temp.alignment = ALIGN_LEFT;
     temp.zDepth = 0.5;
@@ -678,7 +679,7 @@ void setTextParent(Text *pText, char *parentCName, bool keepCurrentPosition)
 void setTextPosition(Text *pText, int posX, int posY)
 {
     pText->beginX = posX;
-    pText->beginY = posY;
+    pText->beginY = posY + pText->pFont->baselineOffset;
 }
 
 void concatenateText(Text *pText, char *string)

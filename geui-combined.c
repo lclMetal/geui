@@ -1,5 +1,5 @@
 // ..\source\geui\01-color.c
-typedef struct
+typedef struct ColorStruct
 {
     double hue;
     double saturation;
@@ -557,6 +557,7 @@ typedef struct
     int letterSpacing;
     int wordSpacing;
     int lineSpacing;
+    int baselineOffset;
     int indentation;
     char fontName[256];
     int fontCharWidths[CHARS];
@@ -970,7 +971,7 @@ void fitTextInArea(Text *pText, int topLeftX, int topLeftY, int bottomRightX, in
         case ALIGN_RIGHT: pText->beginX = bottomRightX; break;
     }
 
-    pText->beginY = topLeftY + ceil(pText->pFont->lineSpacing * 0.5);
+    pText->beginY = topLeftY + ceil(pText->pFont->lineSpacing * 0.5) + pText->pFont->baselineOffset;
     pText->textAreaScrollPosition = pText->beginY;
     pText->textAreaScrollPercent = 1.0;
 
@@ -1042,7 +1043,7 @@ Text createText(const char *string, Font *pFont, const char *parentCName, bool r
     temp.rendered = False;
     temp.lastRenderFrame = -1;
     temp.beginX = startX;
-    temp.beginY = startY;
+    temp.beginY = startY + pFont->baselineOffset;
     temp.relative = relative;
     temp.alignment = ALIGN_LEFT;
     temp.zDepth = 0.5;
@@ -1207,7 +1208,7 @@ void setTextParent(Text *pText, char *parentCName, bool keepCurrentPosition)
 void setTextPosition(Text *pText, int posX, int posY)
 {
     pText->beginX = posX;
-    pText->beginY = posY;
+    pText->beginY = posY + pText->pFont->baselineOffset;
 }
 
 void concatenateText(Text *pText, char *string)
@@ -1560,6 +1561,7 @@ Font defTitleFont =
      1, // Letter spacing in pixels
      6, // Word spacing in pixels
     25, // Line spacing in pixels
+     4, // Baseline offset in pixels
     28, // Indentation in pixels
     "segoeui20", // Font animation name
     {   // Character widths
@@ -1581,6 +1583,7 @@ Font defLabelFont =
      1, // Letter spacing in pixels
      4, // Word spacing in pixels
     19, // Line spacing in pixels
+     3, // Baseline offset in pixels
     21, // Indentation in pixels
     "segoeui16", // Font animation name
     {   // Character widths
@@ -1602,6 +1605,7 @@ Font defTextFont =
      1, // Letter spacing in pixels
      4, // Word spacing in pixels
     19, // Line spacing in pixels
+     3, // Baseline offset in pixels
     21, // Indentation in pixels
     "segoeui16", // Font animation name
     {   // Character widths
@@ -2016,8 +2020,7 @@ typedef struct WindowStruct
 const unsigned long GEUI_TITLE_BAR  = (1 << 0);
 const unsigned long GEUI_FAKE_ACTOR = (1 << 1);
 const unsigned long GEUI_CLICKED    = (1 << 2);
-const unsigned long GEUI_INPUT_BG   = (1 << 3);
-const unsigned long GEUI_CARET      = (1 << 4);
+const unsigned long GEUI_CARET      = (1 << 3);
 
 enum mouseButtonsEnum // Used as array indices, don't touch!
 {
@@ -2569,7 +2572,7 @@ WindowItem *addText(Panel *panel, char tag[256], char *string, short maxWidth)
         fitTextInWidth(&ptr->data.text, maxWidth);
 
     ptr->layout.width = ptr->data.text.width;
-    ptr->layout.height = ptr->data.text.height;
+    ptr->layout.height = max(ptr->data.text.height + ptr->data.text.pFont->baselineOffset, ptr->parent->style.tileHeight);
 
     return addItemToWindow(ptr);
 }
@@ -3045,20 +3048,26 @@ void buildFocus(WindowItem *ptr)
 
     focusWidth = ptr->layout.width + focusLineWidth * 2;
     tilesHorizontal = ceil(focusWidth / (float)tileWidth);
-    focusHeight = ptr->layout.height + focusLineWidth * 2;
+    focusHeight = max(ptr->layout.height, tileHeight) + focusLineWidth * 2;
     tilesVertical = ceil(focusHeight / (float)tileHeight);
 
-    if (tilesVertical < 3)
+    for (j = 0; j < tilesVertical; j++)
     {
         for (i = 0; i < tilesHorizontal; i++)
         {
+            tempAnimpos = calculateAnimpos(tilesHorizontal, tilesVertical, i, j) + 15;
+
+            if (tempAnimpos == 19)
+                continue;
+
             tile = CreateActor("a_gui", ptr->parent->style.guiAnim,
                                ptr->parent->parentCName, "(none)", 0, 0, true);
-            tile->x = ptr->layout.startx + tileWidth + i * tileWidth  + (i >= 2 && i >= tilesHorizontal - 2) * (focusWidth  - tilesHorizontal * tileWidth)-tileWidth/2;
+            tile->x = ptr->layout.startx + tileWidth + i * tileWidth + (i == tilesHorizontal-1) * (focusWidth  - tilesHorizontal * tileWidth)-tileWidth/2;
             tile->x += ptr->parent->style.padding - focusLineWidth;
-            tile->y = ptr->layout.starty + tileHeight -tileHeight/2;
+            tile->y = ptr->layout.starty + tileHeight + j * tileHeight + (j == tilesVertical - 1) * (focusHeight - tilesVertical * tileHeight)-tileHeight/2;
             tile->y += ptr->parent->style.padding - focusLineWidth;
-            tile->animpos = 15 + (i > 0) + (i == tilesHorizontal - 1);
+            tile->animpos = tempAnimpos;
+
             tile->myWindow = -1;
             tile->myPanel = -1;
             tile->myIndex = -1;
@@ -3067,51 +3076,6 @@ void buildFocus(WindowItem *ptr)
             EventDisable(tile->clonename, EVENTCOLLISION);
             EventDisable(tile->clonename, EVENTCOLLISIONFINISH);
             updateGuiTileIndices(&GEUIController.focusTiles, tile->cloneindex);
-
-            tile = CreateActor("a_gui", ptr->parent->style.guiAnim,
-                           ptr->parent->parentCName, "(none)", 0, 0, true);
-            tile->x = ptr->layout.startx + tileWidth + i * tileWidth  + (i >= 2 && i >= tilesHorizontal - 2) * (focusWidth  - tilesHorizontal * tileWidth)-tileWidth/2;
-            tile->x += ptr->parent->style.padding - focusLineWidth;
-            tile->y = ptr->layout.starty + tileHeight -tileHeight/2 + ptr->parent->style.padding - focusLineWidth + focusHeight - tileHeight;
-            tile->animpos = 21 + (i > 0) + (i == tilesHorizontal - 1);
-            tile->myWindow = -1;
-            tile->myPanel = -1;
-            tile->myIndex = -1;
-            colorActor(tile, ptr->parent->style.focusColor);
-            ChangeZDepth(tile->clonename, DEFAULT_ITEM_ZDEPTH);
-            EventDisable(tile->clonename, EVENTCOLLISION);
-            EventDisable(tile->clonename, EVENTCOLLISIONFINISH);
-            updateGuiTileIndices(&GEUIController.focusTiles, tile->cloneindex);
-        }
-    }
-    else
-    {
-        for (j = 0; j < tilesVertical; j++)
-        {
-            for (i = 0; i < tilesHorizontal; i++)
-            {
-                tempAnimpos = calculateAnimpos(tilesHorizontal, tilesVertical, i, j) + 15;
-
-                if (tempAnimpos == 19)
-                    continue;
-
-                tile = CreateActor("a_gui", ptr->parent->style.guiAnim,
-                                   ptr->parent->parentCName, "(none)", 0, 0, true);
-                tile->x = ptr->layout.startx + tileWidth + i * tileWidth  + (i >= 2 && i >= tilesHorizontal - 2) * (focusWidth  - tilesHorizontal * tileWidth)-tileWidth/2;
-                tile->x += ptr->parent->style.padding - focusLineWidth;
-                tile->y = ptr->layout.starty + tileHeight + j * tileHeight + (j >= 2 && j >= tilesVertical - 2) * (focusHeight - tilesVertical * tileHeight)-tileHeight/2;
-                tile->y += ptr->parent->style.padding - focusLineWidth;
-                tile->animpos = tempAnimpos;
-
-                tile->myWindow = -1;
-                tile->myPanel = -1;
-                tile->myIndex = -1;
-                colorActor(tile, ptr->parent->style.focusColor);
-                ChangeZDepth(tile->clonename, DEFAULT_ITEM_ZDEPTH);
-                EventDisable(tile->clonename, EVENTCOLLISION);
-                EventDisable(tile->clonename, EVENTCOLLISIONFINISH);
-                updateGuiTileIndices(&GEUIController.focusTiles, tile->cloneindex);
-            }
         }
     }
 }
@@ -3155,7 +3119,7 @@ void buildText(WindowItem *ptr)
     // TODO: layout / positioning
     setTextPosition(&ptr->data.text,
         ptr->layout.startx + ptr->parent->style.padding,
-        ptr->layout.starty + ptr->data.text.pFont->lineSpacing * 0.5 + ptr->parent->style.padding);
+        ptr->layout.starty + ptr->parent->style.tileHeight * 0.5 + ceil(ptr->data.button.text.pFont->baselineOffset * 0.5));
     refreshText(&ptr->data.text);
 }
 
@@ -3180,13 +3144,13 @@ void buildButtonText(WindowItem *ptr)
     if (ptr->parent->style.buttonProperties & GEUI_BUTTON_TEXT_ALIGN_LEFT)
     {
         setTextAlignment(buttonText, ALIGN_LEFT);
-        setTextPosition(buttonText, getTile(start)->x - tileWidth / 2 + tileWidth * ptr->parent->style.buttonPadding, getTile(start)->y);
+        setTextPosition(buttonText, getTile(start)->x - tileWidth / 2 + tileWidth * ptr->parent->style.buttonPadding, getTile(start)->y - ceil(ptr->data.button.text.pFont->baselineOffset * 0.5));
     }
     else
     {
         setTextAlignment(buttonText, ALIGN_CENTER);
         setTextPosition(buttonText,
-            ceil((getTile(end)->x - getTile(start)->x) * 0.5) + getTile(start)->x, getTile(start)->y);
+            ceil((getTile(end)->x - getTile(start)->x) * 0.5) + getTile(start)->x, getTile(start)->y - ceil(ptr->data.button.text.pFont->baselineOffset * 0.5));
     }
 
     refreshText(buttonText);
@@ -3283,7 +3247,6 @@ void buildInputFieldBackground(WindowItem *ptr, TileIndices *tiles)
         a->myWindow = ptr->parent->index;
         a->myPanel  = ptr->myPanel->index;
         a->myIndex  = ptr->index;
-        a->myProperties = GEUI_INPUT_BG;
         a->animpos = 12 + (i > 0) + (i == tilesHorizontal - 1) + (i > 0 && i == tilesHorizontal - 2 && fieldWidth < tileWidth * 2.5);
         SendActivationEvent(a->clonename);
         ChangeZDepth(a->clonename, DEFAULT_ITEM_ZDEPTH);
@@ -3302,7 +3265,7 @@ void buildInputField(WindowItem *ptr)
     setTextZDepth(&ptr->data.input.text, DEFAULT_ITEM_ZDEPTH);
     setTextPosition(&ptr->data.input.text,
         getTile(ptr->data.input.tiles.first)->x,
-        getTile(ptr->data.input.tiles.last)->y);
+        getTile(ptr->data.input.tiles.last)->y - ceil(ptr->data.input.text.pFont->baselineOffset * 0.5));
     refreshText(&ptr->data.input.text);
 
     buildCaret(ptr, &ptr->data.input.text, &ptr->data.input.caret);

@@ -1,4 +1,4 @@
-typedef struct
+typedef struct ColorStruct
 {
     double hue;
     double saturation;

@@ -229,8 +229,7 @@ typedef struct WindowStruct
 const unsigned long GEUI_TITLE_BAR  = (1 << 0);
 const unsigned long GEUI_FAKE_ACTOR = (1 << 1);
 const unsigned long GEUI_CLICKED    = (1 << 2);
-const unsigned long GEUI_INPUT_BG   = (1 << 3);
-const unsigned long GEUI_CARET      = (1 << 4);
+const unsigned long GEUI_CARET      = (1 << 3);
 
 enum mouseButtonsEnum // Used as array indices, don't touch!
 {
