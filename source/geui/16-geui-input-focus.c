@@ -1,5 +1,6 @@
 WindowItem *getNextFocusableItem(WindowItem *ptr, WindowItem *start, bool reverse);
 WindowItem *focusItem(WindowItem *ptr);
+void focusNextItemInWindow(bool reverse);
 void blurItem(WindowItem *ptr);
 void buildFocus(WindowItem *ptr);
 void eraseFocus();
@@ -10,6 +11,9 @@ bool bothPointToSameItem(WindowItem *item1, WindowItem *item2);
 
 // from geui-panel.c
 Panel *getPanelByIndex(Panel *panel, int index);
+
+// from geui-window.c
+Window *getWindowByIndex(int index);
 
 WindowItem *getNextFocusableItem(WindowItem *ptr, WindowItem *start, bool reverse)
 {
@@ -95,6 +99,34 @@ WindowItem *focusItem(WindowItem *ptr)
     }
 
     return NULL;
+}
+
+void focusNextItemInWindow(bool reverse)
+{
+    Window *window = getWindowByIndex(GEUIController.topIndex);
+    WindowItem *nextFocus = NULL;
+
+    if (GEUIController.focus && GEUIController.focus->parent->index == GEUIController.topIndex)
+    {
+        nextFocus = getNextFocusableItem(GEUIController.focus, GEUIController.focus, reverse);
+    }
+    else
+    {
+        window = getWindowByIndex(GEUIController.topIndex);
+        if (window && window->isOpen)
+        {
+            nextFocus = getItemFromPanelByIndex(&window->root, 0);
+            if (nextFocus && nextFocus->focusable == False)
+            {
+                nextFocus = getNextFocusableItem(nextFocus, nextFocus, reverse);
+            }
+        }
+    }
+
+    if (nextFocus)
+    {
+        focusItem(nextFocus);
+    }
 }
 
 void blurItem(WindowItem *ptr)

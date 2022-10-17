@@ -2488,6 +2488,7 @@ float readDecimalInput(WindowItem *item)
 // ..\source\geui\16-geui-input-focus.c
 WindowItem *getNextFocusableItem(WindowItem *ptr, WindowItem *start, bool reverse);
 WindowItem *focusItem(WindowItem *ptr);
+void focusNextItemInWindow(bool reverse);
 void blurItem(WindowItem *ptr);
 void buildFocus(WindowItem *ptr);
 void eraseFocus();
@@ -2498,6 +2499,9 @@ bool bothPointToSameItem(WindowItem *item1, WindowItem *item2);
 
 // from geui-panel.c
 Panel *getPanelByIndex(Panel *panel, int index);
+
+// from geui-window.c
+Window *getWindowByIndex(int index);
 
 WindowItem *getNextFocusableItem(WindowItem *ptr, WindowItem *start, bool reverse)
 {
@@ -2583,6 +2587,34 @@ WindowItem *focusItem(WindowItem *ptr)
     }
 
     return NULL;
+}
+
+void focusNextItemInWindow(bool reverse)
+{
+    Window *window = getWindowByIndex(GEUIController.topIndex);
+    WindowItem *nextFocus = NULL;
+
+    if (GEUIController.focus && GEUIController.focus->parent->index == GEUIController.topIndex)
+    {
+        nextFocus = getNextFocusableItem(GEUIController.focus, GEUIController.focus, reverse);
+    }
+    else
+    {
+        window = getWindowByIndex(GEUIController.topIndex);
+        if (window && window->isOpen)
+        {
+            nextFocus = getItemFromPanelByIndex(&window->root, 0);
+            if (nextFocus && nextFocus->focusable == False)
+            {
+                nextFocus = getNextFocusableItem(nextFocus, nextFocus, reverse);
+            }
+        }
+    }
+
+    if (nextFocus)
+    {
+        focusItem(nextFocus);
+    }
 }
 
 void blurItem(WindowItem *ptr)
@@ -4089,12 +4121,8 @@ void destroyWindow(Window *window)
 }
 
 
-// ..\source\geui\50-geui-input.c
-// TODO: make functions return error codes instead of just exiting
-// without doing anything, which can be difficult to debug
-
+// ..\source\geui\50-geui-mouse-input.c
 int isTopmostItemAtMouse(WindowItem *item);
-void focusNextItemInWindow(bool reverse);
 void doMouseEnter(const char *actorName);
 void doMouseLeave(const char *actorName);
 void doMouseButtonDown(const char *actorName, enum mouseButtonsEnum mButtonNumber);
@@ -4107,8 +4135,6 @@ int isMouseButtonDown(enum mouseButtonsEnum mButtonNumber);
 int isMouseButtonUp(enum mouseButtonsEnum mButtonNumber);
 int updateMouseButtonDown(enum mouseButtonsEnum mButtonNumber);
 void updateMouseButtonUp(enum mouseButtonsEnum mButtonNumber);
-void doKeyDown(WindowItem *item, int key);
-void doKeyUp(WindowItem *item, int key);
 
 int isTopmostItemAtMouse(WindowItem *item)
 {
@@ -4134,34 +4160,6 @@ int isTopmostItemAtMouse(WindowItem *item)
     }
 
     return 0;
-}
-
-void focusNextItemInWindow(bool reverse)
-{
-    Window *window = getWindowByIndex(GEUIController.topIndex);
-    WindowItem *nextFocus = NULL;
-
-    if (GEUIController.focus && GEUIController.focus->parent->index == GEUIController.topIndex)
-    {
-        nextFocus = getNextFocusableItem(GEUIController.focus, GEUIController.focus, reverse);
-    }
-    else
-    {
-        window = getWindowByIndex(GEUIController.topIndex);
-        if (window && window->isOpen)
-        {
-            nextFocus = getItemFromPanelByIndex(&window->root, 0);
-            if (nextFocus && nextFocus->focusable == False)
-            {
-                nextFocus = getNextFocusableItem(nextFocus, nextFocus, reverse);
-            }
-        }
-    }
-
-    if (nextFocus)
-    {
-        focusItem(nextFocus);
-    }
 }
 
 void doMouseEnter(const char *actorName)
@@ -4508,6 +4506,12 @@ void updateMouseButtonUp(enum mouseButtonsEnum mButtonNumber)
         GEUIController.mButtonActorCount[mButtonNumber] = 0;
     }
 }
+
+
+
+// ..\source\geui\51-geui-keyboard-input.c
+void doKeyDown(WindowItem *item, int key);
+void doKeyUp(WindowItem *item, int key);
 
 void doKeyDown(WindowItem *item, int key)
 {
