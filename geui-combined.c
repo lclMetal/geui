@@ -2019,6 +2019,8 @@ typedef struct WindowStruct
     char parentCName[256]; // clonename of the window parent actor
     int dataBindIndex;  // next available data bind index
     DataBind dataBinds[GEUI_MAX_DATA_BINDS_PER_WINDOW]; // data binds array
+    bool hasTitle;              // does the window have a title
+    Text title;                 // window title text
     TileIndices tiles;          // cloneindices of the window tiles
     Panel root;                 // window main panel
     struct WindowStruct *next;  // pointer to next window in list
@@ -3650,6 +3652,9 @@ void buildEmbedder(WindowItem *ptr)
 }
 
 
+// ..\source\geui\27-geui-item-title.c
+
+
 // ..\source\geui\30-geui-panel.c
 // TODO: make functions return error codes instead of just exiting
 // without doing anything, which can be difficult to debug
@@ -3888,8 +3893,8 @@ void updatePanelLayout(WindowItem *panelItem, Panel *panel)
     short i;
     short startx = 0;
     short starty = 0;
-    short origx=0;
-    short origy=0;
+    short origx = 0;
+    short origy = 0;
     short *rowValues;
     short *colValues;
     WindowItem *item;
@@ -3898,8 +3903,8 @@ void updatePanelLayout(WindowItem *panelItem, Panel *panel)
 
     if (panelItem && panelItem->type == GEUI_Panel)
     {
-        origx=startx = panelItem->layout.startx;
-        origy=starty = panelItem->layout.starty;
+        origx = startx = panelItem->layout.startx;
+        origy = starty = panelItem->layout.starty;
     }
     else panelItem = NULL;
 
@@ -3923,7 +3928,7 @@ void updatePanelLayout(WindowItem *panelItem, Panel *panel)
     for (item = panel->iList; item != NULL; item = item->next)
     {
         item->layout.startx = colValues[item->layout.col];
-        item->layout.starty = rowValues[item->layout.row];
+        item->layout.starty = rowValues[item->layout.row] + ((panel->parent->hasTitle && item->myPanel == &panel->parent->root) * (panel->parent->style.tileHeight * 0.5 + panel->parent->style.padding));
     }
 
     panel->width = getPanelWidth(panel);
@@ -3980,7 +3985,7 @@ void destroyPanel(Panel *panel)
 // TODO: make functions return error codes instead of just exiting
 // without doing anything, which can be difficult to debug
 
-Window *createWindow(char tag[256], Style style);
+Window *createWindow(char tag[256], char *title, Style style);
 Window *getWindowByTag(char tag[256]);
 Window *getWindowByIndex(int index);
 Window *getFirstOpenWindow();
@@ -3992,8 +3997,9 @@ void bringWindowToFront(Window *window);
 void closeWindow(Window *window);
 void destroyWindow(Window *window);
 
+#define GEUI_NO_TITLE NULL
 
-Window *createWindow(char tag[256], Style style)
+Window *createWindow(char tag[256], char *title, Style style)
 {
     Window *ptr = malloc(sizeof *ptr);
 
@@ -4017,6 +4023,19 @@ Window *createWindow(char tag[256], Style style)
     ptr->root.parent = ptr;
     ptr->root.iList = NULL;
     ptr->next = GEUIController.wList;
+
+    if (title)
+    {
+        ptr->hasTitle = True;
+        ptr->title = createText(title, ptr->style.titleFont, "(none)", ABSOLUTE, 0, 0);
+        setTextAlignment(&ptr->title, ALIGN_CENTER);
+        setTextColor(&ptr->title, ptr->style.titleColor);
+        setTextZDepth(&ptr->title, DEFAULT_ITEM_ZDEPTH);
+    }
+    else
+    {
+        ptr->hasTitle = False;
+    }
 
     GEUIController.wList = ptr;
 
@@ -4144,6 +4163,8 @@ void buildWindow(Window *window, WindowPosition pos)
 {
     short i, j;
     Actor *tile;
+    Actor *titleStart = NULL;
+    Actor *titleEnd = NULL;
 
     short tileWidth, tileHeight;
     short windowWidth, windowHeight;
@@ -4155,7 +4176,7 @@ void buildWindow(Window *window, WindowPosition pos)
     tileHeight = window->style.tileHeight;
 
     windowWidth = window->root.width + window->style.tileWidth + window->style.padding * 2;
-    windowHeight = window->root.height + window->style.tileHeight + window->style.padding * 2;
+    windowHeight = window->root.height + window->style.tileHeight + window->style.padding * 2 + window->style.tileHeight * window->hasTitle;
 
     tilesHorizontal = ceil(windowWidth / (float)tileWidth);
     tilesVertical = ceil(windowHeight / (float)tileHeight);
@@ -4167,21 +4188,35 @@ void buildWindow(Window *window, WindowPosition pos)
             tile = CreateActor("a_gui", window->style.guiAnim,
                                window->parentCName, "(none)", 0, 0, true);
             // TODO: actual positioning
-            tile->x = i * tileWidth  + (i >= 2 && i >= tilesHorizontal - 2) * (windowWidth  - tilesHorizontal * tileWidth);
+            tile->x = i * tileWidth + (i >= 2 && i >= tilesHorizontal - 2) * (windowWidth - tilesHorizontal * tileWidth);
             tile->y = j * tileHeight + (j >= 2 && j >= tilesVertical - 2) * (windowHeight - tilesVertical * tileHeight);
             tile->myWindow = window->index;
             tile->myPanel = window->root.index;
             tile->myIndex = -1;
-            tile->animpos = calculateAnimpos(tilesHorizontal, tilesVertical, i, j);
+            tile->animpos = calculateAnimpos(tilesHorizontal, tilesVertical, i, j + (j == 0 && window->hasTitle == False));
             colorActor(tile, window->style.windowBgColor);
             ChangeZDepth(tile->clonename, WINDOW_TILE_ZDEPTH);
             EventDisable(tile->clonename, EVENTCOLLISION);
             EventDisable(tile->clonename, EVENTCOLLISIONFINISH);
 
-            if (j == 0) tile->myProperties = GEUI_TITLE_BAR; // part of the window title bar
+            if (j == 0 && window->hasTitle == True)
+            {
+                if (i == 0)                        titleStart = tile;
+                else if (i == tilesHorizontal - 1) titleEnd = tile;
+                tile->myProperties = GEUI_TITLE_BAR; // part of the window title bar
+                colorActor(tile, window->style.titleBgColor);
+            }
 
             updateGuiTileIndices(&window->tiles, tile->cloneindex);
         }
+    }
+
+    if (window->hasTitle)
+    {
+        setTextPosition(&window->title,
+            ceil((titleEnd->x - titleStart->x) * 0.5) + titleStart->x,
+            titleStart->y - ceil(window->title.pFont->baselineOffset * 0.5));
+        refreshText(&window->title);
     }
 }
 
@@ -4223,6 +4258,9 @@ void setWindowBaseParent(Window *window, char *parentName)
 
     changeParentOfClones("a_gui", window->tiles.first, window->tiles.last, parentName);
     setPanelBaseParent(&window->root, parentName);
+
+    if (window->hasTitle)
+        setTextParent(&window->title, parentName, True);
 }
 
 void bringWindowToFront(Window *window)
@@ -4281,6 +4319,12 @@ void closeWindow(Window *window)
 
     eraseGuiTiles(&window->tiles);
 
+    if (window->hasTitle)
+    {
+        eraseText(&window->title);
+        setTextParent(&window->title, "(none)", False);
+    }
+
     if (window->index == GEUIController.topIndex)
     {
         Window *nextTopWindow = getFirstOpenWindow();
@@ -4301,6 +4345,8 @@ void closeWindow(Window *window)
 void destroyWindow(Window *window)
 {
     closeWindow(window);
+    if (window->hasTitle)
+        destroyText(&window->title);
     destroyPanel(&window->root);
     free(window);
 }

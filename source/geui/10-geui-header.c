@@ -228,6 +228,8 @@ typedef struct WindowStruct
     char parentCName[256]; // clonename of the window parent actor
     int dataBindIndex;  // next available data bind index
     DataBind dataBinds[GEUI_MAX_DATA_BINDS_PER_WINDOW]; // data binds array
+    bool hasTitle;              // does the window have a title
+    Text title;                 // window title text
     TileIndices tiles;          // cloneindices of the window tiles
     Panel root;                 // window main panel
     struct WindowStruct *next;  // pointer to next window in list

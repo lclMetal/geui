@@ -235,8 +235,8 @@ void updatePanelLayout(WindowItem *panelItem, Panel *panel)
     short i;
     short startx = 0;
     short starty = 0;
-    short origx=0;
-    short origy=0;
+    short origx = 0;
+    short origy = 0;
     short *rowValues;
     short *colValues;
     WindowItem *item;
@@ -245,8 +245,8 @@ void updatePanelLayout(WindowItem *panelItem, Panel *panel)
 
     if (panelItem && panelItem->type == GEUI_Panel)
     {
-        origx=startx = panelItem->layout.startx;
-        origy=starty = panelItem->layout.starty;
+        origx = startx = panelItem->layout.startx;
+        origy = starty = panelItem->layout.starty;
     }
     else panelItem = NULL;
 
@@ -270,7 +270,7 @@ void updatePanelLayout(WindowItem *panelItem, Panel *panel)
     for (item = panel->iList; item != NULL; item = item->next)
     {
         item->layout.startx = colValues[item->layout.col];
-        item->layout.starty = rowValues[item->layout.row];
+        item->layout.starty = rowValues[item->layout.row] + ((panel->parent->hasTitle && item->myPanel == &panel->parent->root) * (panel->parent->style.tileHeight * 0.5 + panel->parent->style.padding));
     }
 
     panel->width = getPanelWidth(panel);
