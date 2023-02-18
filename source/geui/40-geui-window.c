@@ -150,6 +150,7 @@ Window *openWindow(char tag[256], WindowPosition pos)
     if (!window) { DEBUG_MSG_FROM("window is NULL", "openWindow"); return NULL; }
     if (window->isOpen) { DEBUG_MSG_FROM("window is already open", "openWindow"); return window; }
 
+    updateItemLayouts(&window->root);
     updatePanelLayout(NULL, &window->root);
     buildWindow(window, pos);
     buildItems(&window->root);

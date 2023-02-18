@@ -2758,6 +2758,7 @@ GUIAction createCloseWindowAction(char tag[256])
 // from geui-panel.c
 void closePanel(Panel *panel);
 void destroyPanel(Panel *panel);
+void updatePanelLayout(WindowItem *panelItem, Panel *panel);
 
 bool bothPointToSameItem(WindowItem *item1, WindowItem *item2);
 void eraseGuiTiles(TileIndices *indices);
@@ -2768,7 +2769,8 @@ WindowItem *getItemFromPanelByTag(Panel *panel, char tag[256]);
 WindowItem *getItemByTag(Window *window, char tag[256]);
 WindowItem *getItemFromPanelByIndex(Panel *panel, int index);
 WindowItem *getItemByIndex(Window *window, int index);
-void eraseFocus();
+void updateItemLayout(WindowItem *ptr);
+void updateItemLayouts(Panel *panel);
 void buildItems(Panel *panel);
 void buildItem(WindowItem *ptr);
 void buildText(WindowItem *ptr);
@@ -2916,6 +2918,62 @@ WindowItem *getItemByIndex(Window *window, int index)
         return ptr;
 
     return NULL;
+}
+
+void updateItemLayout(WindowItem *ptr)
+{
+    Actor *actor;
+    char temp[256];
+
+    switch (ptr->type)
+    {
+        case GEUI_Text:
+            updateTextDimensions(&ptr->data.text);
+            ptr->layout.width = ptr->data.text.width;
+            ptr->layout.height = max(ptr->data.text.height + ptr->data.text.pFont->baselineOffset, ptr->parent->style.tileHeight);
+        break;
+        case GEUI_Button:
+            DEBUG_MSG_FROM("Layout updating not implemented for item type: Button", "updateItemLayout");
+        break;
+        case GEUI_Checkbox:
+            DEBUG_MSG_FROM("Layout updating not implemented for item type: Checkbox", "updateItemLayout");
+        break;
+        case GEUI_Input:
+            DEBUG_MSG_FROM("Layout updating not implemented for item type: Input", "updateItemLayout");
+        break;
+        case GEUI_Panel:
+            updateItemLayouts(ptr->data.panel);
+        break;
+        case GEUI_Embedder:
+            actor = getclone(ptr->data.embedder.actorCName);
+
+            if (actorExists2(actor))
+            {
+                ptr->layout.width = actor->width;
+                ptr->layout.height = actor->height;
+            }
+            else
+            {
+                DEBUG_MSG_FROM("Actor doesn't exist, layout for Embedder item not updated", "updateItemLayout");
+            }
+        break;
+    }
+
+    sprintf(temp, "Updated layout for item: %s/%s", ptr->parent->tag, ptr->tag);
+    DEBUG_MSG_FROM(temp, "updateItemLayout");
+}
+
+void updateItemLayouts(Panel *panel)
+{
+    WindowItem *ptr;
+
+    ptr = panel->iList;
+
+    while (ptr)
+    {
+        updateItemLayout(ptr);
+        ptr = ptr->next;
+    }
 }
 
 void buildItems(Panel *panel)
@@ -3945,6 +4003,7 @@ Window *openWindow(char tag[256], WindowPosition pos)
     if (!window) { DEBUG_MSG_FROM("window is NULL", "openWindow"); return NULL; }
     if (window->isOpen) { DEBUG_MSG_FROM("window is already open", "openWindow"); return window; }
 
+    updateItemLayouts(&window->root);
     updatePanelLayout(NULL, &window->root);
     buildWindow(window, pos);
     buildItems(&window->root);
