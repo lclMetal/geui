@@ -3258,6 +3258,29 @@ void buildCheckbox(WindowItem *ptr)
     ptr->data.checkbox.tileIndex = a->cloneindex;
 }
 
+void setCheckboxState(WindowItem *ptr, bool state)
+{
+    Actor *tile;
+
+    if (ptr->type != GEUI_Checkbox) { DEBUG_MSG_FROM("item is not a valid Checkbox item", "setCheckboxState"); return; }
+
+    ptr->data.checkbox.state = state;
+
+    tile = getTile(ptr->data.checkbox.tileIndex);
+
+    if (actorExists2(tile))
+    {
+        tile->animpos = 24 + (state == True);
+    }
+}
+
+bool getCheckboxState(WindowItem *ptr, bool defaultValue)
+{
+    if (ptr->type != GEUI_Checkbox) { DEBUG_MSG_FROM("item is not a valid Checkbox item", "getCheckboxState"); return defaultValue; }
+
+    return ptr->data.checkbox.state;
+}
+
 
 // ..\source\geui\24-geui-item-input.c
 void enforceTextInputSettings(InputField *input);
