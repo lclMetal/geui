@@ -30,3 +30,16 @@ void buildText(WindowItem *ptr)
         ptr->layout.starty + ptr->parent->style.tileHeight * 0.5 + ceil(ptr->data.button.text.pFont->baselineOffset * 0.5));
     refreshText(&ptr->data.text);
 }
+
+// This function allows editing the text of a text type
+// window item. Notice that using the function currently
+// erases the existing text if the window is open and
+// does not re-render the text automatically. At this
+// point it's advisable to only use the function to change
+// the text content _before_ the window is opened.
+void setTextContent(WindowItem *ptr, char *string)
+{
+    if (ptr->type != GEUI_Text) { DEBUG_MSG_FROM("item is not a valid Text item", "setTextContent"); return; }
+
+    setTextText(&ptr->data.text, string);
+}
