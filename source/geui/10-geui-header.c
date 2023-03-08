@@ -208,6 +208,14 @@ typedef struct PanelStruct
     struct WindowItemStruct *iList;
 }Panel;
 
+typedef struct DataBindStruct
+{
+    void *data;
+    char tag[256];
+}DataBind;
+
+#define GEUI_MAX_DATA_BINDS_PER_WINDOW 5
+
 typedef struct WindowStruct
 {
     int index;          // window index
@@ -218,6 +226,8 @@ typedef struct WindowStruct
     Style style;        // window style
     double zDepth;      // window z depth
     char parentCName[256]; // clonename of the window parent actor
+    int dataBindIndex;  // next available data bind index
+    DataBind dataBinds[GEUI_MAX_DATA_BINDS_PER_WINDOW]; // data binds array
     TileIndices tiles;          // cloneindices of the window tiles
     Panel root;                 // window main panel
     struct WindowStruct *next;  // pointer to next window in list
