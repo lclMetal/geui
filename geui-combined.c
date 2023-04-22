@@ -1626,6 +1626,7 @@ Font defTextFont =
 // ..\source\geui\05-geui-style.c
 #define GEUI_BUTTON_STRETCH 1
 #define GEUI_BUTTON_TEXT_ALIGN_LEFT 2
+#define GEUI_TITLE_CENTERED 1
 
 typedef struct StyleStruct
 {
@@ -1640,6 +1641,7 @@ typedef struct StyleStruct
 
     short padding;
     short focusWidth;
+    short titleProperties;
     short buttonProperties;
     float buttonPadding;
 
@@ -1677,8 +1679,8 @@ void setTileDimensions()
 }
 
 Style createStyle(const char guiAnim[100], Font *titleFont, Font *labelFont, Font *textFont,
-                  short padding, short focusWidth, short buttonProperties, float buttonPadding, Color titleBgColor, Color windowBgColor,
-                  Color inputBgColor, Color titleColor, Color labelColor, Color textColor,
+                  short padding, short focusWidth, short titleProperties, short buttonProperties, float buttonPadding, Color titleBgColor,
+                  Color windowBgColor, Color inputBgColor, Color titleColor, Color labelColor, Color textColor,
                   Color buttonColor, Color buttonHilitColor, Color buttonPressedColor,
                   Color focusColor)
 {
@@ -1690,6 +1692,7 @@ Style createStyle(const char guiAnim[100], Font *titleFont, Font *labelFont, Fon
     new.textFont = textFont;
     new.padding = padding;
     new.focusWidth = focusWidth;
+    new.titleProperties = titleProperties;
     new.buttonProperties = buttonProperties;
     new.buttonPadding = buttonPadding;
     new.titleBgColor = titleBgColor;
@@ -3201,7 +3204,7 @@ void buildText(WindowItem *ptr)
     // TODO: layout / positioning
     setTextPosition(&ptr->data.text,
         ptr->layout.startx + ptr->parent->style.padding,
-        ptr->layout.starty + ptr->parent->style.tileHeight * 0.5 + ceil(ptr->data.button.text.pFont->baselineOffset * 0.5));
+        ptr->layout.starty + ptr->parent->style.tileHeight * 0.5 + ceil(ptr->data.text.pFont->baselineOffset * 0.5));
     refreshText(&ptr->data.text);
 }
 
@@ -4028,9 +4031,10 @@ Window *createWindow(char tag[256], char *title, Style style)
     {
         ptr->hasTitle = True;
         ptr->title = createText(title, ptr->style.titleFont, "(none)", ABSOLUTE, 0, 0);
-        setTextAlignment(&ptr->title, ALIGN_CENTER);
         setTextColor(&ptr->title, ptr->style.titleColor);
         setTextZDepth(&ptr->title, DEFAULT_ITEM_ZDEPTH);
+        if (ptr->style.titleProperties & GEUI_TITLE_CENTERED)
+            setTextAlignment(&ptr->title, ALIGN_CENTER);
     }
     else
     {
@@ -4214,7 +4218,9 @@ void buildWindow(Window *window, WindowPosition pos)
     if (window->hasTitle)
     {
         setTextPosition(&window->title,
-            ceil((titleEnd->x - titleStart->x) * 0.5) + titleStart->x,
+            (window->style.titleProperties & GEUI_TITLE_CENTERED)
+                ? ceil((titleEnd->x - titleStart->x) * 0.5) + titleStart->x
+                : titleStart->x + window->style.padding,
             titleStart->y - ceil(window->title.pFont->baselineOffset * 0.5));
         refreshText(&window->title);
     }
@@ -4820,6 +4826,7 @@ void initGEUI(KeyboardLayout kbLayout)
     defStyle.textFont           = &defTextFont;
     defStyle.padding            = 5;
     defStyle.focusWidth         = 2;
+    defStyle.titleProperties    = 0;
     defStyle.buttonProperties   = 0;
     defStyle.buttonPadding      = 1.0f;
     defStyle.titleBgColor       = DEFAULT_COLOR;

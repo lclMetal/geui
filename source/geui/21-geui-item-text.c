@@ -27,7 +27,7 @@ void buildText(WindowItem *ptr)
     // TODO: layout / positioning
     setTextPosition(&ptr->data.text,
         ptr->layout.startx + ptr->parent->style.padding,
-        ptr->layout.starty + ptr->parent->style.tileHeight * 0.5 + ceil(ptr->data.button.text.pFont->baselineOffset * 0.5));
+        ptr->layout.starty + ptr->parent->style.tileHeight * 0.5 + ceil(ptr->data.text.pFont->baselineOffset * 0.5));
     refreshText(&ptr->data.text);
 }
 

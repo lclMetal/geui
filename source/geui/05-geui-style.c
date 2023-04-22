@@ -1,5 +1,6 @@
 #define GEUI_BUTTON_STRETCH 1
 #define GEUI_BUTTON_TEXT_ALIGN_LEFT 2
+#define GEUI_TITLE_CENTERED 1
 
 typedef struct StyleStruct
 {
@@ -14,6 +15,7 @@ typedef struct StyleStruct
 
     short padding;
     short focusWidth;
+    short titleProperties;
     short buttonProperties;
     float buttonPadding;
 
@@ -51,8 +53,8 @@ void setTileDimensions()
 }
 
 Style createStyle(const char guiAnim[100], Font *titleFont, Font *labelFont, Font *textFont,
-                  short padding, short focusWidth, short buttonProperties, float buttonPadding, Color titleBgColor, Color windowBgColor,
-                  Color inputBgColor, Color titleColor, Color labelColor, Color textColor,
+                  short padding, short focusWidth, short titleProperties, short buttonProperties, float buttonPadding, Color titleBgColor,
+                  Color windowBgColor, Color inputBgColor, Color titleColor, Color labelColor, Color textColor,
                   Color buttonColor, Color buttonHilitColor, Color buttonPressedColor,
                   Color focusColor)
 {
@@ -64,6 +66,7 @@ Style createStyle(const char guiAnim[100], Font *titleFont, Font *labelFont, Fon
     new.textFont = textFont;
     new.padding = padding;
     new.focusWidth = focusWidth;
+    new.titleProperties = titleProperties;
     new.buttonProperties = buttonProperties;
     new.buttonPadding = buttonPadding;
     new.titleBgColor = titleBgColor;

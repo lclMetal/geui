@@ -44,9 +44,10 @@ Window *createWindow(char tag[256], char *title, Style style)
     {
         ptr->hasTitle = True;
         ptr->title = createText(title, ptr->style.titleFont, "(none)", ABSOLUTE, 0, 0);
-        setTextAlignment(&ptr->title, ALIGN_CENTER);
         setTextColor(&ptr->title, ptr->style.titleColor);
         setTextZDepth(&ptr->title, DEFAULT_ITEM_ZDEPTH);
+        if (ptr->style.titleProperties & GEUI_TITLE_CENTERED)
+            setTextAlignment(&ptr->title, ALIGN_CENTER);
     }
     else
     {
@@ -230,7 +231,9 @@ void buildWindow(Window *window, WindowPosition pos)
     if (window->hasTitle)
     {
         setTextPosition(&window->title,
-            ceil((titleEnd->x - titleStart->x) * 0.5) + titleStart->x,
+            (window->style.titleProperties & GEUI_TITLE_CENTERED)
+                ? ceil((titleEnd->x - titleStart->x) * 0.5) + titleStart->x
+                : titleStart->x + window->style.padding,
             titleStart->y - ceil(window->title.pFont->baselineOffset * 0.5));
         refreshText(&window->title);
     }
