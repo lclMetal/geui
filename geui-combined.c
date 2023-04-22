@@ -2061,7 +2061,7 @@ struct GEUIControllerStruct
 {
     int wIndex;
     int topIndex;
-    Style sDefault;
+    Style *sDefault;
     KeyboardLayout kbLayout;
     Window *wList;
 
@@ -4849,7 +4849,7 @@ void initGEUI(KeyboardLayout kbLayout)
 
     GEUIController.wIndex = 0;
     GEUIController.topIndex = -1;
-    GEUIController.sDefault = defStyle;
+    GEUIController.sDefault = &defStyle;
     GEUIController.kbLayout = kbLayout;
     GEUIController.wList = NULL;
     GEUIController.focus = NULL;

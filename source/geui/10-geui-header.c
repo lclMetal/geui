@@ -267,7 +267,7 @@ struct GEUIControllerStruct
 {
     int wIndex;
     int topIndex;
-    Style sDefault;
+    Style *sDefault;
     KeyboardLayout kbLayout;
     Window *wList;
 
