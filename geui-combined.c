@@ -548,11 +548,11 @@ int mouseOverClones(const char *actorName, long startIndex, long endIndex)
 #define ABSOLUTE False
 #define RELATIVE True
 
-typedef enum { False, True } bool;
+typedef enum BoolEnum { False, True } bool;
 
 #define CHARS 94
 
-typedef struct
+typedef struct FontStruct
 {
     int letterSpacing;
     int wordSpacing;
@@ -569,7 +569,7 @@ typedef struct LetterCloneindexStruct
     struct LetterCloneindexStruct *next;
 }LetterCloneindex;
 
-typedef struct
+typedef struct TextStruct
 {
     bool rendered;
     int lastRenderFrame;
