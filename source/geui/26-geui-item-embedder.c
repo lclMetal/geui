@@ -35,14 +35,14 @@ void buildEmbedder(WindowItem *ptr)
     actor->x = 0;
     actor->y = 0;
     ChangeParent(ptr->data.embedder.actorCName, ptr->parent->parentCName);
-    actor->x = ptr->layout.startx + ptr->parent->style.padding + actor->width / 2;
-    actor->y = ptr->layout.starty + ptr->parent->style.padding + actor->height / 2;
+    actor->x = ptr->layout.startx + ptr->parent->style->padding + actor->width / 2;
+    actor->y = ptr->layout.starty + ptr->parent->style->padding + actor->height / 2;
     VisibilityState(ptr->data.embedder.actorCName, ENABLE);
 
     // {
         // char temp[256];
-        // sprintf(temp, "%d, %d - %d, %d", ptr->layout.startx + ptr->parent->style.padding + actor->width / 2,
-                                // ptr->layout.starty + ptr->parent->style.padding + actor->height / 2,
+        // sprintf(temp, "%d, %d - %d, %d", ptr->layout.startx + ptr->parent->style->padding + actor->width / 2,
+                                // ptr->layout.starty + ptr->parent->style->padding + actor->height / 2,
                                 // (int)actor->x,
                                 // (int)actor->y);
         // DEBUG_MSG_FROM(temp, "buildEmbedder");

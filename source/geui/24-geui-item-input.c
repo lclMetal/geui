@@ -98,8 +98,8 @@ WindowItem *addInputField(Panel *panel, char tag[256], const char *string, Input
 
     ptr->focusable = True;
     initializeCaret(&ptr->data.input.caret);
-    ptr->data.input.text = createText(string, panel->parent->style.textFont, "(none)", ABSOLUTE, 0, 0);
-    setTextColor(&ptr->data.input.text, panel->parent->style.textColor);
+    ptr->data.input.text = createText(string, panel->parent->style->textFont, "(none)", ABSOLUTE, 0, 0);
+    setTextColor(&ptr->data.input.text, panel->parent->style->textColor);
     setTextZDepth(&ptr->data.input.text, DEFAULT_ITEM_ZDEPTH);
     ptr->data.input.settings = settings;
 
@@ -114,15 +114,15 @@ WindowItem *addInputField(Panel *panel, char tag[256], const char *string, Input
 
     ptr->data.input.tiles = noIndices;
 
-    ptr->layout.width = maxWidth + ptr->parent->style.tileWidth * 2;
-    ptr->layout.height = ptr->parent->style.tileHeight;
+    ptr->layout.width = maxWidth + ptr->parent->style->tileWidth * 2;
+    ptr->layout.height = ptr->parent->style->tileHeight;
 
     return addItemToWindow(ptr);
 }
 
 Actor *buildCaret(WindowItem *ptr, Text *pText, BlinkingCaret *caret)
 {
-    Actor *a = CreateActor("a_gui", ptr->parent->style.guiAnim, ptr->parent->parentCName, "(none)", 0, 0, true);
+    Actor *a = CreateActor("a_gui", ptr->parent->style->guiAnim, ptr->parent->parentCName, "(none)", 0, 0, true);
     a->animpos = 19;
     a->myWindow = ptr->parent->index,
     a->myPanel = ptr->myPanel->index;
@@ -132,7 +132,7 @@ Actor *buildCaret(WindowItem *ptr, Text *pText, BlinkingCaret *caret)
     ChangeZDepth(a->clonename, DEFAULT_ITEM_ZDEPTH);
     strcpy(caret->actorCName, a->clonename);
     caret->pText = pText;
-    colorActorByName(caret->actorCName, ptr->parent->style.textColor);
+    colorActorByName(caret->actorCName, ptr->parent->style->textColor);
     updateCaretPosition(caret);
 
     return a;
@@ -144,19 +144,19 @@ void buildInputFieldBackground(WindowItem *ptr, TileIndices *tiles)
     Actor *a;
     short fieldWidth;
     short tilesHorizontal;
-    short tileWidth = ptr->parent->style.tileWidth;
-    short tileHeight = ptr->parent->style.tileHeight;
+    short tileWidth = ptr->parent->style->tileWidth;
+    short tileHeight = ptr->parent->style->tileHeight;
 
     fieldWidth = ptr->layout.width;
     tilesHorizontal = ceil(fieldWidth / (float)tileWidth);
 
     for (i = 0; i < tilesHorizontal; i++)
     {
-        a = CreateActor("a_gui", ptr->parent->style.guiAnim, ptr->parent->parentCName, "(none)", 0, 0, true);
+        a = CreateActor("a_gui", ptr->parent->style->guiAnim, ptr->parent->parentCName, "(none)", 0, 0, true);
         a->x = ptr->layout.startx + tileWidth + i * tileWidth + (i >= 2 && i >= tilesHorizontal - 2) * (fieldWidth - tilesHorizontal * tileWidth)-tileWidth/2;
-        a->x += ptr->parent->style.padding;
+        a->x += ptr->parent->style->padding;
         a->y = ptr->layout.starty + tileHeight-tileWidth/2;
-        a->y += ptr->parent->style.padding;
+        a->y += ptr->parent->style->padding;
         a->myWindow = ptr->parent->index;
         a->myPanel  = ptr->myPanel->index;
         a->myIndex  = ptr->index;
@@ -173,11 +173,11 @@ void buildInputField(WindowItem *ptr)
     if (ptr->type != GEUI_Input) { DEBUG_MSG_FROM("item is not a valid InputText item", "buildInputText"); return; }
 
     buildInputFieldBackground(ptr, &ptr->data.input.tiles);
-    colorGuiTiles(ptr->data.input.tiles, ptr->parent->style.inputBgColor);
+    colorGuiTiles(ptr->data.input.tiles, ptr->parent->style->inputBgColor);
 
     setTextZDepth(&ptr->data.input.text, DEFAULT_ITEM_ZDEPTH);
     setTextPosition(&ptr->data.input.text,
-        getTile(ptr->data.input.tiles.first)->x - ptr->parent->style.tileWidth / 4,
+        getTile(ptr->data.input.tiles.first)->x - ptr->parent->style->tileWidth / 4,
         getTile(ptr->data.input.tiles.last)->y - ptr->data.input.text.pFont->baselineOffset / 2);
     refreshText(&ptr->data.input.text);
 

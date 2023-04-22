@@ -2017,7 +2017,7 @@ typedef struct WindowStruct
     char tag[256];      // window identifier tag
     bool isOpen;        // is window currently open or not
     long fakeIndex;     // fake tile index
-    Style style;        // window style
+    Style *style;        // window style
     double zDepth;      // window z depth
     char parentCName[256]; // clonename of the window parent actor
     int dataBindIndex;  // next available data bind index
@@ -2722,7 +2722,7 @@ void blurItem(WindowItem *ptr)
         if (ptr->type == GEUI_Button)
         {
             ptr->data.button.state = 0;
-            colorGuiTiles(ptr->data.button.tiles, ptr->parent->style.buttonColor);
+            colorGuiTiles(ptr->data.button.tiles, ptr->parent->style->buttonColor);
         }
         else if (ptr->type == GEUI_Input)
         {
@@ -2742,11 +2742,11 @@ void buildFocus(WindowItem *ptr)
     short tempAnimpos;
     short focusWidth;
     short focusHeight;
-    short focusLineWidth = ptr->parent->style.focusWidth;
+    short focusLineWidth = ptr->parent->style->focusWidth;
     short tilesHorizontal;
     short tilesVertical;
-    short tileWidth = ptr->parent->style.tileWidth;
-    short tileHeight = ptr->parent->style.tileHeight;
+    short tileWidth = ptr->parent->style->tileWidth;
+    short tileHeight = ptr->parent->style->tileHeight;
 
     focusWidth = ptr->layout.width + focusLineWidth * 2;
     tilesHorizontal = ceil(focusWidth / (float)tileWidth);
@@ -2762,18 +2762,18 @@ void buildFocus(WindowItem *ptr)
             if (tempAnimpos == 19)
                 continue;
 
-            tile = CreateActor("a_gui", ptr->parent->style.guiAnim,
+            tile = CreateActor("a_gui", ptr->parent->style->guiAnim,
                                ptr->parent->parentCName, "(none)", 0, 0, true);
             tile->x = ptr->layout.startx + tileWidth + i * tileWidth + (i == tilesHorizontal-1) * (focusWidth  - tilesHorizontal * tileWidth)-tileWidth/2;
-            tile->x += ptr->parent->style.padding - focusLineWidth;
+            tile->x += ptr->parent->style->padding - focusLineWidth;
             tile->y = ptr->layout.starty + tileHeight + j * tileHeight + (j == tilesVertical - 1) * (focusHeight - tilesVertical * tileHeight)-tileHeight/2;
-            tile->y += ptr->parent->style.padding - focusLineWidth;
+            tile->y += ptr->parent->style->padding - focusLineWidth;
             tile->animpos = tempAnimpos;
 
             tile->myWindow = -1;
             tile->myPanel = -1;
             tile->myIndex = -1;
-            colorActor(tile, ptr->parent->style.focusColor);
+            colorActor(tile, ptr->parent->style->focusColor);
             ChangeZDepth(tile->clonename, DEFAULT_ITEM_ZDEPTH);
             EventDisable(tile->clonename, EVENTCOLLISION);
             EventDisable(tile->clonename, EVENTCOLLISIONFINISH);
@@ -3025,7 +3025,7 @@ void updateItemLayout(WindowItem *ptr)
         case GEUI_Text:
             updateTextDimensions(&ptr->data.text);
             ptr->layout.width = ptr->data.text.width;
-            ptr->layout.height = max(ptr->data.text.height + ptr->data.text.pFont->baselineOffset, ptr->parent->style.tileHeight);
+            ptr->layout.height = max(ptr->data.text.height + ptr->data.text.pFont->baselineOffset, ptr->parent->style->tileHeight);
         break;
         case GEUI_Button:
             DEBUG_MSG_FROM("Layout updating not implemented for item type: Button", "updateItemLayout");
@@ -3183,15 +3183,15 @@ WindowItem *addText(Panel *panel, char tag[256], char *string, short maxWidth)
     WindowItem *ptr = initNewItem(GEUI_Text, panel, tag);
     if (!ptr) { DEBUG_MSG_FROM("item is NULL", "addText"); return NULL; }
 
-    ptr->data.text = createText(string, panel->parent->style.textFont, "(none)", ABSOLUTE, 0, 0);
-    setTextColor(&ptr->data.text, panel->parent->style.textColor);
+    ptr->data.text = createText(string, panel->parent->style->textFont, "(none)", ABSOLUTE, 0, 0);
+    setTextColor(&ptr->data.text, panel->parent->style->textColor);
     setTextZDepth(&ptr->data.text, DEFAULT_ITEM_ZDEPTH);
 
     if (maxWidth > 0)
         fitTextInWidth(&ptr->data.text, maxWidth);
 
     ptr->layout.width = ptr->data.text.width;
-    ptr->layout.height = max(ptr->data.text.height + ptr->data.text.pFont->baselineOffset, ptr->parent->style.tileHeight);
+    ptr->layout.height = max(ptr->data.text.height + ptr->data.text.pFont->baselineOffset, ptr->parent->style->tileHeight);
 
     return addItemToWindow(ptr);
 }
@@ -3203,8 +3203,8 @@ void buildText(WindowItem *ptr)
     setTextZDepth(&ptr->data.text, DEFAULT_ITEM_ZDEPTH);
     // TODO: layout / positioning
     setTextPosition(&ptr->data.text,
-        ptr->layout.startx + ptr->parent->style.padding,
-        ptr->layout.starty + ptr->parent->style.tileHeight * 0.5 + ceil(ptr->data.text.pFont->baselineOffset * 0.5));
+        ptr->layout.startx + ptr->parent->style->padding,
+        ptr->layout.starty + ptr->parent->style->tileHeight * 0.5 + ceil(ptr->data.text.pFont->baselineOffset * 0.5));
     refreshText(&ptr->data.text);
 }
 
@@ -3234,8 +3234,8 @@ WindowItem *addButton(Panel *panel, char tag[256], char *string, GUIAction actio
     if (!ptr) { DEBUG_MSG_FROM("item is NULL", "addButton"); return NULL; }
 
     ptr->focusable = True;
-    ptr->data.button.text = createText(string, panel->parent->style.textFont, "(none)", ABSOLUTE, 0, 0);
-    setTextColor(&ptr->data.button.text, panel->parent->style.textColor);
+    ptr->data.button.text = createText(string, panel->parent->style->textFont, "(none)", ABSOLUTE, 0, 0);
+    setTextColor(&ptr->data.button.text, panel->parent->style->textColor);
     setTextZDepth(&ptr->data.button.text, DEFAULT_ITEM_ZDEPTH);
     ptr->data.button.state = 0;
     ptr->data.button.tiles = noIndices;
@@ -3245,12 +3245,12 @@ WindowItem *addButton(Panel *panel, char tag[256], char *string, GUIAction actio
     ptr->data.button.action.panel = panel;
     ptr->data.button.action.itemIndex = ptr->index;
 
-    ptr->layout.width = ptr->data.button.text.width + ptr->parent->style.tileWidth * ptr->parent->style.buttonPadding * 2;
-    buttonMinWidth = ptr->parent->style.tileWidth * 2;
+    ptr->layout.width = ptr->data.button.text.width + ptr->parent->style->tileWidth * ptr->parent->style->buttonPadding * 2;
+    buttonMinWidth = ptr->parent->style->tileWidth * 2;
     if (ptr->layout.width < buttonMinWidth)
         ptr->layout.width = buttonMinWidth;
 
-    ptr->layout.height = ptr->parent->style.tileHeight;
+    ptr->layout.height = ptr->parent->style->tileHeight;
 
     return addItemToWindow(ptr);
 }
@@ -3259,17 +3259,17 @@ void buildButtonText(WindowItem *ptr)
 {
     long start = ptr->data.button.tiles.first;
     long end = ptr->data.button.tiles.last;
-    short tileWidth = ptr->parent->style.tileWidth;
+    short tileWidth = ptr->parent->style->tileWidth;
 
     Text *buttonText = &ptr->data.button.text;
 
-    colorClones("a_gui", start, end, ptr->parent->style.buttonColor);
+    colorClones("a_gui", start, end, ptr->parent->style->buttonColor);
     setTextZDepth(buttonText, DEFAULT_ITEM_ZDEPTH);
 
-    if (ptr->parent->style.buttonProperties & GEUI_BUTTON_TEXT_ALIGN_LEFT)
+    if (ptr->parent->style->buttonProperties & GEUI_BUTTON_TEXT_ALIGN_LEFT)
     {
         setTextAlignment(buttonText, ALIGN_LEFT);
-        setTextPosition(buttonText, getTile(start)->x - tileWidth / 2 + tileWidth * ptr->parent->style.buttonPadding, getTile(start)->y - ceil(ptr->data.button.text.pFont->baselineOffset * 0.5));
+        setTextPosition(buttonText, getTile(start)->x - tileWidth / 2 + tileWidth * ptr->parent->style->buttonPadding, getTile(start)->y - ceil(ptr->data.button.text.pFont->baselineOffset * 0.5));
     }
     else
     {
@@ -3289,8 +3289,8 @@ void buildButton(WindowItem *ptr)
     long start, end;
     short buttonWidth;
     short tilesHorizontal;
-    short tileWidth = ptr->parent->style.tileWidth;
-    short tileHeight = ptr->parent->style.tileHeight;
+    short tileWidth = ptr->parent->style->tileWidth;
+    short tileHeight = ptr->parent->style->tileHeight;
 
     if (ptr->type != GEUI_Button) { DEBUG_MSG_FROM("item is not a valid Button item", "buildButton"); return; }
 
@@ -3299,12 +3299,12 @@ void buildButton(WindowItem *ptr)
 
     for (i = 0; i < tilesHorizontal; i ++)
     {
-        a = CreateActor("a_gui", ptr->parent->style.guiAnim, ptr->parent->parentCName, "(none)", 0, 0, true);
+        a = CreateActor("a_gui", ptr->parent->style->guiAnim, ptr->parent->parentCName, "(none)", 0, 0, true);
         // TODO: layout / positioning
         a->x = ptr->layout.startx + tileWidth + i * tileWidth + (i >= 2 && i >= tilesHorizontal - 2) * (buttonWidth - tilesHorizontal * tileWidth)-tileWidth/2;// + (ptr->layout.col > 0); // TODO: make nicer
-        a->x += ptr->parent->style.padding;
+        a->x += ptr->parent->style->padding;
         a->y = ptr->layout.starty + tileHeight-tileWidth/2;// + (ptr->layout.row > 0);
-        a->y += ptr->parent->style.padding;
+        a->y += ptr->parent->style->padding;
         a->myWindow = ptr->parent->index;
         a->myPanel  = ptr->myPanel->index;
         a->myIndex  = ptr->index;
@@ -3331,21 +3331,21 @@ WindowItem *addCheckbox(Panel *panel, char tag[256], bool state)
     ptr->data.checkbox.state = state;
     ptr->data.checkbox.tileIndex = -1;
 
-    ptr->layout.width = ptr->parent->style.tileWidth;
-    ptr->layout.height = ptr->parent->style.tileHeight;
+    ptr->layout.width = ptr->parent->style->tileWidth;
+    ptr->layout.height = ptr->parent->style->tileHeight;
 
     return addItemToWindow(ptr);
 }
 
 void buildCheckbox(WindowItem *ptr)
 {
-    Actor *a = CreateActor("a_gui", ptr->parent->style.guiAnim, ptr->parent->parentCName, "(none)", 0, 0, true);
-    a->x = ptr->layout.startx + ptr->parent->style.tileWidth / 2;
-    a->x += ptr->parent->style.padding;
-    a->y = ptr->layout.starty + ptr->parent->style.tileHeight / 2;
-    a->y += ptr->parent->style.padding;
+    Actor *a = CreateActor("a_gui", ptr->parent->style->guiAnim, ptr->parent->parentCName, "(none)", 0, 0, true);
+    a->x = ptr->layout.startx + ptr->parent->style->tileWidth / 2;
+    a->x += ptr->parent->style->padding;
+    a->y = ptr->layout.starty + ptr->parent->style->tileHeight / 2;
+    a->y += ptr->parent->style->padding;
     ChangeZDepth(a->clonename, DEFAULT_ITEM_ZDEPTH);
-    colorActor(a, ptr->parent->style.buttonColor);
+    colorActor(a, ptr->parent->style->buttonColor);
     a->animpos = 24 + (ptr->data.checkbox.state == True);
     a->myWindow = ptr->parent->index;
     a->myPanel  = ptr->myPanel->index;
@@ -3478,8 +3478,8 @@ WindowItem *addInputField(Panel *panel, char tag[256], const char *string, Input
 
     ptr->focusable = True;
     initializeCaret(&ptr->data.input.caret);
-    ptr->data.input.text = createText(string, panel->parent->style.textFont, "(none)", ABSOLUTE, 0, 0);
-    setTextColor(&ptr->data.input.text, panel->parent->style.textColor);
+    ptr->data.input.text = createText(string, panel->parent->style->textFont, "(none)", ABSOLUTE, 0, 0);
+    setTextColor(&ptr->data.input.text, panel->parent->style->textColor);
     setTextZDepth(&ptr->data.input.text, DEFAULT_ITEM_ZDEPTH);
     ptr->data.input.settings = settings;
 
@@ -3494,15 +3494,15 @@ WindowItem *addInputField(Panel *panel, char tag[256], const char *string, Input
 
     ptr->data.input.tiles = noIndices;
 
-    ptr->layout.width = maxWidth + ptr->parent->style.tileWidth * 2;
-    ptr->layout.height = ptr->parent->style.tileHeight;
+    ptr->layout.width = maxWidth + ptr->parent->style->tileWidth * 2;
+    ptr->layout.height = ptr->parent->style->tileHeight;
 
     return addItemToWindow(ptr);
 }
 
 Actor *buildCaret(WindowItem *ptr, Text *pText, BlinkingCaret *caret)
 {
-    Actor *a = CreateActor("a_gui", ptr->parent->style.guiAnim, ptr->parent->parentCName, "(none)", 0, 0, true);
+    Actor *a = CreateActor("a_gui", ptr->parent->style->guiAnim, ptr->parent->parentCName, "(none)", 0, 0, true);
     a->animpos = 19;
     a->myWindow = ptr->parent->index,
     a->myPanel = ptr->myPanel->index;
@@ -3512,7 +3512,7 @@ Actor *buildCaret(WindowItem *ptr, Text *pText, BlinkingCaret *caret)
     ChangeZDepth(a->clonename, DEFAULT_ITEM_ZDEPTH);
     strcpy(caret->actorCName, a->clonename);
     caret->pText = pText;
-    colorActorByName(caret->actorCName, ptr->parent->style.textColor);
+    colorActorByName(caret->actorCName, ptr->parent->style->textColor);
     updateCaretPosition(caret);
 
     return a;
@@ -3524,19 +3524,19 @@ void buildInputFieldBackground(WindowItem *ptr, TileIndices *tiles)
     Actor *a;
     short fieldWidth;
     short tilesHorizontal;
-    short tileWidth = ptr->parent->style.tileWidth;
-    short tileHeight = ptr->parent->style.tileHeight;
+    short tileWidth = ptr->parent->style->tileWidth;
+    short tileHeight = ptr->parent->style->tileHeight;
 
     fieldWidth = ptr->layout.width;
     tilesHorizontal = ceil(fieldWidth / (float)tileWidth);
 
     for (i = 0; i < tilesHorizontal; i++)
     {
-        a = CreateActor("a_gui", ptr->parent->style.guiAnim, ptr->parent->parentCName, "(none)", 0, 0, true);
+        a = CreateActor("a_gui", ptr->parent->style->guiAnim, ptr->parent->parentCName, "(none)", 0, 0, true);
         a->x = ptr->layout.startx + tileWidth + i * tileWidth + (i >= 2 && i >= tilesHorizontal - 2) * (fieldWidth - tilesHorizontal * tileWidth)-tileWidth/2;
-        a->x += ptr->parent->style.padding;
+        a->x += ptr->parent->style->padding;
         a->y = ptr->layout.starty + tileHeight-tileWidth/2;
-        a->y += ptr->parent->style.padding;
+        a->y += ptr->parent->style->padding;
         a->myWindow = ptr->parent->index;
         a->myPanel  = ptr->myPanel->index;
         a->myIndex  = ptr->index;
@@ -3553,11 +3553,11 @@ void buildInputField(WindowItem *ptr)
     if (ptr->type != GEUI_Input) { DEBUG_MSG_FROM("item is not a valid InputText item", "buildInputText"); return; }
 
     buildInputFieldBackground(ptr, &ptr->data.input.tiles);
-    colorGuiTiles(ptr->data.input.tiles, ptr->parent->style.inputBgColor);
+    colorGuiTiles(ptr->data.input.tiles, ptr->parent->style->inputBgColor);
 
     setTextZDepth(&ptr->data.input.text, DEFAULT_ITEM_ZDEPTH);
     setTextPosition(&ptr->data.input.text,
-        getTile(ptr->data.input.tiles.first)->x - ptr->parent->style.tileWidth / 4,
+        getTile(ptr->data.input.tiles.first)->x - ptr->parent->style->tileWidth / 4,
         getTile(ptr->data.input.tiles.last)->y - ptr->data.input.text.pFont->baselineOffset / 2);
     refreshText(&ptr->data.input.text);
 
@@ -3640,14 +3640,14 @@ void buildEmbedder(WindowItem *ptr)
     actor->x = 0;
     actor->y = 0;
     ChangeParent(ptr->data.embedder.actorCName, ptr->parent->parentCName);
-    actor->x = ptr->layout.startx + ptr->parent->style.padding + actor->width / 2;
-    actor->y = ptr->layout.starty + ptr->parent->style.padding + actor->height / 2;
+    actor->x = ptr->layout.startx + ptr->parent->style->padding + actor->width / 2;
+    actor->y = ptr->layout.starty + ptr->parent->style->padding + actor->height / 2;
     VisibilityState(ptr->data.embedder.actorCName, ENABLE);
 
     // {
         // char temp[256];
-        // sprintf(temp, "%d, %d - %d, %d", ptr->layout.startx + ptr->parent->style.padding + actor->width / 2,
-                                // ptr->layout.starty + ptr->parent->style.padding + actor->height / 2,
+        // sprintf(temp, "%d, %d - %d, %d", ptr->layout.startx + ptr->parent->style->padding + actor->width / 2,
+                                // ptr->layout.starty + ptr->parent->style->padding + actor->height / 2,
                                 // (int)actor->x,
                                 // (int)actor->y);
         // DEBUG_MSG_FROM(temp, "buildEmbedder");
@@ -3755,13 +3755,13 @@ short getColWidth(Panel *panel, short col)
 
     for (item = panel->iList; item != NULL; item = item->next)
     {
-        if (item->type == GEUI_Button && panel->parent->style.buttonProperties & GEUI_BUTTON_STRETCH && item->layout.col == col)
+        if (item->type == GEUI_Button && panel->parent->style->buttonProperties & GEUI_BUTTON_STRETCH && item->layout.col == col)
         {
             item->layout.width = width;
         }
     }
 
-    return width + panel->parent->style.padding * (col < panel->cols - 1);
+    return width + panel->parent->style->padding * (col < panel->cols - 1);
 }
 
 short getRowHeight(Panel *panel, short row)
@@ -3781,7 +3781,7 @@ short getRowHeight(Panel *panel, short row)
             height = item->layout.height;
     }
 
-    return height + panel->parent->style.padding * (row < panel->rows - 1);
+    return height + panel->parent->style->padding * (row < panel->rows - 1);
 }
 
 short getRowStart(WindowItem *panelItem, Panel *panel, short row)
@@ -3791,13 +3791,13 @@ short getRowStart(WindowItem *panelItem, Panel *panel, short row)
     if (!panel || !panel->iList) { DEBUG_MSG_FROM("panel is NULL or has no items", "getRowStart"); return 0; }
 
     if (row >= panel->rows)
-        return panel->height + getRowStart(panelItem, panel, 0) + panel->parent->style.padding;
+        return panel->height + getRowStart(panelItem, panel, 0) + panel->parent->style->padding;
 
     for (ptr = panel->iList; ptr != NULL; ptr = ptr->next)
     {
         if (ptr->layout.row == row)
         {
-            return ptr->layout.starty + ptr->parent->style.padding / 2;
+            return ptr->layout.starty + ptr->parent->style->padding / 2;
         }
     }
 
@@ -3811,13 +3811,13 @@ short getColStart(WindowItem *panelItem, Panel *panel, short col)
     if (!panel || !panel->iList) { DEBUG_MSG_FROM("panel is NULL or has no items", "getColStart"); return 0; }
 
     if (col >= panel->cols)
-        return panel->width + getColStart(panelItem, panel, 0) + panel->parent->style.padding;
+        return panel->width + getColStart(panelItem, panel, 0) + panel->parent->style->padding;
 
     for (ptr = panel->iList; ptr != NULL; ptr = ptr->next)
     {
         if (ptr->layout.col == col)
         {
-            return ptr->layout.startx + ptr->parent->style.padding / 2;
+            return ptr->layout.startx + ptr->parent->style->padding / 2;
         }
     }
 
@@ -3931,7 +3931,7 @@ void updatePanelLayout(WindowItem *panelItem, Panel *panel)
     for (item = panel->iList; item != NULL; item = item->next)
     {
         item->layout.startx = colValues[item->layout.col];
-        item->layout.starty = rowValues[item->layout.row] + ((panel->parent->hasTitle && item->myPanel == &panel->parent->root) * (panel->parent->style.tileHeight * 0.5 + panel->parent->style.padding));
+        item->layout.starty = rowValues[item->layout.row] + ((panel->parent->hasTitle && item->myPanel == &panel->parent->root) * (panel->parent->style->tileHeight * 0.5 + panel->parent->style->padding));
     }
 
     panel->width = getPanelWidth(panel);
@@ -3988,7 +3988,7 @@ void destroyPanel(Panel *panel)
 // TODO: make functions return error codes instead of just exiting
 // without doing anything, which can be difficult to debug
 
-Window *createWindow(char tag[256], char *title, Style style);
+Window *createWindow(char tag[256], char *title, Style *style);
 Window *getWindowByTag(char tag[256]);
 Window *getWindowByIndex(int index);
 Window *getFirstOpenWindow();
@@ -4002,7 +4002,7 @@ void destroyWindow(Window *window);
 
 #define GEUI_NO_TITLE NULL
 
-Window *createWindow(char tag[256], char *title, Style style)
+Window *createWindow(char tag[256], char *title, Style *style)
 {
     Window *ptr = malloc(sizeof *ptr);
 
@@ -4030,10 +4030,10 @@ Window *createWindow(char tag[256], char *title, Style style)
     if (title)
     {
         ptr->hasTitle = True;
-        ptr->title = createText(title, ptr->style.titleFont, "(none)", ABSOLUTE, 0, 0);
-        setTextColor(&ptr->title, ptr->style.titleColor);
+        ptr->title = createText(title, ptr->style->titleFont, "(none)", ABSOLUTE, 0, 0);
+        setTextColor(&ptr->title, ptr->style->titleColor);
         setTextZDepth(&ptr->title, DEFAULT_ITEM_ZDEPTH);
-        if (ptr->style.titleProperties & GEUI_TITLE_CENTERED)
+        if (ptr->style->titleProperties & GEUI_TITLE_CENTERED)
             setTextAlignment(&ptr->title, ALIGN_CENTER);
     }
     else
@@ -4043,9 +4043,9 @@ Window *createWindow(char tag[256], char *title, Style style)
 
     GEUIController.wList = ptr;
 
-    getTileDimensions(&ptr->style);
-    ptr->style.tileWidth = defStyle.tileWidth;
-    ptr->style.tileHeight = defStyle.tileHeight;
+    getTileDimensions(ptr->style);
+    ptr->style->tileWidth = defStyle.tileWidth;
+    ptr->style->tileHeight = defStyle.tileHeight;
 
     return ptr;
 }
@@ -4183,11 +4183,11 @@ void buildWindow(Window *window, WindowPosition pos)
 
     setWindowBaseParent(window, createWindowBaseParent(window, pos)->clonename);
 
-    tileWidth = window->style.tileWidth;
-    tileHeight = window->style.tileHeight;
+    tileWidth = window->style->tileWidth;
+    tileHeight = window->style->tileHeight;
 
-    windowWidth = window->root.width + window->style.tileWidth + window->style.padding * 2;
-    windowHeight = window->root.height + window->style.tileHeight + window->style.padding * 2 + window->style.tileHeight * window->hasTitle;
+    windowWidth = window->root.width + window->style->tileWidth + window->style->padding * 2;
+    windowHeight = window->root.height + window->style->tileHeight + window->style->padding * 2 + window->style->tileHeight * window->hasTitle;
 
     tilesHorizontal = ceil(windowWidth / (float)tileWidth);
     tilesVertical = ceil(windowHeight / (float)tileHeight);
@@ -4196,7 +4196,7 @@ void buildWindow(Window *window, WindowPosition pos)
     {
         for (i = 0; i < tilesHorizontal; i ++)
         {
-            tile = CreateActor("a_gui", window->style.guiAnim,
+            tile = CreateActor("a_gui", window->style->guiAnim,
                                window->parentCName, "(none)", 0, 0, true);
             // TODO: actual positioning
             tile->x = i * tileWidth + (i >= 2 && i >= tilesHorizontal - 2) * (windowWidth - tilesHorizontal * tileWidth);
@@ -4205,7 +4205,7 @@ void buildWindow(Window *window, WindowPosition pos)
             tile->myPanel = window->root.index;
             tile->myIndex = -1;
             tile->animpos = calculateAnimpos(tilesHorizontal, tilesVertical, i, j + (j == 0 && window->hasTitle == False));
-            colorActor(tile, window->style.windowBgColor);
+            colorActor(tile, window->style->windowBgColor);
             ChangeZDepth(tile->clonename, WINDOW_TILE_ZDEPTH);
             EventDisable(tile->clonename, EVENTCOLLISION);
             EventDisable(tile->clonename, EVENTCOLLISIONFINISH);
@@ -4215,7 +4215,7 @@ void buildWindow(Window *window, WindowPosition pos)
                 if (i == 0)                        titleStart = tile;
                 else if (i == tilesHorizontal - 1) titleEnd = tile;
                 tile->myProperties = GEUI_TITLE_BAR; // part of the window title bar
-                colorActor(tile, window->style.titleBgColor);
+                colorActor(tile, window->style->titleBgColor);
             }
 
             updateGuiTileIndices(&window->tiles, tile->cloneindex);
@@ -4225,9 +4225,9 @@ void buildWindow(Window *window, WindowPosition pos)
     if (window->hasTitle)
     {
         setTextPosition(&window->title,
-            (window->style.titleProperties & GEUI_TITLE_CENTERED)
+            (window->style->titleProperties & GEUI_TITLE_CENTERED)
                 ? ceil((titleEnd->x - titleStart->x) * 0.5) + titleStart->x
-                : titleStart->x + window->style.padding,
+                : titleStart->x + window->style->padding,
             titleStart->y - ceil(window->title.pFont->baselineOffset * 0.5));
         refreshText(&window->title);
     }
@@ -4248,7 +4248,7 @@ Actor *createWindowBaseParent(Window *window, WindowPosition pos)
         default: realPos = getWPosAtScreenCenter(window);                       break;
     }
 
-    baseParent = CreateActor("a_gui", window->style.guiAnim, "(none)", "(none)", view.x + realPos.x, view.y + realPos.y, true);
+    baseParent = CreateActor("a_gui", window->style->guiAnim, "(none)", "(none)", view.x + realPos.x, view.y + realPos.y, true);
     baseParent->animpos = 0;
     baseParent->myWindow = window->index;
     baseParent->myPanel = -1;
@@ -4427,14 +4427,14 @@ void doMouseEnter(const char *actorName)
             if (isTopmostItemAtMouse(item))
             {
                 if (item->data.button.state)
-                    colorGuiTiles(item->data.button.tiles, item->parent->style.buttonPressedColor);
+                    colorGuiTiles(item->data.button.tiles, item->parent->style->buttonPressedColor);
                 else
-                    colorGuiTiles(item->data.button.tiles, item->parent->style.buttonHilitColor);
+                    colorGuiTiles(item->data.button.tiles, item->parent->style->buttonHilitColor);
             }
             else doMouseLeave(actorName);
         break;
         case GEUI_Checkbox:
-            colorActor(getTile(item->data.checkbox.tileIndex), item->parent->style.buttonHilitColor);
+            colorActor(getTile(item->data.checkbox.tileIndex), item->parent->style->buttonHilitColor);
         break;
     }
 }
@@ -4460,13 +4460,13 @@ void doMouseLeave(const char *actorName)
             if (!isTopmostItemAtMouse(item))
             {
                 if (item->data.button.state)
-                    colorGuiTiles(item->data.button.tiles, item->parent->style.buttonPressedColor);
+                    colorGuiTiles(item->data.button.tiles, item->parent->style->buttonPressedColor);
                 else
-                    colorGuiTiles(item->data.button.tiles, item->parent->style.buttonColor);
+                    colorGuiTiles(item->data.button.tiles, item->parent->style->buttonColor);
             }
         break;
         case GEUI_Checkbox:
-            colorActor(getTile(item->data.checkbox.tileIndex), item->parent->style.buttonColor);
+            colorActor(getTile(item->data.checkbox.tileIndex), item->parent->style->buttonColor);
         break;
     }
 }
@@ -4504,7 +4504,7 @@ void doMouseButtonDown(const char *actorName, enum mouseButtonsEnum mButtonNumbe
         actor->r = actor->g = actor->b = 255;
 
         // create fake actor to cover the now white event actor
-        fake = CreateActor("a_gui", window->style.guiAnim, window->parentCName, "(none)", 0, 0, false);
+        fake = CreateActor("a_gui", window->style->guiAnim, window->parentCName, "(none)", 0, 0, false);
         fake->myWindow = window->index;
         fake->myPanel = -1;
         fake->myIndex = -1;
@@ -4540,7 +4540,7 @@ void doMouseButtonDown(const char *actorName, enum mouseButtonsEnum mButtonNumbe
     {
         case GEUI_Button:
             focusItem(item);
-            colorGuiTiles(item->data.button.tiles, window->style.buttonPressedColor);
+            colorGuiTiles(item->data.button.tiles, window->style->buttonPressedColor);
             item->data.button.state = 1;
         break;
         case GEUI_Checkbox:
@@ -4611,13 +4611,13 @@ void doMouseButtonUp(const char *actorName, enum mouseButtonsEnum mButtonNumber)
         {
             if (isTopmostItemAtMouse(item))
             {
-                colorGuiTiles(item->data.button.tiles, window->style.buttonHilitColor);
+                colorGuiTiles(item->data.button.tiles, window->style->buttonHilitColor);
                 if (item->data.button.state && item->data.button.action.fpAction)
                     item->data.button.action.fpAction(&item->data.button.action);
             }
             else
             {
-                colorGuiTiles(item->data.button.tiles, window->style.buttonColor);
+                colorGuiTiles(item->data.button.tiles, window->style->buttonColor);
             }
             item->data.button.state = 0;
         }
@@ -4768,7 +4768,7 @@ void doKeyDown(WindowItem *item, int key)
             case GEUI_Button:
                 if (key == KEY_RETURN || key == KEY_SPACE)
                 {
-                    colorGuiTiles(item->data.button.tiles, item->parent->style.buttonPressedColor);
+                    colorGuiTiles(item->data.button.tiles, item->parent->style->buttonPressedColor);
                     item->data.button.state = 1;
                 }
             break;
@@ -4800,7 +4800,7 @@ void doKeyUp(WindowItem *item, int key)
                     if (item->data.button.action.fpAction)
                         item->data.button.action.fpAction(&item->data.button.action);
 
-                    colorGuiTiles(item->data.button.tiles, item->parent->style.buttonColor);
+                    colorGuiTiles(item->data.button.tiles, item->parent->style->buttonColor);
                     item->data.button.state = 0;
                 }
             break;

@@ -59,14 +59,14 @@ void doMouseEnter(const char *actorName)
             if (isTopmostItemAtMouse(item))
             {
                 if (item->data.button.state)
-                    colorGuiTiles(item->data.button.tiles, item->parent->style.buttonPressedColor);
+                    colorGuiTiles(item->data.button.tiles, item->parent->style->buttonPressedColor);
                 else
-                    colorGuiTiles(item->data.button.tiles, item->parent->style.buttonHilitColor);
+                    colorGuiTiles(item->data.button.tiles, item->parent->style->buttonHilitColor);
             }
             else doMouseLeave(actorName);
         break;
         case GEUI_Checkbox:
-            colorActor(getTile(item->data.checkbox.tileIndex), item->parent->style.buttonHilitColor);
+            colorActor(getTile(item->data.checkbox.tileIndex), item->parent->style->buttonHilitColor);
         break;
     }
 }
@@ -92,13 +92,13 @@ void doMouseLeave(const char *actorName)
             if (!isTopmostItemAtMouse(item))
             {
                 if (item->data.button.state)
-                    colorGuiTiles(item->data.button.tiles, item->parent->style.buttonPressedColor);
+                    colorGuiTiles(item->data.button.tiles, item->parent->style->buttonPressedColor);
                 else
-                    colorGuiTiles(item->data.button.tiles, item->parent->style.buttonColor);
+                    colorGuiTiles(item->data.button.tiles, item->parent->style->buttonColor);
             }
         break;
         case GEUI_Checkbox:
-            colorActor(getTile(item->data.checkbox.tileIndex), item->parent->style.buttonColor);
+            colorActor(getTile(item->data.checkbox.tileIndex), item->parent->style->buttonColor);
         break;
     }
 }
@@ -136,7 +136,7 @@ void doMouseButtonDown(const char *actorName, enum mouseButtonsEnum mButtonNumbe
         actor->r = actor->g = actor->b = 255;
 
         // create fake actor to cover the now white event actor
-        fake = CreateActor("a_gui", window->style.guiAnim, window->parentCName, "(none)", 0, 0, false);
+        fake = CreateActor("a_gui", window->style->guiAnim, window->parentCName, "(none)", 0, 0, false);
         fake->myWindow = window->index;
         fake->myPanel = -1;
         fake->myIndex = -1;
@@ -172,7 +172,7 @@ void doMouseButtonDown(const char *actorName, enum mouseButtonsEnum mButtonNumbe
     {
         case GEUI_Button:
             focusItem(item);
-            colorGuiTiles(item->data.button.tiles, window->style.buttonPressedColor);
+            colorGuiTiles(item->data.button.tiles, window->style->buttonPressedColor);
             item->data.button.state = 1;
         break;
         case GEUI_Checkbox:
@@ -243,13 +243,13 @@ void doMouseButtonUp(const char *actorName, enum mouseButtonsEnum mButtonNumber)
         {
             if (isTopmostItemAtMouse(item))
             {
-                colorGuiTiles(item->data.button.tiles, window->style.buttonHilitColor);
+                colorGuiTiles(item->data.button.tiles, window->style->buttonHilitColor);
                 if (item->data.button.state && item->data.button.action.fpAction)
                     item->data.button.action.fpAction(&item->data.button.action);
             }
             else
             {
-                colorGuiTiles(item->data.button.tiles, window->style.buttonColor);
+                colorGuiTiles(item->data.button.tiles, window->style->buttonColor);
             }
             item->data.button.state = 0;
         }

@@ -176,7 +176,7 @@ void updateItemLayout(WindowItem *ptr)
         case GEUI_Text:
             updateTextDimensions(&ptr->data.text);
             ptr->layout.width = ptr->data.text.width;
-            ptr->layout.height = max(ptr->data.text.height + ptr->data.text.pFont->baselineOffset, ptr->parent->style.tileHeight);
+            ptr->layout.height = max(ptr->data.text.height + ptr->data.text.pFont->baselineOffset, ptr->parent->style->tileHeight);
         break;
         case GEUI_Button:
             DEBUG_MSG_FROM("Layout updating not implemented for item type: Button", "updateItemLayout");

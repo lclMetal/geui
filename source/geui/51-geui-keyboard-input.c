@@ -12,7 +12,7 @@ void doKeyDown(WindowItem *item, int key)
             case GEUI_Button:
                 if (key == KEY_RETURN || key == KEY_SPACE)
                 {
-                    colorGuiTiles(item->data.button.tiles, item->parent->style.buttonPressedColor);
+                    colorGuiTiles(item->data.button.tiles, item->parent->style->buttonPressedColor);
                     item->data.button.state = 1;
                 }
             break;
@@ -44,7 +44,7 @@ void doKeyUp(WindowItem *item, int key)
                     if (item->data.button.action.fpAction)
                         item->data.button.action.fpAction(&item->data.button.action);
 
-                    colorGuiTiles(item->data.button.tiles, item->parent->style.buttonColor);
+                    colorGuiTiles(item->data.button.tiles, item->parent->style->buttonColor);
                     item->data.button.state = 0;
                 }
             break;

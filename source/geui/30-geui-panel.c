@@ -94,13 +94,13 @@ short getColWidth(Panel *panel, short col)
 
     for (item = panel->iList; item != NULL; item = item->next)
     {
-        if (item->type == GEUI_Button && panel->parent->style.buttonProperties & GEUI_BUTTON_STRETCH && item->layout.col == col)
+        if (item->type == GEUI_Button && panel->parent->style->buttonProperties & GEUI_BUTTON_STRETCH && item->layout.col == col)
         {
             item->layout.width = width;
         }
     }
 
-    return width + panel->parent->style.padding * (col < panel->cols - 1);
+    return width + panel->parent->style->padding * (col < panel->cols - 1);
 }
 
 short getRowHeight(Panel *panel, short row)
@@ -120,7 +120,7 @@ short getRowHeight(Panel *panel, short row)
             height = item->layout.height;
     }
 
-    return height + panel->parent->style.padding * (row < panel->rows - 1);
+    return height + panel->parent->style->padding * (row < panel->rows - 1);
 }
 
 short getRowStart(WindowItem *panelItem, Panel *panel, short row)
@@ -130,13 +130,13 @@ short getRowStart(WindowItem *panelItem, Panel *panel, short row)
     if (!panel || !panel->iList) { DEBUG_MSG_FROM("panel is NULL or has no items", "getRowStart"); return 0; }
 
     if (row >= panel->rows)
-        return panel->height + getRowStart(panelItem, panel, 0) + panel->parent->style.padding;
+        return panel->height + getRowStart(panelItem, panel, 0) + panel->parent->style->padding;
 
     for (ptr = panel->iList; ptr != NULL; ptr = ptr->next)
     {
         if (ptr->layout.row == row)
         {
-            return ptr->layout.starty + ptr->parent->style.padding / 2;
+            return ptr->layout.starty + ptr->parent->style->padding / 2;
         }
     }
 
@@ -150,13 +150,13 @@ short getColStart(WindowItem *panelItem, Panel *panel, short col)
     if (!panel || !panel->iList) { DEBUG_MSG_FROM("panel is NULL or has no items", "getColStart"); return 0; }
 
     if (col >= panel->cols)
-        return panel->width + getColStart(panelItem, panel, 0) + panel->parent->style.padding;
+        return panel->width + getColStart(panelItem, panel, 0) + panel->parent->style->padding;
 
     for (ptr = panel->iList; ptr != NULL; ptr = ptr->next)
     {
         if (ptr->layout.col == col)
         {
-            return ptr->layout.startx + ptr->parent->style.padding / 2;
+            return ptr->layout.startx + ptr->parent->style->padding / 2;
         }
     }
 
@@ -270,7 +270,7 @@ void updatePanelLayout(WindowItem *panelItem, Panel *panel)
     for (item = panel->iList; item != NULL; item = item->next)
     {
         item->layout.startx = colValues[item->layout.col];
-        item->layout.starty = rowValues[item->layout.row] + ((panel->parent->hasTitle && item->myPanel == &panel->parent->root) * (panel->parent->style.tileHeight * 0.5 + panel->parent->style.padding));
+        item->layout.starty = rowValues[item->layout.row] + ((panel->parent->hasTitle && item->myPanel == &panel->parent->root) * (panel->parent->style->tileHeight * 0.5 + panel->parent->style->padding));
     }
 
     panel->width = getPanelWidth(panel);

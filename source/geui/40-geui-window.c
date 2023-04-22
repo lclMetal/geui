@@ -1,7 +1,7 @@
 // TODO: make functions return error codes instead of just exiting
 // without doing anything, which can be difficult to debug
 
-Window *createWindow(char tag[256], char *title, Style style);
+Window *createWindow(char tag[256], char *title, Style *style);
 Window *getWindowByTag(char tag[256]);
 Window *getWindowByIndex(int index);
 Window *getFirstOpenWindow();
@@ -15,7 +15,7 @@ void destroyWindow(Window *window);
 
 #define GEUI_NO_TITLE NULL
 
-Window *createWindow(char tag[256], char *title, Style style)
+Window *createWindow(char tag[256], char *title, Style *style)
 {
     Window *ptr = malloc(sizeof *ptr);
 
@@ -43,10 +43,10 @@ Window *createWindow(char tag[256], char *title, Style style)
     if (title)
     {
         ptr->hasTitle = True;
-        ptr->title = createText(title, ptr->style.titleFont, "(none)", ABSOLUTE, 0, 0);
-        setTextColor(&ptr->title, ptr->style.titleColor);
+        ptr->title = createText(title, ptr->style->titleFont, "(none)", ABSOLUTE, 0, 0);
+        setTextColor(&ptr->title, ptr->style->titleColor);
         setTextZDepth(&ptr->title, DEFAULT_ITEM_ZDEPTH);
-        if (ptr->style.titleProperties & GEUI_TITLE_CENTERED)
+        if (ptr->style->titleProperties & GEUI_TITLE_CENTERED)
             setTextAlignment(&ptr->title, ALIGN_CENTER);
     }
     else
@@ -56,9 +56,9 @@ Window *createWindow(char tag[256], char *title, Style style)
 
     GEUIController.wList = ptr;
 
-    getTileDimensions(&ptr->style);
-    ptr->style.tileWidth = defStyle.tileWidth;
-    ptr->style.tileHeight = defStyle.tileHeight;
+    getTileDimensions(ptr->style);
+    ptr->style->tileWidth = defStyle.tileWidth;
+    ptr->style->tileHeight = defStyle.tileHeight;
 
     return ptr;
 }
@@ -196,11 +196,11 @@ void buildWindow(Window *window, WindowPosition pos)
 
     setWindowBaseParent(window, createWindowBaseParent(window, pos)->clonename);
 
-    tileWidth = window->style.tileWidth;
-    tileHeight = window->style.tileHeight;
+    tileWidth = window->style->tileWidth;
+    tileHeight = window->style->tileHeight;
 
-    windowWidth = window->root.width + window->style.tileWidth + window->style.padding * 2;
-    windowHeight = window->root.height + window->style.tileHeight + window->style.padding * 2 + window->style.tileHeight * window->hasTitle;
+    windowWidth = window->root.width + window->style->tileWidth + window->style->padding * 2;
+    windowHeight = window->root.height + window->style->tileHeight + window->style->padding * 2 + window->style->tileHeight * window->hasTitle;
 
     tilesHorizontal = ceil(windowWidth / (float)tileWidth);
     tilesVertical = ceil(windowHeight / (float)tileHeight);
@@ -209,7 +209,7 @@ void buildWindow(Window *window, WindowPosition pos)
     {
         for (i = 0; i < tilesHorizontal; i ++)
         {
-            tile = CreateActor("a_gui", window->style.guiAnim,
+            tile = CreateActor("a_gui", window->style->guiAnim,
                                window->parentCName, "(none)", 0, 0, true);
             // TODO: actual positioning
             tile->x = i * tileWidth + (i >= 2 && i >= tilesHorizontal - 2) * (windowWidth - tilesHorizontal * tileWidth);
@@ -218,7 +218,7 @@ void buildWindow(Window *window, WindowPosition pos)
             tile->myPanel = window->root.index;
             tile->myIndex = -1;
             tile->animpos = calculateAnimpos(tilesHorizontal, tilesVertical, i, j + (j == 0 && window->hasTitle == False));
-            colorActor(tile, window->style.windowBgColor);
+            colorActor(tile, window->style->windowBgColor);
             ChangeZDepth(tile->clonename, WINDOW_TILE_ZDEPTH);
             EventDisable(tile->clonename, EVENTCOLLISION);
             EventDisable(tile->clonename, EVENTCOLLISIONFINISH);
@@ -228,7 +228,7 @@ void buildWindow(Window *window, WindowPosition pos)
                 if (i == 0)                        titleStart = tile;
                 else if (i == tilesHorizontal - 1) titleEnd = tile;
                 tile->myProperties = GEUI_TITLE_BAR; // part of the window title bar
-                colorActor(tile, window->style.titleBgColor);
+                colorActor(tile, window->style->titleBgColor);
             }
 
             updateGuiTileIndices(&window->tiles, tile->cloneindex);
@@ -238,9 +238,9 @@ void buildWindow(Window *window, WindowPosition pos)
     if (window->hasTitle)
     {
         setTextPosition(&window->title,
-            (window->style.titleProperties & GEUI_TITLE_CENTERED)
+            (window->style->titleProperties & GEUI_TITLE_CENTERED)
                 ? ceil((titleEnd->x - titleStart->x) * 0.5) + titleStart->x
-                : titleStart->x + window->style.padding,
+                : titleStart->x + window->style->padding,
             titleStart->y - ceil(window->title.pFont->baselineOffset * 0.5));
         refreshText(&window->title);
     }
@@ -261,7 +261,7 @@ Actor *createWindowBaseParent(Window *window, WindowPosition pos)
         default: realPos = getWPosAtScreenCenter(window);                       break;
     }
 
-    baseParent = CreateActor("a_gui", window->style.guiAnim, "(none)", "(none)", view.x + realPos.x, view.y + realPos.y, true);
+    baseParent = CreateActor("a_gui", window->style->guiAnim, "(none)", "(none)", view.x + realPos.x, view.y + realPos.y, true);
     baseParent->animpos = 0;
     baseParent->myWindow = window->index;
     baseParent->myPanel = -1;
