@@ -167,6 +167,13 @@ Window *openWindow(char tag[256], WindowPosition pos)
 
     updateItemLayouts(&window->root);
     updatePanelLayout(NULL, &window->root);
+
+    // make sure that wide titles in narrow windows don't flow out of their window
+    if (window->hasTitle && window->root.width < window->title.width)
+    {
+        window->root.width = window->title.width;
+    }
+
     buildWindow(window, pos);
     buildItems(&window->root);
 
