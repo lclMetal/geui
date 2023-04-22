@@ -3655,9 +3655,6 @@ void buildEmbedder(WindowItem *ptr)
 }
 
 
-// ..\source\geui\27-geui-item-title.c
-
-
 // ..\source\geui\30-geui-panel.c
 // TODO: make functions return error codes instead of just exiting
 // without doing anything, which can be difficult to debug
