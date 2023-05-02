@@ -57,8 +57,6 @@ Window *createWindow(char tag[256], char *title, Style *style)
     GEUIController.wList = ptr;
 
     getTileDimensions(ptr->style);
-    ptr->style->tileWidth = defStyle.tileWidth;
-    ptr->style->tileHeight = defStyle.tileHeight;
 
     return ptr;
 }
