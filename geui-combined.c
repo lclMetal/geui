@@ -4184,7 +4184,7 @@ void buildWindow(Window *window, WindowPosition pos)
     tileHeight = window->style->tileHeight;
 
     windowWidth = window->root.width + window->style->tileWidth + window->style->padding * 2;
-    windowHeight = window->root.height + window->style->tileHeight + window->style->padding * 2 + window->style->tileHeight * window->hasTitle;
+    windowHeight = window->root.height + window->style->tileHeight + window->style->padding * 2 + (window->style->tileHeight/2 + window->style->padding) * window->hasTitle;
 
     tilesHorizontal = ceil(windowWidth / (float)tileWidth);
     tilesVertical = ceil(windowHeight / (float)tileHeight);
