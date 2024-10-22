@@ -1,7 +1,7 @@
-WindowItem *addEmbedder(Panel *panel, char tag[256], const char *actorName);
+WindowItem *addEmbedder(Panel *panel, char tag[256], const char *actorName, bool isRegion);
 void buildEmbedder(WindowItem *ptr);
 
-WindowItem *addEmbedder(Panel *panel, char tag[256], const char *actorName)
+WindowItem *addEmbedder(Panel *panel, char tag[256], const char *actorName, bool isRegion)
 {
     Actor *actor;
     WindowItem *ptr = initNewItem(GEUI_Embedder, panel, tag);
@@ -14,6 +14,7 @@ WindowItem *addEmbedder(Panel *panel, char tag[256], const char *actorName)
         return NULL;
     }
 
+    ptr->data.embedder.isRegion = isRegion;
     strcpy(ptr->data.embedder.actorCName, actor->clonename);
     VisibilityState(ptr->data.embedder.actorCName, DISABLE);
 
@@ -35,8 +36,16 @@ void buildEmbedder(WindowItem *ptr)
     actor->x = 0;
     actor->y = 0;
     ChangeParent(ptr->data.embedder.actorCName, ptr->parent->parentCName);
-    actor->x = ptr->layout.startx + ptr->parent->style->padding + actor->width / 2;
-    actor->y = ptr->layout.starty + ptr->parent->style->padding + actor->height / 2;
+    if (ptr->data.embedder.isRegion)
+    {
+        actor->x = ptr->layout.startx + ptr->parent->style->padding;
+        actor->y = ptr->layout.starty + ptr->parent->style->padding;
+    }
+    else
+    {
+        actor->x = ptr->layout.startx + ptr->parent->style->padding + actor->width / 2;
+        actor->y = ptr->layout.starty + ptr->parent->style->padding + actor->height / 2;
+    }
     VisibilityState(ptr->data.embedder.actorCName, ENABLE);
 
     // {

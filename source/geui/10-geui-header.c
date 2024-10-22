@@ -186,6 +186,7 @@ typedef struct WindowItemStruct
         struct PanelStruct *panel;
         struct EmbedderItem
         {
+            bool isRegion;
             char actorCName[256];
         }embedder;
     }data;
