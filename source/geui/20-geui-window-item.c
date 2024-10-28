@@ -203,6 +203,9 @@ void updateItemLayout(WindowItem *ptr)
                 DEBUG_MSG_FROM("Actor doesn't exist, layout for Embedder item not updated", "updateItemLayout");
             }
         break;
+        case GEUI_DataBind:
+            // DataBind is a non-visual window item type and thus has no layout.
+        break;
     }
 
     sprintf(temp, "Updated layout for item: %s/%s", ptr->parent->tag, ptr->tag);
@@ -245,6 +248,7 @@ void buildItem(WindowItem *ptr)
         case GEUI_Input: buildInputField(ptr); break;
         case GEUI_Panel: buildPanel(ptr); break;
         case GEUI_Embedder: buildEmbedder(ptr); break;
+        case GEUI_DataBind: break;
     }
 }
 
@@ -284,6 +288,9 @@ void eraseWindowItem(WindowItem *ptr)
         case GEUI_Embedder:
             VisibilityState(ptr->data.embedder.actorCName, DISABLE);
         break;
+        case GEUI_DataBind:
+            // DataBind is a non-visual window item type and thus has nothing to erase.
+        break;
 
         default: break;
     }
@@ -318,6 +325,9 @@ void destroyWindowItem(WindowItem *ptr)
         break;
         case GEUI_Embedder:
             DestroyActor(ptr->data.embedder.actorCName);
+        break;
+        case GEUI_DataBind:
+            ptr->data.dataBind = NULL;
         break;
 
         default: break;

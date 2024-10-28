@@ -64,7 +64,7 @@ void exitos(GUIAction *action)
 
 void teleportActor(GUIAction *action)
 {
-    Actor *a = getBoundData(action->window, "actorToTp");
+    Actor *a = getBoundData(getWindowRootPanel(action->window), "actorToTp");
     a = getclone(a->clonename);
     a->xscreen = rand(view.width - 100) + 50;
     a->yscreen = rand(view.height - 100) + 50;
